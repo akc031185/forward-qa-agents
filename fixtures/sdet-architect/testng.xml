@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="shop-regression" parallel="classes" thread-count="2">
+  <test name="checkout">
+    <classes>
+      <class name="com.fabricated.shop.tests.CheckoutTest"/>
+    </classes>
+  </test>
+</suite>

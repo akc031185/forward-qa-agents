@@ -1,0 +1,63 @@
+{
+  "info": {
+    "_postman_id": "4f1b0c9e-1111-4a2b-9c3d-000000000001",
+    "name": "Fabricated Shop API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://api.shop.example.test" },
+    { "key": "apiKey", "value": "fabricated-key-123" }
+  ],
+  "item": [
+    {
+      "name": "Catalog",
+      "item": [
+        {
+          "name": "List products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/v1/products?limit=20", "host": ["{{baseUrl}}"], "path": ["v1", "products"], "query": [{ "key": "limit", "value": "20" }] }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test(\"status is 200\", function () {", "    pm.response.to.have.status(200);", "});"] } }
+          ]
+        },
+        {
+          "name": "Get product by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v1/products/sku-1001"
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.expect(pm.response.code).to.eql(200);", "const body = pm.response.json();", "pm.expect(body.sku).to.eql('sku-1001');"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Create order",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Api-Key", "value": "{{apiKey}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"sku\": \"sku-1001\",\n  \"quantity\": 2,\n  \"shipping\": \"express\"\n}" },
+        "url": { "raw": "{{baseUrl}}/v1/orders", "host": ["{{baseUrl}}"], "path": ["v1", "orders"] }
+      },
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test(\"created\", () => pm.response.to.have.status(201));"] } }
+      ]
+    },
+    {
+      "name": "Delete order (no tests)",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "X-Api-Key", "value": "{{apiKey}}" }],
+        "url": "{{baseUrl}}/v1/orders/ord-9001"
+      }
+    }
+  ]
+}
