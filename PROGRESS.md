@@ -36,17 +36,34 @@ best-effort and their numbers as exact.
   npm ci, Chromium install, typecheck, tests. One annotation: checkout@v4 and setup-node@v4
   target Node 20 and are forced onto Node 24 (harmless for now).
 
+- 17:30–19:00 Reworked the plates diagram-first at the user's request: at-a-glance pipeline SVG,
+  short flowchart titles (full text + code behind the click), mechanism figures (crawl loop,
+  locator ladder, severity map; normalisation trace, confidence ladder, status decision), examples
+  collapsed. Then the bullet rule: any prose over two lines is a list of at most six bullets,
+  enforced by the generator. Authoring source moved into `_build/author/{plates,diagrams}.mjs`
+  (`npm run catalog:author`). Committed `dd39196`, pushed.
+- 19:00–19:40 Added both plates to the shared field guide hub `akc031185/qa-agents` (GitHub Pages)
+  as **Section 09 · Landing in a new environment**, plus the process page as **Guide 05**. Ported
+  the v5 generator features into the hub's `build-catalog.ts`; all 38 existing plates rebuilt with
+  only the code-modal markup changed; every link verified. Committed `2532c13` on branch
+  `add-plates-44-45` and pushed the branch. **Not merged**: main deploys the live site.
+
 **Decided**
 
 - The `gh` token for `akc031185` now carries `workflow` scope; no more push blockers for CI edits.
+- Plates keep numbers 44 and 45 in the hub (the agent code declares them); 39–43 are a gap for now.
+- The hub gets a `package.json` (`type: commonjs`) so `npx tsx build-catalog.ts` works; `_internal/`
+  is gitignored there.
 
 **Open / next**
 
-1. Start the plate 44 redesign: ledger schema in `src/core/db.ts` first (Baseline, Eval cube,
+1. Merge `add-plates-44-45` into `qa-agents` main (publishes Section 09 and Guide 05 on the live
+   site) once the user has reviewed https://github.com/akc031185/qa-agents/pull/new/add-plates-44-45.
+2. Start the plate 44 redesign: ledger schema in `src/core/db.ts` first (Baseline, Eval cube,
    Cost, Outcome, Verdict keyed on a unit of work), since every phase writes rows there. Then the
    Discover phase, folding the existing crawler in as one probe.
-2. Update the README so plate 44 is described by the thesis definition, not as a crawler.
-3. Bump `actions/checkout` and `actions/setup-node` to v5 when convenient to clear the Node 20
+3. Update the README so plate 44 is described by the thesis definition, not as a crawler.
+4. Bump `actions/checkout` and `actions/setup-node` to v5 when convenient to clear the Node 20
    deprecation annotation.
 
 ---
