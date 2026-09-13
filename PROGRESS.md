@@ -1,0 +1,102 @@
+# Progress log
+
+Daily record of what was accomplished, newest day on top. Every working session must read this
+file first and update it before ending. Run `npm run progress` to stamp a new day with measured
+numbers, then fill in the Done / Decided / Open sections by hand.
+
+Entries marked **reconstructed** were rebuilt after the fact from commit timestamps, file
+modification times, run logs and the SQLite database, not written live. Treat their narrative as
+best-effort and their numbers as exact.
+
+---
+
+## 2026-09-11 (Friday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 2 |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 12 (CI workflow, progress tooling, field guide: `_build/`, `assets/`, `agents/`, `index.html`, `process.html`, README/CLAUDE.md edits) |
+| Typecheck | pass |
+| Tests | 89 pass, 0 fail (10 suites) |
+| Source lines (src/) | 4633 across 36 files |
+| Test lines (tests/) | 1161 across 14 files |
+| Agent runs in DB | 2 (forward-deployed-tester succeeded, sdet-architect succeeded) |
+
+**Done**
+
+- 04:22–04:57 Built the whole repo from scratch: core (config, SQLite db, local-only LLM adapter,
+  agent contract, runner), Fastify REST API, both agents, fixtures, tests, field-guide plates,
+  Claude Code subagent definitions. Committed as `bbc1413` at 04:57.
+- 04:32 First live run of the Forward Deployed Tester against a local 3-page demo site on
+  port 4711. Crawled 3 pages in 2.0 s, recorded 4 findings (1 broken link, 1 unlabeled form
+  control, 2 low), provisioned 11 Playwright + MCP files. Run id `049b95fd`.
+- 04:27 Wrote the GitHub Actions CI workflow (Node 24, Chromium, typecheck, test). Never committed.
+- Morning to 10:03 Four-thread market research on the Forward Deployed Tester idea (FDE playbook,
+  eval/observability tooling, AI assurance standards, local-model feasibility). Written up as
+  `docs/forward-deployed-tester-thesis.md` and committed as `3e8c6fe` at 10:03.
+- 18:31 Resumed with no session notes. Verified typecheck and tests green. Created this
+  progress log, the `npm run progress` measurement script, and `CLAUDE.md` so future sessions
+  keep the log current.
+- 19:00–19:30 Built the field guide in the house catalog format (same generator and stylesheet as
+  the QA, OSCAR and FinOps guides, adapted for ESM and this repo's `src/agents/<slug>/` layout):
+  `index.html`, `agents/the-forward-deployed-tester.html` (plate 44), `agents/the-sdet-architect.html`
+  (plate 45), and a hand-written `process.html` covering the seven phases, five ledgers, working
+  rules, session loop and cheat-sheet. Every code block is sliced from the real source by line
+  range and annotated (116 annotations); every number comes from run `049b95fd` (FDT, 04:32) or
+  run `46f19623` (SDET on the fixture estate, this evening: 12 files, 28 tests, 91.7% coverage,
+  38 locators, 3 low, 26 files). Rendered and checked with Playwright at 1280 and 400 px; fixed an
+  inherited stylesheet overflow in the example panels. Added `npm run catalog`.
+
+**Decided**
+
+- The category is unoccupied: nobody independently validates what a vendor's FDE delivered.
+- Plate 44 as built is only a surface probe. The real Forward Deployed Tester is redefined around
+  seven phases (Discover, Baseline, Golden set, Eval cube, Cost ledger, Pilot with causal design,
+  Verdict and handover) writing to five ledgers keyed on a unit of work.
+- Plate 45 (SDET Architect) stays as is; it is the deterministic regression layer.
+- Principles hold: deterministic first, local open-weight models only, one agent one folder, no
+  real client or colleague names anywhere.
+
+**Open / next**
+
+1. **Commit and push.** Nothing from today is in git yet: the CI workflow, `PROGRESS.md`,
+   `CLAUDE.md`, `scripts/progress.mjs`, the field guide (`_build/`, `assets/`, `agents/`,
+   `index.html`, `process.html`) and the README / package.json edits are all only in the working
+   tree. Review the pages first (serve with `python3 -m http.server 8790` from the repo root,
+   Chrome will not open `file://`), then one commit, push, and confirm the first Actions run is green.
+2. Start the plate 44 redesign: ledger schema in `src/core/db.ts` first, since every phase writes
+   rows there. Then the Discover phase, folding the existing crawler in as one probe.
+3. Update the README so plate 44 is described by the thesis definition, not as a crawler.
+
+*Entry reconstructed on 2026-09-11 evening from git log, file mtimes, `workspace/*/run.log` and
+`data/forward-qa.db`; the 18:31 onward items were written live. Session closed shortly after midnight.*
+
+---
+
+<!-- Template for a new day (npm run progress inserts the header and snapshot for you)
+
+## YYYY-MM-DD (Weekday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| ... | ... |
+
+**Done**
+
+- HH:MM What was built, fixed, run, or written. Reference commit hashes and run ids.
+
+**Decided**
+
+- Decisions and why. Link to the doc or commit that records them.
+
+**Open / next**
+
+1. Ordered list of what to pick up next session.
+
+---
+-->

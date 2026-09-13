@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How an engagement runs — Forward QA Agents — Field Guide</title>
+<link rel="stylesheet" href="assets/site.css">
+<style>
+  /* guide-specific bits only — everything else comes from site.css */
+  .fig{margin:18px 0 26px;background:var(--card);border-radius:var(--r-lg);box-shadow:var(--shadow-1);padding:22px 20px 14px;text-align:center;}
+  .fig--tint{background:var(--tint);}
+  .fig svg{width:100%;max-width:680px;height:auto;display:inline-block;}
+  .fig figcaption{margin-top:8px;color:var(--ink-soft);font-weight:700;font-size:.85rem;}
+  .fig svg text{font-family:var(--font);}
+  .fig svg .hand{stroke-linecap:round;stroke-linejoin:round;fill:none;}
+  .guide-hero{display:grid;grid-template-columns:1.15fr 1fr;gap:28px;align-items:center;padding:44px 0 10px;}
+  .guide-hero h1.display{margin:16px 0 14px;}
+  .guide-hero .fig{margin:0;}
+  .ledgers{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border-radius:var(--r-md);box-shadow:var(--shadow-1);overflow:hidden;font-size:.93rem;}
+  .ledgers th{text-align:left;background:var(--tint);color:var(--deep);font-weight:800;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;padding:12px 16px;}
+  .ledgers td{padding:12px 16px;border-top:1px solid var(--line);color:var(--ink-soft);font-weight:600;vertical-align:top;}
+  .ledgers td:first-child{color:var(--ink);font-weight:800;white-space:nowrap;}
+  .ledgers code{font-family:var(--mono);font-size:.84em;background:#FBF5EA;border-radius:6px;padding:1px 6px;}
+  .tablewrap{overflow-x:auto;margin:8px 0 22px;}
+  .phase{display:flex;gap:18px;align-items:flex-start;background:var(--card);border-radius:var(--r-md);box-shadow:var(--shadow-1);padding:18px 22px;margin-bottom:12px;}
+  .phase__n{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:14px;background:var(--ac);color:#FFFDF8;font-weight:800;}
+  .phase__body h3{font-weight:800;font-size:1.05rem;letter-spacing:-.01em;margin:2px 0 6px;}
+  .phase__body p{margin:0 0 6px;font-size:.94rem;}
+  .phase__row{display:inline-block;font-family:var(--mono);font-size:.76rem;font-weight:700;background:var(--tint);color:var(--deep);padding:4px 12px;border-radius:var(--r-pill);margin-top:4px;}
+  .cheat > div{break-inside:avoid;}
+  @media (min-width:641px){.cheat{display:grid;grid-template-columns:1fr 1fr;gap:0 30px;align-items:start;}}
+  @media (max-width:760px){.guide-hero{grid-template-columns:1fr;padding-top:30px;} .phase{flex-direction:column;gap:10px;}}
+</style>
+</head>
+<body>
+<header class="masthead"><div class="wrap masthead__inner">
+  <div class="masthead__title"><b>◑</b> Forward QA Agents — Field Guide</div>
+  <nav class="masthead__nav">
+    <a href="index.html">Contents</a>
+    <a href="process.html">Process</a>
+    <a href="PROGRESS.md">Progress log</a>
+    <a href="docs/forward-deployed-tester-thesis.md">Thesis</a>
+  </nav>
+</div></header>
+
+<main class="wrap wrap--article"><article class="plate">
+
+  <!-- ============ Hero ============ -->
+  <section class="s6">
+    <div class="guide-hero">
+      <div>
+        <span class="eyebrow">A process guide · for the whole team</span>
+        <h1 class="display">How a Forward Deployed Tester engagement runs</h1>
+        <p class="lead">A vendor's forward-deployed engineers deliver the AI. Nobody independently measures what they delivered. This page is the process for doing that measurement: seven phases, five ledgers, one unit of work, and the two agents in this repo doing the deterministic parts. It also records how <em>we</em> work on the repo itself, so the next person, or the next model, can pick up where the last one stopped.</p>
+      </div>
+      <figure class="fig fig--tint">
+        <svg viewBox="0 0 560 260" role="img" aria-label="A vendor hands over an AI box; a tester with a clipboard measures it against a baseline">
+          <!-- vendor box -->
+          <g transform="rotate(-3 120 140)">
+            <rect x="50" y="86" width="140" height="110" rx="20" fill="#fff" stroke="var(--ac)" stroke-width="4"/>
+            <text x="120" y="130" text-anchor="middle" font-size="16" font-weight="800" fill="var(--deep)">the AI</text>
+            <text x="120" y="152" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--ink-soft)">"it works, trust us"</text>
+            <path class="hand" d="M72 176 h96" stroke="var(--ac)" stroke-width="6" opacity=".5"/>
+          </g>
+          <!-- arrow -->
+          <path class="hand" d="M200 140 Q250 120 300 140" stroke="var(--deep)" stroke-width="4.5" stroke-dasharray="1 9"/>
+          <!-- clipboard -->
+          <g transform="rotate(2 420 140)">
+            <rect x="340" y="62" width="160" height="160" rx="20" fill="var(--tint)" stroke="var(--deep)" stroke-width="4"/>
+            <rect x="392" y="50" width="56" height="26" rx="10" fill="var(--ac)"/>
+            <text x="420" y="104" text-anchor="middle" font-size="14.5" font-weight="800" fill="var(--deep)">before / after</text>
+            <g font-size="12.5" font-weight="700" fill="var(--ink)">
+              <circle cx="366" cy="132" r="8" fill="#2EC4A0"/><path class="hand" d="M361 132 l4 4 l7 -8" stroke="#fff" stroke-width="2.4"/><text x="382" y="137">baseline frozen</text>
+              <circle cx="366" cy="160" r="8" fill="#2EC4A0"/><path class="hand" d="M361 160 l4 4 l7 -8" stroke="#fff" stroke-width="2.4"/><text x="382" y="165">eval cube run</text>
+              <circle cx="366" cy="188" r="8" fill="#FFB020"/><text x="382" y="193">cost per verified outcome</text>
+            </g>
+          </g>
+          <text x="120" y="232" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--deep)">delivered</text>
+          <text x="420" y="248" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--deep)">independently verified</text>
+        </svg>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ 1 · Why a process ============ -->
+  <section class="s6">
+    <h2 class="display">Why this process exists</h2>
+    <p>The research behind the <a class="doclink" href="docs/forward-deployed-tester-thesis.md">thesis</a> found the same gap in every thread. Palantir, OpenAI and Anthropic all field forward-deployed engineers whose success is "impact on the customer's goal", yet no vendor publishes a pre-deployment baseline protocol, no named role independently audits what an FDE delivered, and the studies that did measure rigorously (METR, DORA 2024) found effects that contradict the vendor claims. MIT's "95% of pilots show no P&amp;L impact" is mostly a story about <strong>absent baselines</strong>, not about broken models.</p>
+    <div class="beforeafter">
+      <div class="ba ba--before"><div class="ba__label">How it goes today</div><p>The vendor defines "resolved". The customer has no pre-AI numbers. The pilot ends with a slide deck, a disputed tally, and nobody who can say what a resolution cost.</p></div>
+      <div class="ba__arrow">→</div>
+      <div class="ba ba--after"><div class="ba__label">With a Forward Deployed Tester</div><p>One unit of work is named up front. Its cost before AI is frozen and signed. The AI is scored on that unit across every rubric axis. Tokens and infra are ledgered on that unit. The verdict states its causal design and its limits.</p></div>
+    </div>
+    <p>Everything below is keyed on the <strong>unit of work</strong>: a support ticket, a claim, a document, a pull request, a report. Pick it in the first week or nothing later can be compared.</p>
+  </section>
+
+  <!-- ============ 2 · The seven phases ============ -->
+  <section class="s2">
+    <h2 class="display">The seven phases</h2>
+    <p>Each phase produces rows in one of the ledgers in the next section, and each is runnable with no model at all. The two agents in this catalog do the deterministic work of phases 1 and 6; the rest is the redesign still ahead of this repo (see the progress log).</p>
+    <figure class="fig">
+      <svg viewBox="0 0 680 150" role="img" aria-label="Seven phases drawn as a chain of pills left to right: discover, baseline, golden set, eval cube, cost ledger, pilot, verdict">
+        <defs><marker id="ah-ph" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--ac)"/></marker></defs>
+        <path class="hand" d="M28 76 Q340 64 652 76" stroke="var(--ac)" stroke-width="4.5" marker-end="url(#ah-ph)"/>
+        <g font-size="12.5" font-weight="800" fill="var(--deep)">
+          <g transform="rotate(-2 70 76)"><rect x="26" y="58" width="88" height="34" rx="17" fill="var(--tint)" stroke="var(--ac)" stroke-width="3"/><text x="70" y="80" text-anchor="middle">1 discover</text></g>
+          <g transform="rotate(2 170 74)"><rect x="126" y="56" width="88" height="34" rx="17" fill="#fff" stroke="var(--ac)" stroke-width="3"/><text x="170" y="78" text-anchor="middle">2 baseline</text></g>
+          <g transform="rotate(-2 270 72)"><rect x="222" y="54" width="96" height="34" rx="17" fill="var(--tint)" stroke="var(--ac)" stroke-width="3"/><text x="270" y="76" text-anchor="middle">3 golden set</text></g>
+          <g transform="rotate(2 370 70)"><rect x="326" y="52" width="88" height="34" rx="17" fill="#fff" stroke="var(--ac)" stroke-width="3"/><text x="370" y="74" text-anchor="middle">4 eval cube</text></g>
+          <g transform="rotate(-2 470 72)"><rect x="424" y="54" width="92" height="34" rx="17" fill="var(--tint)" stroke="var(--ac)" stroke-width="3"/><text x="470" y="76" text-anchor="middle">5 cost ledger</text></g>
+          <g transform="rotate(2 562 74)"><rect x="526" y="56" width="72" height="34" rx="17" fill="#fff" stroke="var(--ac)" stroke-width="3"/><text x="562" y="78" text-anchor="middle">6 pilot</text></g>
+          <g transform="rotate(-2 640 76)"><rect x="606" y="58" width="68" height="34" rx="17" fill="var(--ac)"/><text x="640" y="80" text-anchor="middle" fill="#FFFDF8">7 verdict</text></g>
+        </g>
+        <text x="70" y="122" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--ink-soft)">plate 44 probes here</text>
+        <text x="562" y="122" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--ink-soft)">plate 45 regresses here</text>
+        <path class="hand" d="M70 96 v12 M562 96 v12" stroke="var(--ink-soft)" stroke-width="2.5" stroke-dasharray="1 5"/>
+      </svg>
+      <figcaption>Left to right, once per engagement; phases 4 and 6 repeat on every change after handover.</figcaption>
+    </figure>
+
+    <div class="phase"><div class="phase__n">1</div><div class="phase__body"><h3>Discover</h3><p>Map the workflow, define the unit of work, and name the KPI owner on the customer side — the research shows this owner is usually missing. Run the surface probes: the existing crawler (<a class="doclink" href="agents/the-forward-deployed-tester.html">plate 44</a>), API probes, log probes. Output: a written unit-of-work definition and a findings baseline for the app as it stands.</p><span class="phase__row">rows → Baseline (surface), Findings</span></div></div>
+    <div class="phase"><div class="phase__n">2</div><div class="phase__body"><h3>Baseline</h3><p>Instrument the pre-AI workflow, or replay 30–90 days of historical records, and freeze the baseline with the KPI owner's signature: human time, error rate, throughput and cost per unit of work. Nothing downstream is valid without this row.</p><span class="phase__row">rows → Baseline</span></div></div>
+    <div class="phase"><div class="phase__n">3</div><div class="phase__body"><h3>Golden set</h3><p>Build the eval dataset from real traffic with offline PII redaction, labelled by the customer's own experts. This is OpenAI's FDE "trajectories" practice done independently of the vendor.</p><span class="phase__row">rows → Golden set (unit × label)</span></div></div>
+    <div class="phase"><div class="phase__n">4</div><div class="phase__body"><h3>Eval cube</h3><p>Run rubric evals with a local open-weight judge, calibrated against a human-labelled slice, with the documented judge-bias mitigations built in. Rubric axes × workflow steps × variants (model, prompt, retrieval, temperature). Rotating one face must not silently degrade another; a regression gate watches every cell.</p><span class="phase__row">rows → Eval cube (unit × axis × step × variant)</span></div></div>
+    <div class="phase"><div class="phase__n">5</div><div class="phase__body"><h3>Cost ledger</h3><p>Tokens per unit of work per model from the customer's own usage records — never estimated, because the Claude tokenizer is not public — plus self-hosted infra measured under real concurrency, priced from vendored tables with their snapshot date printed.</p><span class="phase__row">rows → Cost (unit)</span></div></div>
+    <div class="phase"><div class="phase__n">6</div><div class="phase__body"><h3>Pilot with a causal design</h3><p>Shadow mode or A/B where possible; pre/post with stated limits where not. The standardised regression suite (<a class="doclink" href="agents/the-sdet-architect.html">plate 45</a>) runs on every change so a quality regression is caught by a test, not by a customer.</p><span class="phase__row">rows → Outcome (unit)</span></div></div>
+    <div class="phase"><div class="phase__n">7</div><div class="phase__body"><h3>Verdict and handover</h3><p>Cost per verified outcome, confidence, go / no-go / conditions, and the harness left behind so the organisation can re-run the whole validation on every future change without us.</p><span class="phase__row">rows → Verdict (engagement)</span></div></div>
+  </section>
+
+  <!-- ============ 3 · The five ledgers ============ -->
+  <section class="s3">
+    <h2 class="display">The five ledgers</h2>
+    <p>Everything the engagement produces is a row in one of five tables, keyed on the unit of work. The existing SQLite schema (<code>engagements</code>, <code>runs</code>, <code>findings</code>, <code>artifacts</code>) is the substrate; the ledgers are the next tables to add, and the first work item of the redesign.</p>
+    <div class="tablewrap"><table class="ledgers">
+      <thead><tr><th>Ledger</th><th>Question it answers</th><th>Keyed on</th></tr></thead>
+      <tbody>
+        <tr><td>Baseline</td><td>What did this unit cost in human time, errors and money before AI?</td><td><code>unit of work</code></td></tr>
+        <tr><td>Eval cube</td><td>How does the AI score on every rubric axis, every workflow step, every model or config variant?</td><td><code>unit × axis × step × variant</code></td></tr>
+        <tr><td>Cost</td><td>Tokens by model, plus self-hosted infra under real concurrency</td><td><code>unit of work</code></td></tr>
+        <tr><td>Outcome</td><td>What happened after, under a stated causal design (pre/post, shadow, A/B)?</td><td><code>unit of work</code></td></tr>
+        <tr><td>Verdict</td><td>Cost per verified outcome, confidence, go / no-go / conditions</td><td><code>engagement</code></td></tr>
+      </tbody>
+    </table></div>
+    <figure class="fig">
+      <svg viewBox="0 0 660 230" role="img" aria-label="The eval cube drawn as a three-axis cube: rubric axes, workflow steps, variants; one highlighted cell">
+        <g transform="translate(120 20)">
+          <path d="M60 60 L240 60 L240 180 L60 180 Z" fill="#fff" stroke="var(--deep)" stroke-width="4"/>
+          <path d="M60 60 L110 20 L290 20 L240 60 Z" fill="var(--tint)" stroke="var(--deep)" stroke-width="4"/>
+          <path d="M240 60 L290 20 L290 140 L240 180 Z" fill="var(--tint)" stroke="var(--deep)" stroke-width="4"/>
+          <g stroke="var(--ac)" stroke-width="2" opacity=".55"><path d="M120 60 V180 M180 60 V180 M60 100 H240 M60 140 H240"/><path d="M110 20 V140 M290 20 L240 60" opacity="0"/></g>
+          <rect x="120" y="100" width="60" height="40" fill="var(--ac)" opacity=".85"/>
+          <text x="150" y="126" text-anchor="middle" font-size="12" font-weight="800" fill="#FFFDF8">cell</text>
+          <text x="150" y="208" text-anchor="middle" font-size="13.5" font-weight="800" fill="var(--deep)">rubric axes →</text>
+          <text x="30" y="124" text-anchor="middle" font-size="13.5" font-weight="800" fill="var(--deep)" transform="rotate(-90 30 124)">workflow steps ↑</text>
+          <text x="312" y="12" font-size="13.5" font-weight="800" fill="var(--deep)">variants ↗</text>
+        </g>
+        <g font-size="13" font-weight="700" fill="var(--ink-soft)">
+          <text x="470" y="70">correctness · safety · tone</text>
+          <text x="470" y="92">policy · latency</text>
+          <text x="470" y="128">model · prompt · retrieval</text>
+          <text x="470" y="150">temperature</text>
+          <text x="470" y="186" fill="var(--deep)" font-weight="800">one cell = one score,</text>
+          <text x="470" y="206" fill="var(--deep)" font-weight="800">one regression gate</text>
+        </g>
+      </svg>
+      <figcaption>The "Rubik's cube": rotate one face (change the prompt) and every other face is re-scored.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============ 4 · Where the two agents sit ============ -->
+  <section class="s4">
+    <h2 class="display">Where plates 44 and 45 sit</h2>
+    <p>Plate 44 as built is a web-app crawler that provisions Playwright infrastructure. The thesis is blunt about it: that is a useful <strong>surface probe</strong>, not the Forward Deployed Tester. It becomes one probe inside Discover, and the agent itself is redefined around the seven phases above. Plate 45 stays exactly as it is.</p>
+    <div class="paths">
+      <a class="path" href="agents/the-forward-deployed-tester.html"><span class="rcard__no">Agent 44 · Discover</span><h3 class="display">The Forward Deployed Tester</h3><p>Crawls the running app, records findings by severity, provisions the smoke suite and page objects. Its <code>report.json</code> is the first Baseline row: what is broken, how slow, how testable, before anything changes.</p><span class="path__go">Open the plate →</span></a>
+      <a class="path" href="agents/the-sdet-architect.html"><span class="rcard__no">Agent 45 · Pilot</span><h3 class="display">The SDET Architect</h3><p>Rebuilds whatever tests the organisation already has as one Playwright + MCP project. That project is the deterministic regression layer under the eval cube: it runs on every change during and after the pilot.</p><span class="path__go">Open the plate →</span></a>
+    </div>
+    <div class="rb__note"><strong>What is not built yet.</strong> The ledger tables, the Baseline and Golden-set phases, the eval cube runner with a local judge, the cost ledger and the verdict. The order of work is on the <a class="doclink" href="PROGRESS.md">progress log</a>: ledger schema first, because every phase writes rows there.</div>
+  </section>
+
+  <!-- ============ 5 · Working rules ============ -->
+  <section class="s8">
+    <h2 class="display">Working rules for the repo</h2>
+    <p>Four principles from the README, enforced by code where possible, and three verification gates that every change passes before it lands.</p>
+    <ol class="rb__steps">
+      <li class="rb__step"><div class="rb__label">Deterministic first</div><span class="rb__why"><span>Rule</span>Every deliverable exists with <code>LLM_PROVIDER=none</code>. A model may only enrich text, and <code>maybeLlm()</code> guarantees the fallback. CI runs with the provider set to <code>none</code> so nothing can pass only when a model is present.</span></li>
+      <li class="rb__step"><div class="rb__label">Local open-weight models only</div><span class="rb__why"><span>Rule</span><code>assertLocalEndpoint()</code> rejects any host that is not loopback, RFC 1918 or <code>.local</code> unless <code>LLM_ALLOW_REMOTE=1</code> is set for a server you own. There is no paid-provider code path; <code>grep -rn "api.openai.com\|api.anthropic.com" src</code> returns nothing.</span></li>
+      <li class="rb__step"><div class="rb__label">One agent, one folder, one owner</div><span class="rb__why"><span>Rule</span>Agents never import from each other. Each has its own CLI, routes, tests and plate. Shared code lives in <code>src/core</code> only.</span></li>
+      <li class="rb__step"><div class="rb__label">No real names</div><span class="rb__why"><span>Rule</span>No client, product or colleague names in code, fixtures, docs or the progress log. The fixture estate is "Fabricated Shop" on <code>shop.example.test</code>.</span></li>
+      <li class="rb__step"><div class="rb__label">Gate 1 · typecheck</div><pre class="rb__cmd"><code>npm run typecheck</code></pre><span class="rb__why"><span>Why</span>Strict TypeScript with <code>NodeNext</code> resolution. The generated Playwright project is also compiled by the end-to-end test, so a generator that emits bad TypeScript fails here.</span></li>
+      <li class="rb__step"><div class="rb__label">Gate 2 · tests, no model</div><pre class="rb__cmd"><code>LLM_PROVIDER=none npm test</code></pre><span class="rb__why"><span>Why</span>89 tests on 2026-09-11: parsers for every dialect, locator tables, generators, report rendering, database, the model adapter's endpoint guard, one real Chromium crawl against an in-process server and one end-to-end migration of the fixture estate.</span></li>
+      <li class="rb__step"><div class="rb__label">Gate 3 · CI on push and pull request</div><pre class="rb__cmd"><code>cat .github/workflows/ci.yml   # Node 24, Chromium, typecheck, test</code></pre><span class="rb__why"><span>Why</span>The same two gates on a clean Ubuntu runner. The workflow is written and not yet committed; committing it is the first open item on the progress log.</span></li>
+    </ol>
+  </section>
+
+  <!-- ============ 6 · The daily loop ============ -->
+  <section class="s5">
+    <h2 class="display">The session loop</h2>
+    <p>Sessions are short and models change between them. The only memory that survives is the repo, so every session starts by reading the progress log and ends by writing to it. <code>CLAUDE.md</code> makes this mandatory for any agent working here; for a person it is a habit.</p>
+    <figure class="fig">
+      <svg viewBox="0 0 460 440" role="img" aria-label="The session loop drawn as a circle of six steps: read the progress log, pick the top open item, work, typecheck and test, commit, stamp and fill in the progress log">
+        <defs><marker id="ah-loop" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--ac)"/></marker></defs>
+        <circle cx="230" cy="220" r="138" fill="none" stroke="var(--ac)" stroke-width="4.5" stroke-dasharray="2 12" stroke-linecap="round"/>
+        <path class="hand" d="M298 100 A138 138 0 0 1 340 152" stroke="var(--ac)" stroke-width="4.5" marker-end="url(#ah-loop)"/>
+        <path class="hand" d="M162 340 A138 138 0 0 1 120 288" stroke="var(--ac)" stroke-width="4.5" marker-end="url(#ah-loop)"/>
+        <text x="230" y="226" text-anchor="middle" font-size="15" font-weight="800" fill="var(--deep)">every session,</text>
+        <text x="230" y="246" text-anchor="middle" font-size="15" font-weight="800" fill="var(--deep)">whoever runs it</text>
+        <g font-size="13.5" font-weight="800">
+          <g transform="rotate(-2 230 82)"><rect x="150" y="64" width="160" height="36" rx="18" fill="var(--tint)" stroke="var(--ac)" stroke-width="3"/><text x="230" y="88" text-anchor="middle" fill="var(--deep)">1 · read PROGRESS.md</text></g>
+          <g transform="rotate(2 366 151)"><rect x="292" y="133" width="148" height="36" rx="18" fill="#fff" stroke="var(--ac)" stroke-width="3"/><text x="366" y="157" text-anchor="middle" fill="var(--deep)">2 · top open item</text></g>
+          <g transform="rotate(-2 372 290)"><rect x="318" y="272" width="108" height="36" rx="18" fill="var(--tint)" stroke="var(--ac)" stroke-width="3"/><text x="372" y="296" text-anchor="middle" fill="var(--deep)">3 · work</text></g>
+          <g transform="rotate(2 230 358)"><rect x="140" y="340" width="180" height="36" rx="18" fill="#fff" stroke="var(--ac)" stroke-width="3"/><text x="230" y="364" text-anchor="middle" fill="var(--deep)">4 · typecheck + test</text></g>
+          <g transform="rotate(-2 92 290)"><rect x="32" y="272" width="120" height="36" rx="18" fill="var(--tint)" stroke="var(--ac)" stroke-width="3"/><text x="92" y="296" text-anchor="middle" fill="var(--deep)">5 · commit</text></g>
+          <g transform="rotate(2 90 151)"><rect x="8" y="133" width="164" height="36" rx="18" fill="#fff" stroke="var(--ac)" stroke-width="3"/><text x="90" y="157" text-anchor="middle" fill="var(--deep)">6 · npm run progress</text></g>
+        </g>
+      </svg>
+      <figcaption>Read the log → take the top open item → work → gates → commit → stamp the log and fill it in → next session reads it.</figcaption>
+    </figure>
+    <pre class="rb__cmd"><code>sed -n 1,60p PROGRESS.md            # 1 · where things stand, newest day on top
+                                    # 2 · take item 1 of "Open / next"
+                                    # 3 · ...work...
+npm run typecheck &amp;&amp; LLM_PROVIDER=none npm test   # 4 · both gates
+git add -A &amp;&amp; git commit -m "..."    # 5 · snapshot, with the why
+npm run progress                    # 6 · stamps today's header + measured snapshot at the top
+                                    #     then fill in Done / Decided / Open by hand</code></pre>
+    <div class="rb__note"><strong>What the snapshot measures.</strong> Commits on main and today, sync with origin, uncommitted files, typecheck result, test pass/fail counts, source and test line counts, and the agent runs in the database. Numbers are exact; the narrative sections are written by whoever did the work. An entry rebuilt after the fact is marked <em>reconstructed</em>.</div>
+    <div class="rb__note rb__note--wire"><strong>If a session ended without the log.</strong> The next session's first job is to backfill from <code>git log --date=iso</code>, file modification times, <code>workspace/*/run.log</code> and the <code>runs</code> table, mark the entry reconstructed, and only then start on the open items.</div>
+  </section>
+
+  <!-- ============ 7 · Risks ============ -->
+  <section class="s1">
+    <h2 class="display">Risks the research surfaced, and the guardrail for each</h2>
+    <dl class="rb__list">
+      <dt>Judge accuracy on hard cases is weak, open or closed</dt><dd>The verdict carries the judge's calibration score against the human-labelled slice and the human spot-check rate. Neither is hidden in an appendix.</dd>
+      <dt>Causal attribution is the hard part</dt><dd>Pre/post without a control is what the vendors do and why their numbers are disputed. Every Outcome row states the design used (pre/post, shadow, A/B) and its limits; the verdict repeats them.</dd>
+      <dt>The Claude tokenizer is not public</dt><dd>Cost for Claude comes from recorded usage, never from an estimate. Estimation is allowed only for models whose tokenizer is vendored.</dd>
+      <dt>Offline operation goes stale</dt><dd>Vendored price tables and pinned OTel conventions carry a snapshot date, and every report prints it.</dd>
+      <dt>Scope creep into governance and compliance</dt><dd>Crowded market, different buyers. Stay on measurement: baseline, eval, cost, outcome, verdict. Nothing else.</dd>
+    </dl>
+  </section>
+
+  <!-- ============ 8 · Cheat-sheet ============ -->
+  <section class="s7">
+    <h2 class="display">Command cheat-sheet</h2>
+    <p>Everything you run in this repo, on one screen.</p>
+    <dl class="rb__list cheat">
+      <div><dt>npm install &amp;&amp; npx playwright install chromium</dt><dd>Once per machine. Chromium is only needed by plate 44.</dd></div>
+      <div><dt>npm run db:init</dt><dd>Creates <code>data/forward-qa.db</code>. Idempotent.</dd></div>
+      <div><dt>npm run agent:fdt -- --url &lt;url&gt; --org &lt;slug&gt;</dt><dd>Plate 44 against a running app. Report and infra land in <code>workspace/&lt;run_id&gt;/</code>.</dd></div>
+      <div><dt>npm run agent:sdet -- --src &lt;abs dir&gt; --org &lt;slug&gt;</dt><dd>Plate 45 against a legacy estate. <code>MIGRATION.md</code> is the work list.</dd></div>
+      <div><dt>npm start</dt><dd>REST API on port 8787: engagements, runs, findings, artifacts, report and migration routes, preview.</dd></div>
+      <div><dt>npm run typecheck &amp;&amp; LLM_PROVIDER=none npm test</dt><dd>The two gates. Both must be green before a commit.</dd></div>
+      <div><dt>npm run progress</dt><dd>Stamp today's entry at the top of <code>PROGRESS.md</code> with measured numbers; <code>-- --print</code> shows them without writing.</dd></div>
+      <div><dt>npm run catalog</dt><dd>Rebuild <code>index.html</code> and <code>agents/*.html</code> from <code>_build/content/*.json</code>. Edit the JSON, never the HTML.</dd></div>
+      <div><dt>./scripts/setup-local-llm.sh</dt><dd>Optional: installs Ollama and pulls <code>deepseek-r1:8b</code> so summaries and TODO hints get a local model.</dd></div>
+    </dl>
+  </section>
+
+</article></main>
+
+<footer class="footer"><div class="wrap">
+  How an engagement runs · part of the <strong>Forward QA Agents field guide</strong> · the <a class="doclink" href="index.html">contents page</a> lists the two agents.
+</div></footer>
+</body>
+</html>

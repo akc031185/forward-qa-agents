@@ -1,0 +1,16 @@
+[
+ {
+  "id": "probe",
+  "no": "Part 1",
+  "name": "Landing in a new environment",
+  "desc": "The first week of an engagement, done in one run. The Forward Deployed Tester is the surface probe of the Discover phase described on the [process page](process.html): it crawls the running app, records findings by severity, and leaves behind a runnable Playwright + MCP project so the deterministic regression layer exists before anyone argues about what the AI delivered.",
+  "accent": 6
+ },
+ {
+  "id": "standardise",
+  "no": "Part 2",
+  "name": "Standardising what already exists",
+  "desc": "Most organisations do not start from nothing; they start from a `selenium-java` module nobody has run since the last Chrome upgrade, a Python folder a contractor left, a `.feature` file whose step definitions drifted and a Postman collection with the real API expectations buried in `pm.test` scripts. The SDET Architect inventories all of it and emits one architecture, one `MIGRATION.md`, and a `TODO(sdet-architect)` comment for every line a human still has to think about.",
+  "accent": 8
+ }
+]

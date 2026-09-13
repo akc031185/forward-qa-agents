@@ -4,7 +4,9 @@
   "description": "Standalone, no-paid-model QA agents: a Forward Deployed Tester and an SDET Architect that standardizes any test estate onto Playwright MCP.",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=22.5" },
+  "engines": {
+    "node": ">=22.5"
+  },
   "scripts": {
     "dev": "tsx watch src/api/server.ts",
     "start": "tsx src/api/server.ts",
@@ -13,7 +15,9 @@
     "test": "node --import tsx --test --experimental-sqlite --no-warnings 'tests/**/*.test.ts'",
     "db:init": "tsx src/core/db.ts --init",
     "agent:fdt": "tsx src/agents/forward-deployed-tester/cli.ts",
-    "agent:sdet": "tsx src/agents/sdet-architect/cli.ts"
+    "agent:sdet": "tsx src/agents/sdet-architect/cli.ts",
+    "progress": "node scripts/progress.mjs",
+    "catalog": "tsx _build/build-catalog.ts"
   },
   "dependencies": {
     "@playwright/mcp": "^0.0.40",

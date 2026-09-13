@@ -83,6 +83,27 @@ tests/           node:test suites, one folder per agent
 .claude/agents/  Claude Code subagent definitions for driving each agent
 ```
 
+## Field guide (design and process pages)
+
+The same illustrated catalog format as the earlier QA, OSCAR and FinOps agent guides:
+
+- `index.html` — contents: the two plates, one card each
+- `agents/the-forward-deployed-tester.html`, `agents/the-sdet-architect.html` — one plate per agent:
+  why it exists, a clickable flowchart with the real code behind every step, worked examples from
+  real runs, a runbook, and an under-the-hood carousel
+- `process.html` — how a Forward Deployed Tester engagement runs: seven phases, five ledgers,
+  where the two agents sit, the repo's working rules, the session loop and a cheat-sheet
+
+The HTML is generated. Content lives in `_build/content/<agent>.json`, the site title and hero in
+`_build/site.json`, the section blurbs in `_build/categories.json`, the stylesheet in
+`assets/site.css`. Edit the JSON, then:
+
+```bash
+npm run catalog          # rewrites index.html and agents/*.html
+```
+
+`process.html` is hand-written on the same stylesheet. Open any page straight from disk.
+
 ## Development
 
 ```bash
