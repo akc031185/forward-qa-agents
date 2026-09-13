@@ -1,0 +1,13 @@
+[
+ {
+  "id": "probe",
+  "no": "Plate 44",
+  "name": "Landing in a new environment",
+  "desc": [
+   "The first week of an engagement, done in one run.",
+   "The surface probe of the Discover phase on the [process page](process.html): crawl the running app, record findings by severity, leave a runnable Playwright + MCP project behind.",
+   "The deterministic regression layer exists before anyone argues about what the AI delivered."
+  ],
+  "accent": 6
+ }
+]

@@ -1,0 +1,32 @@
+{
+ "title": "The Forward Deployed Tester — Field Guide",
+ "eyebrow": "Plate 44 · a field guide of its own",
+ "repoUrl": "https://github.com/akc031185/forward-qa-agents",
+ "static": ["process.html"],
+ "nav": [
+  { "label": "Contents", "href": "index.html" },
+  { "label": "Process", "href": "process.html" },
+  { "label": "Thesis", "href": "https://github.com/akc031185/forward-qa-agents/blob/main/docs/forward-deployed-tester-thesis.md" },
+  { "label": "Progress log", "href": "https://github.com/akc031185/forward-qa-agents/blob/main/PROGRESS.md" },
+  { "label": "SDET Architect", "href": "https://akc031185.github.io/sdet-architect/" },
+  { "label": "QA Agents", "href": "https://akc031185.github.io/qa-agents/" }
+ ],
+ "footer": "The Forward Deployed Tester · code in [forward-qa-agents](https://github.com/akc031185/forward-qa-agents) · companion guides: [The SDET Architect](https://akc031185.github.io/sdet-architect/) and the [QA Agents field guide](https://akc031185.github.io/qa-agents/).",
+ "heroH1": "Vendors deliver the AI. Somebody has to measure what it actually delivered.",
+ "heroLead": [
+  "Point the agent at a running web app: it crawls, records what is broken, and provisions a Playwright + Playwright MCP project in one run.",
+  "That run is the surface probe of a seven-phase engagement: baseline, golden set, eval cube, cost ledger, pilot, verdict. The [process page](process.html) lays it out.",
+  "Runs to completion with no model at all; a local open-weight model only polishes text."
+ ],
+ "primerP": [
+  "One folder, one CLI, a few REST routes, one `node:test` suite.",
+  "Every deliverable exists with `LLM_PROVIDER=none`: crawl, findings, generated project, report.",
+  "Findings and artifacts land in SQLite, so every number in a report traces to a run id.",
+  "The adapter only talks to a model you run yourself; public endpoints are rejected."
+ ],
+ "stats": [
+  { "num": "4", "lbl": "Phases in one run: recon, findings, provision, report" },
+  { "num": "11", "lbl": "Files provisioned on the demo site, 9 locators" },
+  { "num": "0", "lbl": "Paid API calls, by construction" }
+ ]
+}

@@ -24,7 +24,7 @@
   "The human work is the TODO list, not the reading."
  ],
  "whyItMatters": [
-  "The [process page](../process.html) puts this agent under the eval cube as the deterministic regression layer.",
+  "The [process page](https://akc031185.github.io/forward-deployed-tester/process.html) puts this agent under the eval cube as the deterministic regression layer.",
   "An organisation cannot tell whether an AI deployment broke something unless its existing tests run, and they usually do not.",
   "The same page objects serve an MCP client for exploratory checks."
  ],
@@ -340,7 +340,7 @@
    "Move `workspace/<run_id>/playwright` into the application repo; keep `MIGRATION.md` at its root as the work list; wire the workflow into CI.",
    "Work the TODO list top-down; delete the `NOTE(sdet-architect)` lines once the specs are green three runs in a row.",
    "To support another dialect: one parser returning a `TestSuite` (see `parsers/selenium-python.ts`, ~110 lines) plus one `case` in `classifyFile` and `parseOne`.",
-   "In the engagement on the [process page](../process.html), this project is the regression layer that runs on every change during and after the pilot."
+   "In the engagement on the [process page](https://akc031185.github.io/forward-deployed-tester/process.html), this project is the regression layer that runs on every change during and after the pilot."
   ]
  }
 }

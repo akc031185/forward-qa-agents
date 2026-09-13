@@ -19,9 +19,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Content + category map live beside this script in _build/; the rendered site
 // is written to the repo root one level up, so index.html sits next to README.md.
 const BUILD = __dirname;
-const SITE = path.join(BUILD, '..');
-const CONTENT_DIR = path.join(BUILD, 'content');
+const argv = process.argv.slice(2);
+const argOf = (k: string) => { const i = argv.indexOf(k); return i >= 0 ? path.resolve(argv[i + 1]) : undefined; };
+/** Site config folder: site.json, categories.json, content/, plus any static files it lists. */
+const SITE_DIR = argOf('--site') ?? BUILD;
+/** Output folder: a self-contained static site (index.html, agents/, assets/). */
+const SITE = argOf('--out') ?? path.join(BUILD, '..');
+const CONTENT_DIR = path.join(SITE_DIR, 'content');
 const OUT_AGENTS = path.join(SITE, 'agents');
+const ASSETS_SRC = path.join(BUILD, '..', 'assets', 'site.css');
 
 // ── Content schema (the fan-out fills these) ──────────────────────────────
 interface Example { caption: string; input: Prose; output: Prose; }
@@ -70,14 +76,16 @@ interface Category { id: string; no: string; name: string; desc: Prose; accent?:
 interface Site {
   title: string;        // <title> and masthead brand
   eyebrow: string;      // small pill above the hero h1
-  nav: { label: string; href: string }[];   // masthead links, relative to the site root
+  nav: { label: string; href: string }[];   // masthead links: relative to the site root, or absolute
   footer: string;
+  repoUrl?: string;     // GitHub repo that holds the code; makes source/doc/test links absolute
+  static?: string[];    // files in the site folder copied verbatim into the output (e.g. process.html)
   heroH1: string;
   heroLead: Prose;
   primerP: Prose;
   stats: { num: string; lbl: string }[];
 }
-const SITE_CFG: Site = JSON.parse(fs.readFileSync(path.join(__dirname, 'site.json'), 'utf8'));
+const SITE_CFG: Site = JSON.parse(fs.readFileSync(path.join(SITE_DIR, 'site.json'), 'utf8'));
 
 function esc(s: string): string {
   return String(s ?? '').replace(/[&<>"']/g, c =>
@@ -306,13 +314,13 @@ const MAST = (rel: string) => `
 <header class="masthead"><div class="wrap masthead__inner">
   <div class="masthead__title"><b>◑</b> ${esc(SITE_CFG.title)}</div>
   <nav class="masthead__nav">
-    ${SITE_CFG.nav.map(n => `<a href="${rel}${esc(n.href)}">${esc(n.label)}</a>`).join('\n    ')}
+    ${SITE_CFG.nav.map(n => `<a href="${/^https?:/.test(n.href) ? esc(n.href) : rel + esc(n.href)}"${/^https?:/.test(n.href) ? ' target="_blank" rel="noopener"' : ''}>${esc(n.label)}</a>`).join('\n    ')}
   </nav>
 </div></header>`;
 
 // ── Load content + categories ─────────────────────────────────────────────
 function load(): { agents: AgentContent[]; cats: Category[] } {
-  const cats: Category[] = JSON.parse(fs.readFileSync(path.join(BUILD, 'categories.json'), 'utf8'));
+  const cats: Category[] = JSON.parse(fs.readFileSync(path.join(SITE_DIR, 'categories.json'), 'utf8'));
   const agents: AgentContent[] = [];
   if (fs.existsSync(CONTENT_DIR)) {
     for (const f of fs.readdirSync(CONTENT_DIR).filter(f => f.endsWith('.json')).sort()) {
@@ -348,7 +356,7 @@ ${MAST('../')}
         <div class="plate__cat"><span class="chip ${a.status === 'toolkit' ? 'chip--toolkit' : ''}">${esc(catName)}</span></div>
         <h1>${esc(a.name)}</h1>
         <p class="lead">${rich(a.oneLiner)}</p>
-        <p class="kicker">Source: <a href="${codeUrl(a)}">src/agents/${esc(a.slug)}/</a> &nbsp;·&nbsp; Doc: <a href="../docs/agents/${esc(a.slug)}.md">docs/agents/${esc(a.slug)}.md</a> &nbsp;·&nbsp; Tests: <a href="../tests/${esc(a.slug)}/">tests/${esc(a.slug)}/</a></p>
+        <p class="kicker">Source: <a href="${codeUrl(a)}">src/agents/${esc(folderOf(a))}/</a> &nbsp;·&nbsp; Doc: <a href="${docUrl(a)}">docs/agents/${esc(a.slug)}.md</a> &nbsp;·&nbsp; Tests: <a href="${testsUrl(a)}">tests/${esc(folderOf(a))}/</a></p>
       </div>
     </div>
 
@@ -395,12 +403,20 @@ ${PLATE_JS}
  * the pages are also read straight off a clone. A relative path resolves to the
  * blob view when browsing the repo on GitHub and to the file on disk locally.
  */
+/** Source folders drop the plate's "the-" prefix (src/agents/forward-deployed-tester); docs keep it. */
+const folderOf = (a: AgentContent) => a.slug.replace(/^the-/, '');
 function codeUrl(a: AgentContent): string {
-  return `../src/agents/${a.slug}/index.ts`;
+  return SITE_CFG.repoUrl ? `${SITE_CFG.repoUrl}/blob/main/src/agents/${folderOf(a)}/index.ts` : `../src/agents/${folderOf(a)}/index.ts`;
+}
+function docUrl(a: AgentContent): string {
+  return SITE_CFG.repoUrl ? `${SITE_CFG.repoUrl}/blob/main/docs/agents/${a.slug}.md` : `../docs/agents/${a.slug}.md`;
+}
+function testsUrl(a: AgentContent): string {
+  return SITE_CFG.repoUrl ? `${SITE_CFG.repoUrl}/tree/main/tests/${folderOf(a)}` : `../tests/${folderOf(a)}/`;
 }
 /** Same link, from a page at the repo root (index.html) rather than agents/. */
 function codeUrlFromRoot(a: AgentContent): string {
-  return `src/agents/${a.slug}/index.ts`;
+  return SITE_CFG.repoUrl ? codeUrl(a) : `src/agents/${folderOf(a)}/index.ts`;
 }
 
 /** The hero crew: one friendly character per agent, first N of the set. */
@@ -489,12 +505,15 @@ function main(): void {
   const { agents, cats } = load();
   if (!agents.length) { console.log('No content yet in ./content — nothing to build.'); return; }
   fs.mkdirSync(OUT_AGENTS, { recursive: true });
+  fs.mkdirSync(path.join(SITE, 'assets'), { recursive: true });
+  fs.copyFileSync(ASSETS_SRC, path.join(SITE, 'assets', 'site.css'));
+  for (const f of SITE_CFG.static ?? []) fs.copyFileSync(path.join(SITE_DIR, f), path.join(SITE, f));
   fs.writeFileSync(path.join(SITE, 'index.html'), indexHtml(agents, cats));
   for (let i = 0; i < agents.length; i++) {
     fs.writeFileSync(path.join(OUT_AGENTS, `${agents[i].slug}.html`), plateHtml(agents[i], cats, agents[i - 1], agents[i + 1]));
   }
 
-  console.log(`Built: index.html, ${agents.length} agent page(s)`);
+  console.log(`Built ${SITE}: index.html, ${agents.length} agent page(s), assets/site.css${SITE_CFG.static?.length ? ', ' + SITE_CFG.static.join(', ') : ''}`);
   console.log(`Categories with members: ${cats.filter(c => agents.some(a => a.category === c.id)).map(c => c.id).join(', ')}`);
 }
 main();

@@ -1,0 +1,29 @@
+{
+ "title": "The SDET Architect — Field Guide",
+ "eyebrow": "Plate 45 · a field guide of its own",
+ "repoUrl": "https://github.com/akc031185/forward-qa-agents",
+ "nav": [
+  { "label": "Contents", "href": "index.html" },
+  { "label": "Progress log", "href": "https://github.com/akc031185/forward-qa-agents/blob/main/PROGRESS.md" },
+  { "label": "Forward Deployed Tester", "href": "https://akc031185.github.io/forward-deployed-tester/" },
+  { "label": "QA Agents", "href": "https://akc031185.github.io/qa-agents/" }
+ ],
+ "footer": "The SDET Architect · code in [forward-qa-agents](https://github.com/akc031185/forward-qa-agents) · companion guides: [The Forward Deployed Tester](https://akc031185.github.io/forward-deployed-tester/) and the [QA Agents field guide](https://akc031185.github.io/qa-agents/).",
+ "heroH1": "Whatever tests an organisation already has, rebuilt as one Playwright architecture.",
+ "heroLead": [
+  "Point it at a folder of Selenium in Java, Python, C# or JavaScript, Cucumber features, Postman collections and markdown test plans.",
+  "It parses all of it into one model, standardises every locator with a confidence score, and generates one Playwright + Playwright MCP project.",
+  "`MIGRATION.md` lists every line it could not convert with its source `file:line`. The human work is the TODO list, not the reading."
+ ],
+ "primerP": [
+  "Regex and line-based parsers only: no AST libraries, no Java, Python or .NET toolchain needed.",
+  "Byte-for-byte deterministic with `LLM_PROVIDER=none`; a local model may only add `suggestion:` comments next to TODOs.",
+  "Findings in five categories (locator, conversion, flakiness, duplication, quality) and one artifact row per generated file.",
+  "A preview route converts a single file with no disk and no database."
+ ],
+ "stats": [
+  { "num": "91.7%", "lbl": "Steps converted on the fixture estate (99 of 108)" },
+  { "num": "38", "lbl": "Locators standardised, 3 flagged for review" },
+  { "num": "7", "lbl": "Input dialects, one intermediate model" }
+ ]
+}

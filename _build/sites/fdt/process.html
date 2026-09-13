@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>How an engagement runs — Forward QA Agents — Field Guide</title>
+<title>How an engagement runs — The Forward Deployed Tester — Field Guide</title>
 <link rel="stylesheet" href="assets/site.css">
 <style>
   /* guide-specific bits only — everything else comes from site.css */
@@ -34,12 +34,14 @@
 </head>
 <body>
 <header class="masthead"><div class="wrap masthead__inner">
-  <div class="masthead__title"><b>◑</b> Forward QA Agents — Field Guide</div>
+  <div class="masthead__title"><b>◑</b> The Forward Deployed Tester — Field Guide</div>
   <nav class="masthead__nav">
     <a href="index.html">Contents</a>
     <a href="process.html">Process</a>
-    <a href="PROGRESS.md">Progress log</a>
-    <a href="docs/forward-deployed-tester-thesis.md">Thesis</a>
+    <a href="https://github.com/akc031185/forward-qa-agents/blob/main/docs/forward-deployed-tester-thesis.md" target="_blank" rel="noopener">Thesis</a>
+    <a href="https://github.com/akc031185/forward-qa-agents/blob/main/PROGRESS.md" target="_blank" rel="noopener">Progress log</a>
+    <a href="https://akc031185.github.io/sdet-architect/" target="_blank" rel="noopener">SDET Architect</a>
+    <a href="https://akc031185.github.io/qa-agents/" target="_blank" rel="noopener">QA Agents</a>
   </nav>
 </div></header>
 
@@ -90,7 +92,7 @@
   <!-- ============ 1 · Why a process ============ -->
   <section class="s6">
     <h2 class="display">Why this process exists</h2>
-    <p>The research behind the <a class="doclink" href="docs/forward-deployed-tester-thesis.md">thesis</a> found the same gap in every thread:</p>
+    <p>The research behind the <a class="doclink" href="https://github.com/akc031185/forward-qa-agents/blob/main/docs/forward-deployed-tester-thesis.md" target="_blank" rel="noopener">thesis</a> found the same gap in every thread:</p>
     <ul class="bul">
       <li>Palantir, OpenAI and Anthropic all field forward-deployed engineers whose success is "impact on the customer's goal".</li>
       <li>No vendor publishes a pre-deployment baseline protocol.</li>
@@ -139,7 +141,7 @@
     <div class="phase"><div class="phase__n">3</div><div class="phase__body"><h3>Golden set</h3><ul class="bul"><li>Build the eval dataset from real traffic, PII redacted offline.</li><li>Labelled by the customer's own experts.</li><li>OpenAI's FDE "trajectories" practice, done independently of the vendor.</li></ul><span class="phase__row">rows → Golden set (unit × label)</span></div></div>
     <div class="phase"><div class="phase__n">4</div><div class="phase__body"><h3>Eval cube</h3><ul class="bul"><li>Rubric evals with a local open-weight judge, calibrated against a human-labelled slice, judge-bias mitigations built in.</li><li>Rubric axes × workflow steps × variants (model, prompt, retrieval, temperature).</li><li>Rotating one face must not silently degrade another; a regression gate watches every cell.</li></ul><span class="phase__row">rows → Eval cube (unit × axis × step × variant)</span></div></div>
     <div class="phase"><div class="phase__n">5</div><div class="phase__body"><h3>Cost ledger</h3><ul class="bul"><li>Tokens per unit of work per model, from the customer's own usage records; never estimated, the Claude tokenizer is not public.</li><li>Self-hosted infra measured under real concurrency.</li><li>Priced from vendored tables with their snapshot date printed.</li></ul><span class="phase__row">rows → Cost (unit)</span></div></div>
-    <div class="phase"><div class="phase__n">6</div><div class="phase__body"><h3>Pilot with a causal design</h3><ul class="bul"><li>Shadow mode or A/B where possible; pre/post with stated limits where not.</li><li>The standardised regression suite (<a class="doclink" href="agents/the-sdet-architect.html">plate 45</a>) runs on every change.</li><li>A quality regression is caught by a test, not by a customer.</li></ul><span class="phase__row">rows → Outcome (unit)</span></div></div>
+    <div class="phase"><div class="phase__n">6</div><div class="phase__body"><h3>Pilot with a causal design</h3><ul class="bul"><li>Shadow mode or A/B where possible; pre/post with stated limits where not.</li><li>The standardised regression suite (<a class="doclink" href="https://akc031185.github.io/sdet-architect/agents/the-sdet-architect.html" target="_blank" rel="noopener">plate 45</a>) runs on every change.</li><li>A quality regression is caught by a test, not by a customer.</li></ul><span class="phase__row">rows → Outcome (unit)</span></div></div>
     <div class="phase"><div class="phase__n">7</div><div class="phase__body"><h3>Verdict and handover</h3><ul class="bul"><li>Cost per verified outcome, confidence, go / no-go / conditions.</li><li>The harness stays behind, so the organisation re-runs the validation on every future change without us.</li></ul><span class="phase__row">rows → Verdict (engagement)</span></div></div>
   </section>
 
@@ -197,9 +199,9 @@
     </ul>
     <div class="paths">
       <a class="path" href="agents/the-forward-deployed-tester.html"><span class="rcard__no">Agent 44 · Discover</span><h3 class="display">The Forward Deployed Tester</h3><p>Crawl, findings, smoke suite. Its <code>report.json</code> is the first Baseline row.</p><span class="path__go">Open the plate →</span></a>
-      <a class="path" href="agents/the-sdet-architect.html"><span class="rcard__no">Agent 45 · Pilot</span><h3 class="display">The SDET Architect</h3><p>Existing tests rebuilt as one project: the regression layer under the eval cube.</p><span class="path__go">Open the plate →</span></a>
+      <a class="path" href="https://akc031185.github.io/sdet-architect/agents/the-sdet-architect.html" target="_blank" rel="noopener"><span class="rcard__no">Agent 45 · Pilot</span><h3 class="display">The SDET Architect</h3><p>Existing tests rebuilt as one project: the regression layer under the eval cube.</p><span class="path__go">Open the plate →</span></a>
     </div>
-    <div class="rb__note"><strong>What is not built yet.</strong> The ledger tables, the Baseline and Golden-set phases, the eval cube runner with a local judge, the cost ledger and the verdict. The order of work is on the <a class="doclink" href="PROGRESS.md">progress log</a>: ledger schema first, because every phase writes rows there.</div>
+    <div class="rb__note"><strong>What is not built yet.</strong> The ledger tables, the Baseline and Golden-set phases, the eval cube runner with a local judge, the cost ledger and the verdict. The order of work is on the <a class="doclink" href="https://github.com/akc031185/forward-qa-agents/blob/main/PROGRESS.md" target="_blank" rel="noopener">progress log</a>: ledger schema first, because every phase writes rows there.</div>
   </section>
 
   <!-- ============ 5 · Working rules ============ -->
@@ -287,7 +289,7 @@ npm run progress                    # 6 · stamps today's header + measured snap
 </article></main>
 
 <footer class="footer"><div class="wrap">
-  How an engagement runs · part of the <strong>Forward QA Agents field guide</strong> · the <a class="doclink" href="index.html">contents page</a> lists the two agents.
+  How an engagement runs · <strong>The Forward Deployed Tester</strong> field guide · companion: <a class="doclink" href="https://akc031185.github.io/sdet-architect/" target="_blank" rel="noopener">The SDET Architect</a> · code in <a class="doclink" href="https://github.com/akc031185/forward-qa-agents" target="_blank" rel="noopener">forward-qa-agents</a>.
 </div></footer>
 </body>
 </html>

@@ -666,7 +666,12 @@ for (const a of [fdt, sdet]) {
     ex.input = strip(ex.input); ex.output = strip(ex.output);
   }
 }
-fs.mkdirSync(path.join(R, '_build/content'), { recursive: true });
-fs.writeFileSync(path.join(R, '_build/content/the-forward-deployed-tester.json'), JSON.stringify(fdt, null, 1) + '\n');
-fs.writeFileSync(path.join(R, '_build/content/the-sdet-architect.json'), JSON.stringify(sdet, null, 1) + '\n');
-console.log('wrote 2 content files');
+// Two sites, one source. The SDET site has no process page of its own, so its links go to the FDT site.
+const FDT_SITE = 'https://akc031185.github.io/forward-deployed-tester/';
+const sdetOut = JSON.parse(JSON.stringify(sdet).replace(/\.\.\/process\.html/g, FDT_SITE + 'process.html'));
+for (const [site, content] of [['fdt', fdt], ['sdet', sdetOut]]) {
+  const dir = path.join(R, '_build/sites', site, 'content');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, `${content.slug}.json`), JSON.stringify(content, null, 1) + '\n');
+}
+console.log('wrote _build/sites/fdt/content and _build/sites/sdet/content');

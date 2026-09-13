@@ -48,17 +48,25 @@ best-effort and their numbers as exact.
   only the code-modal markup changed; every link verified. Committed `2532c13` on branch
   `add-plates-44-45` and pushed the branch. **Not merged**: main deploys the live site.
 
+- 19:40–20:30 User chose **two separate sites, one per agent**, not a hub section. Generator now
+  takes `--site <config dir> --out <site dir>` and absolute `repoUrl` links; content split into
+  `_build/sites/{fdt,sdet}/`; generated output removed from this repo. New public repos
+  `akc031185/forward-deployed-tester` (plate 44 + process page) and `akc031185/sdet-architect`
+  (plate 45), each a GitHub Pages site holding output only. Fixed a link bug: source and test
+  folders drop the plate's `the-` prefix. Hub branch `add-plates-44-45` deleted, hub back on main.
+
 **Decided**
 
 - The `gh` token for `akc031185` now carries `workflow` scope; no more push blockers for CI edits.
-- Plates keep numbers 44 and 45 in the hub (the agent code declares them); 39–43 are a gap for now.
-- The hub gets a `package.json` (`type: commonjs`) so `npx tsx build-catalog.ts` works; `_internal/`
-  is gitignored there.
+- Three field guides stay separate (QA Agents hub, SDET Architect, Forward Deployed Tester), each
+  with its own home and cross-links in the masthead. No landing page for now.
+- forward-qa-agents is the single source and generator for both sites; the site repos are output
+  only (`npm run catalog:author` writes into the sibling checkouts, then commit and push there).
 
 **Open / next**
 
-1. Merge `add-plates-44-45` into `qa-agents` main (publishes Section 09 and Guide 05 on the live
-   site) once the user has reviewed https://github.com/akc031185/qa-agents/pull/new/add-plates-44-45.
+1. Confirm both Pages sites are live: https://akc031185.github.io/forward-deployed-tester/ and
+   https://akc031185.github.io/sdet-architect/ (enabled 2026-09-13; first deploy takes a few minutes).
 2. Start the plate 44 redesign: ledger schema in `src/core/db.ts` first (Baseline, Eval cube,
    Cost, Outcome, Verdict keyed on a unit of work), since every phase writes rows there. Then the
    Discover phase, folding the existing crawler in as one probe.
