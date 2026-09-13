@@ -10,6 +10,47 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-09-13 (Sunday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 3 (1 today, head `a160f25`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 89 pass, 0 fail (10 suites) |
+| Source lines (src/) | 4633 across 36 files |
+| Test lines (tests/) | 1161 across 14 files |
+| Agent runs in DB | 2 (forward-deployed-tester:succeeded,sdet-architect:succeeded) |
+
+**Done**
+
+- 16:55 Verified no TCC / EPERM blockers: file writes, git, both GitHub logins, Node 24, SQLite all fine.
+- 16:57 Gates green (typecheck, 89 tests). Committed all of Friday's work as `a160f25`
+  (16 files, +2680): CI workflow, progress tooling, CLAUDE.md, field guide, README.
+- 16:58 First push rejected: the `gh` OAuth token lacked the `workflow` scope needed to add
+  `.github/workflows/ci.yml`. User ran `gh auth refresh -h github.com -s workflow`; pushed.
+- 17:00 First GitHub Actions run `34770175543` completed **success** on ubuntu-latest, Node 24:
+  npm ci, Chromium install, typecheck, tests. One annotation: checkout@v4 and setup-node@v4
+  target Node 20 and are forced onto Node 24 (harmless for now).
+
+**Decided**
+
+- The `gh` token for `akc031185` now carries `workflow` scope; no more push blockers for CI edits.
+
+**Open / next**
+
+1. Start the plate 44 redesign: ledger schema in `src/core/db.ts` first (Baseline, Eval cube,
+   Cost, Outcome, Verdict keyed on a unit of work), since every phase writes rows there. Then the
+   Discover phase, folding the existing crawler in as one probe.
+2. Update the README so plate 44 is described by the thesis definition, not as a crawler.
+3. Bump `actions/checkout` and `actions/setup-node` to v5 when convenient to clear the Node 20
+   deprecation annotation.
+
+---
+
 ## 2026-09-11 (Friday)
 
 **Snapshot at end of day**
