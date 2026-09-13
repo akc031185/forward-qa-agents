@@ -1,0 +1,31 @@
+{
+ "title": "The AI Site Auditor — Field Guide",
+ "eyebrow": "Plate 46 · a field guide of its own",
+ "repoUrl": "https://github.com/akc031185/forward-qa-agents",
+ "static": ["report-sample.png"],
+ "nav": [
+  { "label": "Contents", "href": "index.html" },
+  { "label": "Progress log", "href": "https://github.com/akc031185/forward-qa-agents/blob/main/PROGRESS.md" },
+  { "label": "Forward Deployed Tester", "href": "https://akc031185.github.io/forward-deployed-tester/" },
+  { "label": "SDET Architect", "href": "https://akc031185.github.io/sdet-architect/" },
+  { "label": "QA Agents", "href": "https://akc031185.github.io/qa-agents/" }
+ ],
+ "footer": "The AI Site Auditor · code in [forward-qa-agents](https://github.com/akc031185/forward-qa-agents) · companion guides: [The Forward Deployed Tester](https://akc031185.github.io/forward-deployed-tester/), [The SDET Architect](https://akc031185.github.io/sdet-architect/), [QA Agents](https://akc031185.github.io/qa-agents/).",
+ "heroH1": "A site that looks finished in a browser can be empty to every AI assistant.",
+ "heroLead": [
+  "Point the agent at a site built with Lovable, Bolt, v0, Replit or a Vite/CRA export.",
+  "It compares what AI crawlers receive with what a browser renders, checks access per AI agent, search SEO, and the mistakes AI builders leave behind.",
+  "One evaluation page with three grades: AI visibility, Search, Build quality."
+ ],
+ "primerP": [
+  "Most AI crawlers (GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot) fetch HTML and never run JavaScript.",
+  "Google needs nothing AI-specific: a page must be indexable and eligible for a snippet.",
+  "51 deterministic checks with fixed severities; no model decides anything.",
+  "Secrets found in bundles are redacted everywhere; only the audited host is ever fetched."
+ ],
+ "stats": [
+  { "num": "51", "lbl": "Checks across AI visibility, search and build" },
+  { "num": "0 → 100", "lbl": "AI visibility, fixture SPA vs server-rendered" },
+  { "num": "0", "lbl": "Models needed to reach a verdict" }
+ ]
+}

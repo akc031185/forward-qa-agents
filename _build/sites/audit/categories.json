@@ -1,0 +1,13 @@
+[
+ {
+  "id": "audit",
+  "no": "Plate 46",
+  "name": "Evaluating what AI tools built",
+  "desc": [
+   "AI site builders ship client-rendered apps with scaffold titles, catch-all routes and keys in the bundle.",
+   "The AI Site Auditor reads each page as an AI crawler and as a browser, and grades the gap.",
+   "Every finding names the fix and cites its source."
+  ],
+  "accent": 5
+ }
+]

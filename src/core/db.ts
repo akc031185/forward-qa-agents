@@ -5,6 +5,10 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { config } from './config.js';
 
+/** Every agent in the repo. The runs.agent CHECK constraint is generated from this list. */
+export const AGENT_NAMES = ['forward-deployed-tester', 'sdet-architect', 'ai-site-auditor'] as const;
+const AGENT_CHECK = `CHECK (agent IN (${AGENT_NAMES.map(a => `'${a}'`).join(',')}))`;
+
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS engagements (
   id          TEXT PRIMARY KEY,
@@ -16,7 +20,7 @@ CREATE TABLE IF NOT EXISTS engagements (
 CREATE TABLE IF NOT EXISTS runs (
   id             TEXT PRIMARY KEY,
   engagement_id  TEXT NOT NULL REFERENCES engagements(id),
-  agent          TEXT NOT NULL CHECK (agent IN ('forward-deployed-tester','sdet-architect')),
+  agent          TEXT NOT NULL ${AGENT_CHECK},
   status         TEXT NOT NULL CHECK (status IN ('queued','running','succeeded','failed')),
   input_json     TEXT NOT NULL,
   output_json    TEXT,
@@ -48,7 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_findings_run ON findings(run_id);
 CREATE INDEX IF NOT EXISTS idx_artifacts_run ON artifacts(run_id);
 `;
 
-export type AgentName = 'forward-deployed-tester' | 'sdet-architect';
+export type AgentName = typeof AGENT_NAMES[number];
 export type RunStatus = 'queued' | 'running' | 'succeeded' | 'failed';
 export type Severity = 'info' | 'low' | 'medium' | 'high' | 'critical';
 
@@ -71,6 +75,34 @@ export class Db {
     this.sql = new DatabaseSync(file);
     this.sql.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
     this.sql.exec(SCHEMA);
+    this.migrateAgentCheck();
+  }
+
+  /**
+   * SQLite cannot alter a CHECK constraint. A database created before an agent was added still
+   * rejects that agent's runs, so rebuild `runs` with the current constraint, keeping every row.
+   * Children (findings, artifacts) reference `runs` by name and are untouched.
+   */
+  private migrateAgentCheck(): void {
+    const row = this.sql.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='runs'").get() as { sql: string } | undefined;
+    if (!row || AGENT_NAMES.every(a => row.sql.includes(`'${a}'`))) return;
+    this.sql.exec('PRAGMA foreign_keys = OFF;');
+    try {
+      this.sql.exec('BEGIN;');
+      const create = SCHEMA.slice(SCHEMA.indexOf('CREATE TABLE IF NOT EXISTS runs'), SCHEMA.indexOf(');', SCHEMA.indexOf('CREATE TABLE IF NOT EXISTS runs')) + 2)
+        .replace('CREATE TABLE IF NOT EXISTS runs', 'CREATE TABLE runs_new');
+      this.sql.exec(create);
+      this.sql.exec('INSERT INTO runs_new SELECT id, engagement_id, agent, status, input_json, output_json, error, started_at, finished_at, created_at FROM runs;');
+      this.sql.exec('DROP TABLE runs;');
+      this.sql.exec('ALTER TABLE runs_new RENAME TO runs;');
+      this.sql.exec('CREATE INDEX IF NOT EXISTS idx_runs_engagement ON runs(engagement_id);');
+      this.sql.exec('COMMIT;');
+    } catch (err) {
+      this.sql.exec('ROLLBACK;');
+      throw err;
+    } finally {
+      this.sql.exec('PRAGMA foreign_keys = ON;');
+    }
   }
 
   createEngagement(e: { org: string; name: string; target_url?: string | null }): Engagement {

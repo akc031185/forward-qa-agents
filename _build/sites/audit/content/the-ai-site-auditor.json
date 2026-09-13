@@ -1,0 +1,311 @@
+{
+ "slug": "the-ai-site-auditor",
+ "plate": 46,
+ "name": "The AI Site Auditor",
+ "techName": "src/agents/ai-site-auditor/ — bots.ts · robots.ts · parse.ts · collect.ts · rules.ts · report.ts · index.ts",
+ "category": "audit",
+ "oneLiner": "Point it at a site built with an AI tool; it scores whether AI assistants can read and cite it, whether search engines will index it, and which build mistakes were left behind, then writes an evaluation page.",
+ "lead": [
+  "Built for sites made with Lovable, Bolt, v0, Replit or a Vite/CRA export: they look finished in a browser and are often empty to a crawler.",
+  "Sees every page twice: the raw HTML with JavaScript off, which is all OpenAI, Anthropic and Perplexity crawlers get, and the page rendered in Chromium.",
+  "Checks robots.txt per AI agent, requests the site with each crawler's real user agent to catch firewall blocks, and scans the JavaScript bundle for leaked keys.",
+  "51 deterministic checks in three areas, each scored 0–100: **AI visibility**, **Search**, **Build quality**.",
+  "Writes one self-contained `report.html` for the site owner, plus markdown, JSON and database findings.",
+  "Fixture runs on 2026-09-13: the AI-builder SPA scores 0 · F for AI visibility with 97 words in a browser and 0 for crawlers; the server-rendered site scores 100 · A."
+ ],
+ "chore": [
+  "Nobody checks what a crawler receives; an empty shell goes unnoticed.",
+  "SEO tools ignore AI assistants and never open the bundle.",
+  "Scaffold titles, placeholders and API keys ship because the preview looked right."
+ ],
+ "instead": [
+  "One command against the URL.",
+  "Three grades and a crawler-versus-browser comparison.",
+  "Each finding says why it matters, how to fix it, which pages, and cites its source."
+ ],
+ "whyItMatters": [
+  "A growing share of discovery happens inside ChatGPT, Claude, Perplexity and AI Overviews.",
+  "Those assistants can only cite what their crawlers can read, and most of those crawlers do not run JavaScript.",
+  "A site can rank in Google and still be invisible to every assistant that answers without rendering."
+ ],
+ "howItWorks": [
+  {
+   "step": "Probes the site over plain HTTP before any browser starts: robots.txt, same-origin sitemaps, llms.txt, a random URL, /.env, the http redirect and security headers.",
+   "short": "Probe the site without a browser",
+   "fn": "collect() site facts + fetchText() — collect.ts",
+   "explain": [
+    "`fetchText` never throws: timeouts and DNS failures come back as status 0 with the error, so one dead probe cannot sink the audit.",
+    "An HTML page served at `/robots.txt` is recorded as status -1: the SPA catch-all answering every path.",
+    "Sitemaps on another host are recorded and never fetched, so auditing a staging copy never touches production.",
+    "A random `/ai-site-auditor-<id>-not-a-page` path answering 200 is a soft 404."
+   ],
+   "code": "export async function fetchText(url: string, opts: { ua?: string; timeoutMs: number; redirect?: 'follow' | 'manual' }): Promise<FetchResult> {\n  const t0 = Date.now();\n  try {\n    const res = await fetch(url, { headers: { 'user-agent': opts.ua ?? BROWSER_UA, accept: 'text/html,application/xhtml+xml,*/*' }, redirect: opts.redirect ?? 'follow', signal: AbortSignal.timeout(opts.timeoutMs) });   // every request is bounded\n    const headers: Record<string, string> = {};\n    res.headers.forEach((v, k) => { headers[k] = v; });\n    let body = '';\n    if (opts.redirect !== 'manual') {\n      const buf = Buffer.from(await res.arrayBuffer());\n      body = buf.subarray(0, MAX_BODY).toString('utf8');   // 3 MB cap per response\n    }\n    return { url, finalUrl: res.url || url, status: res.status, headers, body, ms: Date.now() - t0 };\n  } catch (err) {\n    return { url, finalUrl: url, status: 0, headers: {}, body: '', ms: Date.now() - t0, error: err instanceof Error ? (err.cause instanceof Error ? err.cause.message : err.message) : String(err) };   // failures are data, not exceptions\n  }\n}\n\n  // …\n\n  // status -1 = an HTML page came back for /robots.txt (an SPA catch-all), which crawlers treat as no file\n  const robotsIsHtml = robotsRes.status === 200 && /<html|<!doctype/i.test(robotsRes.body.slice(0, 500));   // SPA fallback detection\n  const robotsText = robotsRes.status === 200 && !robotsIsHtml ? robotsRes.body : '';\n  const robots = robotsRes.status ? { status: robotsIsHtml ? -1 : robotsRes.status, text: robotsText, parsed: parseRobots(robotsText) } : undefined;\n\n  // …\n\n  // Only this origin is ever fetched. A Sitemap: line pointing at another host (common on a staging copy\n  // of a production site) is recorded, not followed, so auditing staging never touches production.\n  const declared = robots?.parsed.sitemaps ?? [];\n  const sameOrigin = (u: string) => { try { return new URL(u, origin).origin === origin; } catch { return false; } };\n  const offHost = declared.filter(u => !sameOrigin(u));   // recorded, never followed\n  const sitemapUrls = declared.filter(sameOrigin).length ? declared.filter(sameOrigin) : [new URL('/sitemap.xml', origin).toString()];\n  const sitemaps: SiteFacts['sitemaps'] = offHost.map(u => ({ url: u, status: 0, kind: 'other-host', urls: 0, sampleBroken: [] }));\n  const sitemapPages: string[] = [];"
+  },
+  {
+   "step": "Requests the home page with the real user-agent strings of OAI-SearchBot, ChatGPT-User, GPTBot, ClaudeBot and PerplexityBot, and compares the answers with a browser's.",
+   "short": "Knock as each AI crawler",
+   "fn": "looksBlocked() + botProbes — collect.ts · AI_BOTS — bots.ts",
+   "explain": [
+    "robots.txt can allow a crawler while a CDN or firewall rule still turns it away; only a request with its user agent shows that.",
+    "Blocked means 401, 403, 429, 5xx or a challenge page, and only when the browser request itself was fine.",
+    "User-agent strings come from the vendors' own documentation.",
+    "Prerendering served only to verified crawler IPs cannot be seen from outside; the report says so."
+   ],
+   "code": "export const AI_BOTS: AiBot[] = [\n  { token: 'OAI-SearchBot', vendor: 'OpenAI', purpose: 'search', rendersJs: false, userAgent: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; OAI-SearchBot/1.4; +https://openai.com/searchbot', note: 'Surfaces sites in ChatGPT search results.' },   // search: decides whether ChatGPT search cites you\n  { token: 'ChatGPT-User', vendor: 'OpenAI', purpose: 'user-fetch', rendersJs: false, userAgent: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ChatGPT-User/1.0; +https://openai.com/bot', note: 'Fetches a page when a ChatGPT user asks about it.' },\n  { token: 'GPTBot', vendor: 'OpenAI', purpose: 'training', rendersJs: false, userAgent: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.4; +https://openai.com/gptbot', note: 'Collects training data. Blocking it does not remove you from ChatGPT search.' },   // training: blocking it is a policy choice\n  { token: 'Claude-SearchBot', vendor: 'Anthropic', purpose: 'search', rendersJs: false, note: 'Indexes content for Claude search results.' },\n  { token: 'Claude-User', vendor: 'Anthropic', purpose: 'user-fetch', rendersJs: false, note: 'Fetches a page when a Claude user asks about it.' },\n  { token: 'ClaudeBot', vendor: 'Anthropic', purpose: 'training', rendersJs: false, userAgent: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; ClaudeBot/1.0; +claudebot@anthropic.com)', note: 'Collects training data.' },\n  { token: 'PerplexityBot', vendor: 'Perplexity', purpose: 'search', rendersJs: false, userAgent: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)', note: 'Indexes content for Perplexity answers.' },\n  { token: 'Perplexity-User', vendor: 'Perplexity', purpose: 'user-fetch', rendersJs: false, note: 'Fetches a page when a Perplexity user asks about it.' },\n  { token: 'Googlebot', vendor: 'Google', purpose: 'search', rendersJs: true, note: 'Google Search, including AI Overviews and AI Mode. Renders JavaScript, later.' },   // the only one here that renders JavaScript\n  { token: 'Google-Extended', vendor: 'Google', purpose: 'policy-token', rendersJs: true, note: 'Not a crawler. Opts content out of Gemini training; does not affect Search or AI Overviews.' },   // a robots.txt token, never a request\n  { token: 'Applebot-Extended', vendor: 'Apple', purpose: 'policy-token', rendersJs: true, note: 'Not a crawler. Opts content out of Apple model training.' },\n  { token: 'CCBot', vendor: 'Common Crawl', purpose: 'training', rendersJs: false, note: 'Open crawl reused by many model builders for training.' },\n];\n\n  // …\n\nfunction looksBlocked(r: FetchResult): boolean {\n  if (r.status === 0 || r.status === 401 || r.status === 403 || r.status === 429 || r.status >= 500) return true;\n  return /cf-chl|challenge-platform|Just a moment\\.\\.\\.|Attention Required|captcha/i.test(r.body.slice(0, 20000));   // Cloudflare-style challenge pages\n}"
+  },
+  {
+   "step": "Fetches each page's raw HTML once, then loads it into Chromium twice: with JavaScript disabled and that exact response fulfilled into the page, and normally.",
+   "short": "See each page twice",
+   "fn": "rawView() + renderedView() — collect.ts",
+   "explain": [
+    "The raw view is not a second request: `page.route` fulfils the bytes already fetched, so both views describe the same response.",
+    "With JavaScript off, Chromium still parses the HTML and lays it out, so one extraction script reads both views identically.",
+    "The rendered view does not wait for the load event; one slow image can hold it forever. It waits up to 8 s, then reads the page anyway.",
+    "If rendering fails, the raw view stands in and the failure becomes a finding."
+   ],
+   "code": "async function rawView(ctx: BrowserContext, url: string, raw: FetchResult): Promise<PageView> {\n  const page = await ctx.newPage();\n  try {\n    await page.route(u => u.href === url, route => route.fulfill({ status: raw.status || 200, contentType: raw.headers['content-type'] ?? 'text/html', body: raw.body }));   // serve the fetched bytes, do not refetch\n    await page.goto(url, { waitUntil: 'domcontentloaded' });   // no scripts run: javaScriptEnabled is false on this context\n    return await extract(page);\n  } finally {\n    await page.close();\n  }\n}\n\n  // …\n\n    // Do not wait for the load event: one slow image or tracker can hold it forever. Parse, then give\n    // load and network idle a bounded chance so client-rendered content has time to appear.\n    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });\n    let loadTimedOut = false;\n    await page.waitForLoadState('load', { timeout: Math.min(8000, timeoutMs) }).catch(() => { loadTimedOut = true; });   // bounded: 8 s, then carry on\n    await page.waitForLoadState('networkidle', { timeout: Math.min(3000, timeoutMs) }).catch(() => undefined);   // give client rendering a moment\n    const view = await extract(page);\n    return { rendered: view, loadMs: Date.now() - t0, loadTimedOut, consoleErrors, failedRequests, mixedContent, scripts: [...scripts], jsBytes };"
+  },
+  {
+   "step": "Extracts the same fields from both views: title, description, canonical, robots meta, h1s, readable words, links, hash routes, images and alt text, JSON-LD types, Open Graph, favicon.",
+   "short": "Read both views the same way",
+   "fn": "EXTRACT_SCRIPT — collect.ts",
+   "explain": [
+    "Plain JavaScript source, not a TypeScript function, so no transpiler helpers leak into the page.",
+    "JSON-LD blocks are parsed and walked, including `@graph`; a block that is not valid JSON is counted as an error.",
+    "The copy used for placeholder checks strips forms, labels and controls: \"Company Name\" on a field is not placeholder text."
+   ],
+   "code": "export const EXTRACT_SCRIPT = String.raw`() => {\n  const norm = (s) => (s || '').replace(/\\s+/g, ' ').trim();\n  const meta = (sel) => { const el = document.querySelector(sel); return el ? norm(el.getAttribute('content')) || undefined : undefined; };\n  const body = document.body;\n  const text = body ? norm(body.innerText || body.textContent || '') : '';\n  const words = text ? text.split(' ').filter((w) => /[A-Za-z0-9]/.test(w)).length : 0;   // the number the AI-visibility verdict rests on\n  // copy for placeholder checks: form labels, controls and scripts removed (\"Company Name\" as a field label is not placeholder copy)\n  let copy = '';\n  if (body) { const c = body.cloneNode(true); c.querySelectorAll('form,label,input,select,textarea,button,option,script,style,noscript,template').forEach((n) => n.remove()); copy = norm(c.textContent || ''); }   // regression fix: field labels are not placeholder copy\n  const types = []; let errors = 0; const blocks = document.querySelectorAll('script[type=\"application/ld+json\"]');\n  const collect = (node) => {\n    if (!node || typeof node !== 'object') return;\n    if (Array.isArray(node)) { node.forEach(collect); return; }\n    const t = node['@type']; if (t) (Array.isArray(t) ? t : [t]).forEach((x) => types.push(String(x)));\n    if (node['@graph']) collect(node['@graph']);   // walk @graph\n  };\n  blocks.forEach((b) => { try { collect(JSON.parse(b.textContent || '')); } catch (e) { errors++; } });\n  const anchors = Array.from(document.querySelectorAll('a[href]'));\n  const imgs = Array.from(document.querySelectorAll('img'));\n  const html = document.documentElement ? document.documentElement.outerHTML : '';\n  return {\n    title: norm(document.title),\n    metaDescription: meta('meta[name=\"description\" i]'),\n    canonical: (document.querySelector('link[rel=\"canonical\" i]') || {}).href || undefined,\n    robotsMeta: [meta('meta[name=\"robots\" i]'), meta('meta[name=\"googlebot\" i]')].filter(Boolean).join(', ') || undefined,\n    lang: (document.documentElement.getAttribute('lang') || '').trim() || undefined,\n    viewport: !!document.querySelector('meta[name=\"viewport\" i]'),\n    h1: Array.from(document.querySelectorAll('h1')).map((h) => norm(h.textContent)).filter(Boolean),\n    headings: document.querySelectorAll('h1,h2,h3,h4,h5,h6').length,\n    words,\n    textSample: copy.slice(0, 3000),\n    links: anchors.map((a) => a.href).filter((h) => /^https?:/i.test(h)),\n    hashRouteLinks: anchors.filter((a) => /^#!?\\//.test(a.getAttribute('href') || '')).length,   // #/ routes are invisible to every crawler\n    images: imgs.length,\n    imagesMissingAlt: imgs.filter((i) => !i.hasAttribute('alt') && i.getAttribute('role') !== 'presentation' && i.getAttribute('aria-hidden') !== 'true').length,\n    jsonLd: { types, errors, blocks: blocks.length },\n    og: { title: meta('meta[property=\"og:title\"]'), description: meta('meta[property=\"og:description\"]'), image: meta('meta[property=\"og:image\"]'), url: meta('meta[property=\"og:url\"]'), type: meta('meta[property=\"og:type\"]') },\n    twitterCard: meta('meta[name=\"twitter:card\"]'),\n    hreflang: document.querySelectorAll('link[rel=\"alternate\"][hreflang]').length,\n    favicon: !!document.querySelector('link[rel~=\"icon\" i]'),\n    generator: meta('meta[name=\"generator\" i]'),\n    html: html.slice(0, 400000),\n  };\n}`;"
+  },
+  {
+   "step": "Scans every same-origin script for credentials: OpenAI, Anthropic, Stripe, AWS and GitHub keys, private keys, and Supabase JWTs decoded to tell anon from service_role.",
+   "short": "Scan the bundle for secrets",
+   "fn": "findSecrets() + redact() — parse.ts",
+   "explain": [
+    "AI builders often call an API straight from the browser with a real key; everything in a bundle is public.",
+    "Supabase anon keys are expected in the browser and ignored; a `service_role` key bypasses row-level security and is critical.",
+    "Google browser keys are reported as info: normal for Maps or Firebase when restricted.",
+    "Values are redacted to six characters everywhere: database, report, JSON."
+   ],
+   "code": "const SECRET_PATTERNS: { kind: string; re: RegExp; severity: SecretHit['severity']; note: string }[] = [\n  { kind: 'Anthropic API key', re: /\\bsk-ant-[A-Za-z0-9_-]{20,}/g, severity: 'critical', note: 'Anyone can bill requests to this key. Revoke it and call the API from a server.' },\n  { kind: 'OpenAI API key', re: /\\bsk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{32,}/g, severity: 'critical', note: 'Anyone can bill requests to this key. Revoke it and call the API from a server.' },\n  { kind: 'Stripe secret key', re: /\\b(?:sk|rk)_live_[0-9A-Za-z]{20,}/g, severity: 'critical', note: 'Full account access. Roll it in the Stripe dashboard.' },\n  { kind: 'AWS access key id', re: /\\bAKIA[0-9A-Z]{16}\\b/g, severity: 'critical', note: 'Rotate in IAM; a secret key is usually nearby.' },\n  { kind: 'GitHub token', re: /\\bgh[pousr]_[A-Za-z0-9]{36,}\\b/g, severity: 'critical', note: 'Revoke in GitHub settings.' },\n  { kind: 'Private key', re: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g, severity: 'critical', note: 'A private key shipped to every visitor.' },\n  { kind: 'Google API key', re: /\\bAIza[0-9A-Za-z_-]{35}\\b/g, severity: 'info', note: 'Browser keys are normal for Maps/Firebase; confirm it is restricted by referrer and API.' },   // restricted browser keys are normal\n];\n\n  // …\n\nexport function findSecrets(text: string): SecretHit[] {\n  const hits: SecretHit[] = [];\n  const seen = new Set<string>();\n  for (const p of SECRET_PATTERNS) {\n    for (const m of text.matchAll(p.re)) {\n      const v = m[0];\n      if (seen.has(v)) continue;\n      seen.add(v);\n      hits.push({ kind: p.kind, severity: p.severity, preview: redact(v), note: p.note });   // never the value itself\n    }\n  }\n  for (const m of text.matchAll(/\\beyJ[A-Za-z0-9_-]{10,}\\.eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}/g)) {\n    const v = m[0];\n    if (seen.has(v)) continue;\n    seen.add(v);\n    const role = jwtPayload(v)?.role;\n    if (role === 'service_role') hits.push({ kind: 'Supabase service_role key', severity: 'critical', preview: redact(v), note: 'Bypasses row-level security for the whole database. Rotate the JWT secret now.' });   // decode the JWT: role decides the severity\n  }\n  return hits;\n}"
+  },
+  {
+   "step": "Decides robots.txt access per AI agent the way RFC 9309 does: the most specific user-agent group, the longest matching rule, allow winning ties, * and $ wildcards.",
+   "short": "Decide access per crawler",
+   "fn": "parseRobots() + isAllowed() — robots.ts",
+   "explain": [
+    "A crawler with its own group ignores the `*` group entirely; a common surprise when \"User-agent: GPTBot\" blocks were added.",
+    "Blocking search or user-fetch agents is a high finding; blocking training agents is never a finding.",
+    "Every decision carries the rule that made it, shown in the report's access table."
+   ],
+   "code": "export function isAllowed(robots: Robots, token: string, path: string): AccessDecision {\n  const group = groupFor(robots, token);   // exact token group, else *, else none\n  if (!group) return { allowed: true, matchedBy: 'none' };\n  const matchedBy = group.agents[0] === '*' ? 'star' : 'exact';\n  let best: RobotsRule | undefined;\n  for (const r of group.rules) {\n    if (!ruleRegex(r.path).test(path)) continue;\n    if (!best || r.path.length > best.path.length || (r.path.length === best.path.length && r.allow && !best.allow)) best = r;   // longest rule wins\n  }\n  return { allowed: best ? best.allow : true, matchedBy, rule: best };\n}"
+  },
+  {
+   "step": "Runs 51 checks with fixed severities and aggregates across pages: one root cause on fifty pages is one finding listing the fifty pages.",
+   "short": "Apply the rules",
+   "fn": "evaluate() + jsOnly() + integrity() — rules.ts",
+   "explain": [
+    "The central verdict: rendered words ≥ 10 and raw words below max(5, 30% of rendered) means the content needs JavaScript. Critical on the home page.",
+    "Integrity checks run first: a page that could not render is a finding, and no audited page means a critical in every area, never a silent 100.",
+    "Local, private-network and preview hosts downgrade production canonicals to info; they are expected there."
+   ],
+   "code": "export const MIN_RENDERED_WORDS = 10;   // regression fix: was 50, and skipped small app shells\n/** Raw words below this share of rendered words (and below RAW_FLOOR) means the content arrives by JavaScript. */\nexport const RAW_SHARE = 0.3;\nexport const RAW_FLOOR = 5;\n\n/** Pages that loaded. The rendered view is preferred; the raw view stands in when rendering failed. */\nconst live = (f: SiteFacts) => f.pages.filter(p => p.status > 0 && p.status < 400 && (p.rendered || p.raw));\n/** Both views exist, so raw-versus-rendered comparisons are valid. */\nconst both = (f: SiteFacts) => live(f).filter(p => p.rendered && p.raw);\nconst v = (p: PageAudit) => (p.rendered ?? p.raw)!;\nexport function jsOnly(p: PageAudit): boolean {\n  const ren = p.rendered?.words ?? 0; const raw = p.raw?.words ?? 0;\n  return ren >= MIN_RENDERED_WORDS && raw < Math.max(RAW_FLOOR, ren * RAW_SHARE);   // the whole verdict in one line\n}\n\n  // …\n\nfunction integrity(f: SiteFacts): CheckResult[] {\n  const out: CheckResult[] = [];\n  if (!live(f).length) {\n    out.push(r('audit.nothing-audited', 'ai-visibility', 'critical', 'No page could be audited',   // regression fix: a failed audit once scored 100\n      `The start URL did not return a usable page (${f.pages.map(p => `${p.path}: ${p.status || p.error}`).join('; ') || 'no response'}). Every score below is meaningless.`,\n      'Check the URL, network access and authentication, then run again.', { evidence: f.pages.map(p => ({ path: p.path, status: p.status, error: p.error })) }));\n    out.push(r('audit.nothing-audited-search', 'search', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));\n    out.push(r('audit.nothing-audited-build', 'build', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));\n    return out;\n  }\n  const failed = f.pages.filter(p => p.raw && !p.rendered);"
+  },
+  {
+   "step": "Scores each area as 100 minus 40 per critical, 18 per high, 8 per medium and 3 per low finding, grades A to F, and writes the evaluation page, markdown and JSON.",
+   "short": "Score and write the page",
+   "fn": "scores() + grade() — rules.ts · renderReportHtml() — report.ts",
+   "explain": [
+    "The page is self-contained HTML with inline CSS, light and dark, printable, and runs no JavaScript.",
+    "It leads with the three grades, then the crawler-versus-browser comparison, the AI access table, findings by area, pages and site files.",
+    "The summary is built from counts; a local model may only rephrase it, and the footer says whether one did."
+   ],
+   "code": "export const WEIGHTS: Record<Severity, number> = { critical: 40, high: 18, medium: 8, low: 3, info: 0 };   // one critical drops an area to 60\n\n/** 0–100 per area: 100 minus the weight of each failed check, floored at 0. */\nexport function scores(results: CheckResult[]): Record<Area, number> {\n  const s: Record<Area, number> = { 'ai-visibility': 100, search: 100, build: 100 };\n  for (const x of results) s[x.area] = Math.max(0, s[x.area] - WEIGHTS[x.severity]);\n  return s;\n}\n\nexport function grade(score: number): string {\n\n  // …\n\nexport function deterministicSummary(f: SiteFacts, results: CheckResult[]): string {\n  const s = scores(results);\n  const c = countBySeverity(results);\n  const pages = f.pages.filter(p => p.rendered).length;\n  const h = f.pages[0];\n  const raw = h?.raw?.words ?? 0; const ren = h?.rendered?.words ?? 0;\n  const parts = [\n    `Audited ${pages} page${pages === 1 ? '' : 's'} on ${f.origin} in ${(f.durationMs / 1000).toFixed(1)} s.`,\n    `Scores: AI visibility ${s['ai-visibility']} (${grade(s['ai-visibility'])}), search ${s.search} (${grade(s.search)}), build quality ${s.build} (${grade(s.build)}).`,\n    `${results.length} finding${results.length === 1 ? '' : 's'}: ${c.critical} critical, ${c.high} high, ${c.medium} medium, ${c.low} low, ${c.info} info.`,\n    ren ? `The home page has ${ren} words in a browser and ${raw} in the HTML that AI crawlers receive.` : '',   // the sentence a site owner remembers\n  ];\n  return parts.filter(Boolean).join(' ');\n}"
+  }
+ ],
+ "examples": [
+  {
+   "caption": "The fixture AI-builder SPA: run a70d48e1, 2026-09-13",
+   "input": "`npm run agent:audit -- --url http://127.0.0.1:4801/ --org acme-robotics` against a Vite-style SPA: empty `<div id=\"root\">`, catch-all server, \"Vite + React\" title, a Lovable badge, an OpenAI-shaped key in the bundle, PerplexityBot answered with 403.",
+   "output": [
+    "Scores: AI visibility 0 · F, search 46 · D, build quality 23 · F. 20 findings: 2 critical, 5 high, 7 medium, 6 low. 2 pages in 1.6 s.",
+    "critical: content only after JavaScript on 2 of 2 pages (home: 97 words rendered, 0 raw).",
+    "critical: OpenAI API key in /assets/index.js, shown as sk-pro…(56 chars).",
+    "high: title set by JavaScript, h1 set by JavaScript, PerplexityBot blocked by user agent, soft 404, scaffold title \"Vite + React\".",
+    "medium: no sitemap, duplicate titles and descriptions, placeholder copy (John Doe, 555 number, example email), console errors."
+   ]
+  },
+  {
+   "caption": "The fixture server-rendered site: run 23fed86c, 2026-09-13",
+   "input": "`npm run agent:audit -- --url http://127.0.0.1:4802/ --org acme-robotics` against the same content served as HTML, with a robots.txt that blocks only GPTBot, a sitemap, llms.txt, JSON-LD, canonicals, and one image request that never finishes.",
+   "output": [
+    "Scores: AI visibility 100 · A, search 97 · A, build quality 97 · A. 2 low findings.",
+    "Home page: 126 words raw, 126 rendered.",
+    "GPTBot blocked by its own robots group; OAI-SearchBot still allowed; no finding, because blocking training is a choice.",
+    "low: the load event never fired (the hanging image), yet both pages were fully audited.",
+    "low: robots.txt lists a sitemap on another host; recorded, not fetched."
+   ]
+  },
+  {
+   "caption": "Validation on three real builds, before release",
+   "input": "Two Create React App builds and one Next.js build from this machine, served locally with the SPA fallback that Vercel and Netlify apply.",
+   "output": [
+    "CRA build 1: AI visibility D, 0 of 18 words visible without JavaScript.",
+    "CRA build 2: AI visibility F, 9 of 435 words on the home page; \"React App\" title on 8 pages; soft 404; 1.3 MB of JavaScript.",
+    "Next.js build: AI visibility A, 192 of 193 words; no canonical and no og:image, both confirmed in the raw HTML.",
+    "Found and fixed three bugs: a render timeout that scored a site 100 while auditing nothing, a threshold that skipped small shells, a form label read as placeholder copy."
+   ]
+  }
+ ],
+ "underHood": [
+  {
+   "heading": "Site facts",
+   "whenRuns": "First, over plain HTTP, in parallel.",
+   "input": "The start URL.",
+   "output": "robots.txt (or -1 for an HTML fallback), same-origin sitemaps, llms.txt, soft-404 status, http redirect, /.env, security headers, one response per AI user agent — via `collect()`, `fetchText()`, `parseRobots()`, `parseSitemap()`."
+  },
+  {
+   "heading": "Two views",
+   "whenRuns": "Per page, up to `max_pages`.",
+   "input": "The raw response, fetched once.",
+   "output": "A `PageView` with JavaScript off and one with JavaScript on, plus console errors, failed requests, mixed content and script sizes — via `rawView()`, `renderedView()`, `EXTRACT_SCRIPT`."
+  },
+  {
+   "heading": "Bundle scan",
+   "whenRuns": "For each same-origin script, up to 8 MB in total.",
+   "input": "Script text.",
+   "output": "Redacted secret hits and public source maps — via `findSecrets()`, `redact()`."
+  },
+  {
+   "heading": "Rules and scores",
+   "whenRuns": "After collection; pure.",
+   "input": "`SiteFacts`.",
+   "output": "Sorted `CheckResult[]` with area, severity, why, fix, pages, evidence and source; three scores and grades — via `evaluate()`, `scores()`, `grade()`."
+  },
+  {
+   "heading": "Evaluation page",
+   "whenRuns": "Last.",
+   "input": "Facts, results, summary.",
+   "output": "`report.html`, `report.md`, `report.json`; one findings row per result and one artifact row per file — via `renderReportHtml()`, `renderReportMarkdown()`, `buildReportJson()`."
+  }
+ ],
+ "outputSample": {
+  "heading": "The evaluation page",
+  "whenRuns": "Written at the end of every run.",
+  "input": "The fixture SPA audit.",
+  "output": "Three grades, the crawler-versus-browser comparison, the AI access table and findings by area.",
+  "img": "report-sample.png",
+  "imgAlt": "Top of the evaluation page: grades F, D, F and the AI crawler versus browser comparison",
+  "caption": "report.html for the fixture SPA"
+ },
+ "diagrams": [
+  {
+   "heading": "Pipeline",
+   "after": "lead",
+   "svg": "<svg viewBox=\"0 0 760 360\" role=\"img\" aria-label=\"Pipeline of the AI Site Auditor: site probes over plain HTTP, then two views of every page in Chromium, a bundle scan, rules, scores and the evaluation page\"><defs><marker id=\"ah\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto\"><path d=\"M0 0 L10 5 L0 10 z\" fill=\"var(--deep)\"/></marker></defs><g transform=\"rotate(-2 68 147)\"><rect x=\"16\" y=\"132\" width=\"104\" height=\"30\" rx=\"15\" fill=\"var(--tint)\" stroke=\"var(--ac)\" stroke-width=\"3.5\"/><text x=\"68\" y=\"152\" text-anchor=\"middle\" font-size=\"13.5\" font-weight=\"800\" fill=\"var(--deep)\">site URL</text></g><path class=\"hand\" d=\"M122 147 L150 147\" stroke=\"var(--deep)\" stroke-width=\"3.5\"  marker-end=\"url(#ah)\"/><g transform=\"rotate(-1.5 216 145)\"><rect x=\"154\" y=\"110\" width=\"124\" height=\"70\" rx=\"16\" fill=\"#fff\" stroke=\"var(--ac)\" stroke-width=\"3.5\"/><text x=\"216\" y=\"143\" text-anchor=\"middle\" font-size=\"13.5\" font-weight=\"800\" fill=\"var(--deep)\">1 Site probes</text><text x=\"216\" y=\"161\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"600\" fill=\"var(--ink-soft)\">plain HTTP, no JS</text></g><path class=\"hand\" d=\"M280 147 L306 147\" stroke=\"var(--deep)\" stroke-width=\"3.5\"  marker-end=\"url(#ah)\"/><g transform=\"rotate(1.5 372 145)\"><rect x=\"310\" y=\"110\" width=\"124\" height=\"70\" rx=\"16\" fill=\"#fff\" stroke=\"var(--ac)\" stroke-width=\"3.5\"/><text x=\"372\" y=\"143\" text-anchor=\"middle\" font-size=\"13.5\" font-weight=\"800\" fill=\"var(--deep)\">2 Two views</text><text x=\"372\" y=\"161\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"600\" fill=\"var(--ink-soft)\">JS off · JS on</text></g><path class=\"hand\" d=\"M436 147 L462 147\" stroke=\"var(--deep)\" stroke-width=\"3.5\"  marker-end=\"url(#ah)\"/><g transform=\"rotate(-1.5 528 145)\"><rect x=\"466\" y=\"110\" width=\"124\" height=\"70\" rx=\"16\" fill=\"#fff\" stroke=\"var(--ac)\" stroke-width=\"3.5\"/><text x=\"528\" y=\"143\" text-anchor=\"middle\" font-size=\"13.5\" font-weight=\"800\" fill=\"var(--deep)\">3 Rules</text><text x=\"528\" y=\"161\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"600\" fill=\"var(--ink-soft)\">51 checks, fixed</text></g><path class=\"hand\" d=\"M592 147 L618 147\" stroke=\"var(--deep)\" stroke-width=\"3.5\"  marker-end=\"url(#ah)\"/><g transform=\"rotate(1.5 684 145)\"><rect x=\"622\" y=\"110\" width=\"124\" height=\"70\" rx=\"16\" fill=\"#fff\" stroke=\"var(--ac)\" stroke-width=\"3.5\"/><text x=\"684\" y=\"143\" text-anchor=\"middle\" font-size=\"13.5\" font-weight=\"800\" fill=\"var(--deep)\">4 Report</text><text x=\"684\" y=\"161\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"600\" fill=\"var(--ink-soft)\">three scores</text></g><g transform=\"rotate(0 73 39)\"><rect x=\"16\" y=\"24\" width=\"114\" height=\"30\" rx=\"15\" fill=\"#fff\" stroke=\"var(--ink-soft)\" stroke-width=\"2\"/><text x=\"73\" y=\"44\" text-anchor=\"middle\" font-size=\"11.5\" font-weight=\"800\" fill=\"var(--deep)\">robots.txt</text></g><g transform=\"rotate(0 197 39)\"><rect x=\"140\" y=\"24\" width=\"114\" height=\"30\" rx=\"15\" fill=\"#fff\" stroke=\"var(--ink-soft)\" stroke-width=\"2\"/><text x=\"197\" y=\"44\" text-anchor=\"middle\" font-size=\"11.5\" font-weight=\"800\" fill=\"var(--deep)\">sitemap</text></g><g transform=\"rotate(0 321 39)\"><rect x=\"264\" y=\"24\" width=\"114\" height=\"30\" rx=\"15\" fill=\"#fff\" stroke=\"var(--ink-soft)\" stroke-width=\"2\"/><text x=\"321\" y=\"44\" text-anchor=\"middle\" font-size=\"11.5\" font-weight=\"800\" fill=\"var(--deep)\">llms.txt</text></g><g transform=\"rotate(0 445 39)\"><rect x=\"388\" y=\"24\" width=\"114\" height=\"30\" rx=\"15\" fill=\"#fff\" stroke=\"var(--ink-soft)\" stroke-width=\"2\"/><text x=\"445\" y=\"44\" text-anchor=\"middle\" font-size=\"11.5\" font-weight=\"800\" fill=\"var(--deep)\">random URL</text></g><g transform=\"rotate(0 569 39)\"><rect x=\"512\" y=\"24\" width=\"114\" height=\"30\" rx=\"15\" fill=\"#fff\" stroke=\"var(--ink-soft)\" stroke-width=\"2\"/><text x=\"569\" y=\"44\" text-anchor=\"middle\" font-size=\"11.5\" font-weight=\"800\" fill=\"var(--deep)\">/.env</text></g><g transform=\"rotate(0 693 39)\"><rect x=\"636\" y=\"24\" width=\"114\" height=\"30\" rx=\"15\" fill=\"#fff\" stroke=\"var(--ink-soft)\" stroke-width=\"2\"/><text x=\"693\" y=\"44\" text-anchor=\"middle\" font-size=\"11.5\" font-weight=\"800\" fill=\"var(--deep)\">bot user agents</text></g><path class=\"hand\" d=\"M216 56 L216 106\" stroke=\"var(--ink-soft)\" stroke-width=\"3.5\" stroke-dasharray=\"1 8\" marker-end=\"url(#ah)\"/><g transform=\"rotate(0 372 247)\"><rect x=\"300\" y=\"222\" width=\"144\" height=\"50\" rx=\"12\" fill=\"var(--tint)\" stroke=\"var(--ac)\" stroke-width=\"3.5\"/><text x=\"372\" y=\"245\" text-anchor=\"middle\" font-size=\"13.5\" font-weight=\"800\" fill=\"var(--deep)\">bundle scan</text><text x=\"372\" y=\"263\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"600\" fill=\"var(--ink-soft)\">keys, redacted</text></g><path class=\"hand\" d=\"M372 182 L372 218\" stroke=\"var(--deep)\" stroke-width=\"3.5\" stroke-dasharray=\"1 8\" marker-end=\"url(#ah)\"/><path class=\"hand\" d=\"M446 240 L512 186\" stroke=\"var(--deep)\" stroke-width=\"3.5\" stroke-dasharray=\"1 8\" marker-end=\"url(#ah)\"/><g transform=\"rotate(0 676 270)\"><rect x=\"606\" y=\"222\" width=\"140\" height=\"96\" rx=\"14\" fill=\"var(--tint)\" stroke=\"var(--ac)\" stroke-width=\"3.5\"/><text x=\"676\" y=\"268\" text-anchor=\"middle\" font-size=\"13.5\" font-weight=\"800\" fill=\"var(--deep)\">report.html</text><text x=\"676\" y=\"286\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"600\" fill=\"var(--ink-soft)\">hand it to the owner</text></g><path class=\"hand\" d=\"M684 182 L684 218\" stroke=\"var(--deep)\" stroke-width=\"3.5\" stroke-dasharray=\"1 8\" marker-end=\"url(#ah)\"/><g><path d=\"M462 232 v76 a64 10 0 0 0 128 0 v-76\" fill=\"#fff\" stroke=\"var(--deep)\" stroke-width=\"3\"/><ellipse cx=\"526\" cy=\"232\" rx=\"64\" ry=\"10\" fill=\"var(--tint)\" stroke=\"var(--deep)\" stroke-width=\"3\"/><text x=\"526\" y=\"258\" text-anchor=\"middle\" font-size=\"12.5\" font-weight=\"800\" fill=\"var(--deep)\">SQLite</text><text x=\"526\" y=\"276\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"var(--ink-soft)\">findings</text><text x=\"526\" y=\"291\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"var(--ink-soft)\">artifacts</text></g><path class=\"hand\" d=\"M526 182 L526 218\" stroke=\"var(--deep)\" stroke-width=\"3.5\" stroke-dasharray=\"1 8\" marker-end=\"url(#ah)\"/><text x=\"380\" y=\"346\" text-anchor=\"middle\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">only this host is fetched; sitemaps on other hosts are recorded, never followed</text></svg>",
+   "caption": "Probes, two views, rules, report. Only the audited host is ever fetched."
+  },
+  {
+   "heading": "One page, two views",
+   "after": "flow",
+   "svg": "<svg viewBox=\"0 0 760 360\" role=\"img\" aria-label=\"The same page seen twice: the raw HTML with JavaScript off, which is what AI crawlers get, and the rendered page with JavaScript on, compared field by field\"><defs><marker id=\"ah\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto\"><path d=\"M0 0 L10 5 L0 10 z\" fill=\"var(--deep)\"/></marker></defs><g transform=\"rotate(0 380 28)\"><rect x=\"270\" y=\"10\" width=\"220\" height=\"36\" rx=\"18\" fill=\"var(--tint)\" stroke=\"var(--ac)\" stroke-width=\"3.5\"/><text x=\"380\" y=\"33\" text-anchor=\"middle\" font-size=\"12.5\" font-weight=\"800\" fill=\"var(--deep)\">one fetch of the raw HTML</text></g><path class=\"hand\" d=\"M330 48 L200 66\" stroke=\"var(--deep)\" stroke-width=\"3.5\"  marker-end=\"url(#ah)\"/><path class=\"hand\" d=\"M430 48 L560 66\" stroke=\"var(--deep)\" stroke-width=\"3.5\"  marker-end=\"url(#ah)\"/><rect x=\"40\" y=\"70\" width=\"300\" height=\"220\" rx=\"18\" fill=\"#FFF4E5\" stroke=\"var(--deep)\" stroke-width=\"3\"/><text x=\"190\" y=\"98\" text-anchor=\"middle\" font-size=\"14\" font-weight=\"800\" fill=\"var(--deep)\">JavaScript off  (AI crawlers)</text><text x=\"62\" y=\"132\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">title</text><text x=\"160\" y=\"132\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink)\" font-family=\"ui-monospace,Menlo,monospace\">\"Vite + React\"</text><text x=\"62\" y=\"162\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">h1</text><text x=\"160\" y=\"162\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink)\" font-family=\"ui-monospace,Menlo,monospace\">—</text><text x=\"62\" y=\"192\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">description</text><text x=\"160\" y=\"192\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink)\" font-family=\"ui-monospace,Menlo,monospace\">—</text><text x=\"62\" y=\"222\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">JSON-LD</text><text x=\"160\" y=\"222\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink)\" font-family=\"ui-monospace,Menlo,monospace\">0 blocks</text><text x=\"190\" y=\"262\" text-anchor=\"middle\" font-size=\"22\" font-weight=\"800\" fill=\"var(--deep)\">0 words</text><text x=\"190\" y=\"280\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"var(--ink-soft)\">GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot</text><rect x=\"420\" y=\"70\" width=\"300\" height=\"220\" rx=\"18\" fill=\"#E8F3FF\" stroke=\"var(--deep)\" stroke-width=\"3\"/><text x=\"570\" y=\"98\" text-anchor=\"middle\" font-size=\"14\" font-weight=\"800\" fill=\"var(--deep)\">JavaScript on  (browser)</text><text x=\"442\" y=\"132\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">title</text><text x=\"540\" y=\"132\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink)\" font-family=\"ui-monospace,Menlo,monospace\">\"Acme Robotics\"</text><text x=\"442\" y=\"162\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">h1</text><text x=\"540\" y=\"162\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink)\" font-family=\"ui-monospace,Menlo,monospace\">Robots that fold…</text><text x=\"442\" y=\"192\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">description</text><text x=\"540\" y=\"192\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink)\" font-family=\"ui-monospace,Menlo,monospace\">\"Acme robots\"</text><text x=\"442\" y=\"222\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">JSON-LD</text><text x=\"540\" y=\"222\" text-anchor=\"start\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink)\" font-family=\"ui-monospace,Menlo,monospace\">0 blocks</text><text x=\"570\" y=\"262\" text-anchor=\"middle\" font-size=\"22\" font-weight=\"800\" fill=\"var(--deep)\">97 words</text><text x=\"570\" y=\"280\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"var(--ink-soft)\">you, and Googlebot later</text><path class=\"hand\" d=\"M342 180 L416 180\" stroke=\"var(--ac)\" stroke-width=\"3.5\"  marker-end=\"url(#ah)\"/><path class=\"hand\" d=\"M418 200 L344 200\" stroke=\"var(--ac)\" stroke-width=\"3.5\"  marker-end=\"url(#ah)\"/><text x=\"380\" y=\"170\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"800\" fill=\"var(--deep)\">diff</text><g transform=\"rotate(0 380 328)\"><rect x=\"150\" y=\"306\" width=\"460\" height=\"44\" rx=\"14\" fill=\"#FFECE7\" stroke=\"#FF6B6B\" stroke-width=\"3.5\"/><text x=\"380\" y=\"333\" text-anchor=\"middle\" font-size=\"12.5\" font-weight=\"800\" fill=\"#C93F3F\">raw < max(5, 30% of rendered) → content needs JavaScript</text></g></svg>",
+   "caption": "Steps 3 and 4 on the fixture SPA home page. The comparison, not either view alone, is the finding."
+  },
+  {
+   "heading": "Who reads what",
+   "after": "flow",
+   "svg": "<svg viewBox=\"0 0 760 300\" role=\"img\" aria-label=\"AI crawlers grouped by what they are for: search and user-fetch agents decide whether a site is cited, training agents only decide whether content trains models, policy tokens are not crawlers\"><defs><marker id=\"ah\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto\"><path d=\"M0 0 L10 5 L0 10 z\" fill=\"var(--deep)\"/></marker></defs><rect x=\"8\" y=\"20\" width=\"176\" height=\"36\" rx=\"18\" fill=\"#2EC4A0\"/><text x=\"96\" y=\"44\" text-anchor=\"middle\" font-size=\"13\" font-weight=\"800\" fill=\"#fff\">Search</text><rect x=\"8\" y=\"68\" width=\"176\" height=\"30\" rx=\"10\" fill=\"#fff\" stroke=\"#2EC4A0\" stroke-width=\"2.5\"/><text x=\"96\" y=\"88\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--ink)\">OAI-SearchBot</text><rect x=\"8\" y=\"106\" width=\"176\" height=\"30\" rx=\"10\" fill=\"#fff\" stroke=\"#2EC4A0\" stroke-width=\"2.5\"/><text x=\"96\" y=\"126\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--ink)\">Claude-SearchBot</text><rect x=\"8\" y=\"144\" width=\"176\" height=\"30\" rx=\"10\" fill=\"#fff\" stroke=\"#2EC4A0\" stroke-width=\"2.5\"/><text x=\"96\" y=\"164\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--ink)\">PerplexityBot</text><rect x=\"8\" y=\"182\" width=\"176\" height=\"30\" rx=\"10\" fill=\"#fff\" stroke=\"#2EC4A0\" stroke-width=\"2.5\"/><text x=\"96\" y=\"202\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--ink)\">Googlebot</text><text x=\"96\" y=\"262\" text-anchor=\"middle\" font-size=\"11.5\" font-weight=\"700\" fill=\"#2EC4A0\">blocking = not cited</text><text x=\"96\" y=\"280\" text-anchor=\"middle\" font-size=\"10.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">high finding if blocked</text><rect x=\"196\" y=\"20\" width=\"176\" height=\"36\" rx=\"18\" fill=\"#3FB4E8\"/><text x=\"284\" y=\"44\" text-anchor=\"middle\" font-size=\"13\" font-weight=\"800\" fill=\"#fff\">User fetch</text><rect x=\"196\" y=\"68\" width=\"176\" height=\"30\" rx=\"10\" fill=\"#fff\" stroke=\"#3FB4E8\" stroke-width=\"2.5\"/><text x=\"284\" y=\"88\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--ink)\">ChatGPT-User</text><rect x=\"196\" y=\"106\" width=\"176\" height=\"30\" rx=\"10\" fill=\"#fff\" stroke=\"#3FB4E8\" stroke-width=\"2.5\"/><text x=\"284\" y=\"126\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--ink)\">Claude-User</text><rect x=\"196\" y=\"144\" width=\"176\" height=\"30\" rx=\"10\" fill=\"#fff\" stroke=\"#3FB4E8\" stroke-width=\"2.5\"/><text x=\"284\" y=\"164\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--ink)\">Perplexity-User</text><text x=\"284\" y=\"262\" text-anchor=\"middle\" font-size=\"11.5\" font-weight=\"700\" fill=\"#3FB4E8\">blocking = cannot open links</text><text x=\"284\" y=\"280\" text-anchor=\"middle\" font-size=\"10.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">high finding if blocked</text><rect x=\"384\" y=\"20\" width=\"176\" height=\"36\" rx=\"18\" fill=\"#FFB020\"/><text x=\"472\" y=\"44\" text-anchor=\"middle\" font-size=\"13\" font-weight=\"800\" fill=\"#fff\">Training</text><rect x=\"384\" y=\"68\" width=\"176\" height=\"30\" rx=\"10\" fill=\"#fff\" stroke=\"#FFB020\" stroke-width=\"2.5\"/><text x=\"472\" y=\"88\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--ink)\">GPTBot</text><rect x=\"384\" y=\"106\" width=\"176\" height=\"30\" rx=\"10\" fill=\"#fff\" stroke=\"#FFB020\" stroke-width=\"2.5\"/><text x=\"472\" y=\"126\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--ink)\">ClaudeBot</text><rect x=\"384\" y=\"144\" width=\"176\" height=\"30\" rx=\"10\" fill=\"#fff\" stroke=\"#FFB020\" stroke-width=\"2.5\"/><text x=\"472\" y=\"164\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--ink)\">CCBot</text><text x=\"472\" y=\"262\" text-anchor=\"middle\" font-size=\"11.5\" font-weight=\"700\" fill=\"#FFB020\">blocking = a policy choice</text><text x=\"472\" y=\"280\" text-anchor=\"middle\" font-size=\"10.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">never a finding</text><rect x=\"572\" y=\"20\" width=\"176\" height=\"36\" rx=\"18\" fill=\"#9B6BF2\"/><text x=\"660\" y=\"44\" text-anchor=\"middle\" font-size=\"13\" font-weight=\"800\" fill=\"#fff\">Policy token</text><rect x=\"572\" y=\"68\" width=\"176\" height=\"30\" rx=\"10\" fill=\"#fff\" stroke=\"#9B6BF2\" stroke-width=\"2.5\"/><text x=\"660\" y=\"88\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--ink)\">Google-Extended</text><rect x=\"572\" y=\"106\" width=\"176\" height=\"30\" rx=\"10\" fill=\"#fff\" stroke=\"#9B6BF2\" stroke-width=\"2.5\"/><text x=\"660\" y=\"126\" text-anchor=\"middle\" font-size=\"12\" font-weight=\"700\" fill=\"var(--ink)\">Applebot-Extended</text><text x=\"660\" y=\"262\" text-anchor=\"middle\" font-size=\"11.5\" font-weight=\"700\" fill=\"#9B6BF2\">not a crawler</text><text x=\"660\" y=\"280\" text-anchor=\"middle\" font-size=\"10.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">shown for completeness</text><text x=\"380\" y=\"230\" text-anchor=\"middle\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">none of the OpenAI, Anthropic or Perplexity agents run JavaScript; Googlebot does, later</text></svg>",
+   "caption": "Steps 2 and 6. Blocking a search or user-fetch agent costs citations; blocking a training agent does not."
+  },
+  {
+   "heading": "How the scores work",
+   "after": "flow",
+   "svg": "<svg viewBox=\"0 0 760 250\" role=\"img\" aria-label=\"How each area score is computed: start at 100 and subtract a fixed weight for every finding in that area, floored at zero, then map to a letter grade\"><defs><marker id=\"ah\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"6\" markerHeight=\"6\" orient=\"auto\"><path d=\"M0 0 L10 5 L0 10 z\" fill=\"var(--deep)\"/></marker></defs><g transform=\"rotate(0 76 60)\"><rect x=\"16\" y=\"30\" width=\"120\" height=\"60\" rx=\"16\" fill=\"#fff\" stroke=\"var(--ac)\" stroke-width=\"3.5\"/><text x=\"76\" y=\"58\" text-anchor=\"middle\" font-size=\"28\" font-weight=\"800\" fill=\"var(--deep)\">100</text><text x=\"76\" y=\"76\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"600\" fill=\"var(--ink-soft)\">per area</text></g><path class=\"hand\" d=\"M138 60 L168 60\" stroke=\"var(--deep)\" stroke-width=\"3.5\"  marker-end=\"url(#ah)\"/><rect x=\"176\" y=\"36\" width=\"84\" height=\"48\" rx=\"12\" fill=\"#fff\" stroke=\"#C93F3F\" stroke-width=\"3\"/><text x=\"218\" y=\"58\" text-anchor=\"middle\" font-size=\"16\" font-weight=\"800\" fill=\"#C93F3F\">− 40</text><text x=\"218\" y=\"76\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"var(--ink-soft)\">critical</text><rect x=\"268\" y=\"36\" width=\"84\" height=\"48\" rx=\"12\" fill=\"#fff\" stroke=\"#FF6B6B\" stroke-width=\"3\"/><text x=\"310\" y=\"58\" text-anchor=\"middle\" font-size=\"16\" font-weight=\"800\" fill=\"#FF6B6B\">− 18</text><text x=\"310\" y=\"76\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"var(--ink-soft)\">high</text><rect x=\"360\" y=\"36\" width=\"84\" height=\"48\" rx=\"12\" fill=\"#fff\" stroke=\"#FFB020\" stroke-width=\"3\"/><text x=\"402\" y=\"58\" text-anchor=\"middle\" font-size=\"16\" font-weight=\"800\" fill=\"#FFB020\">− 8</text><text x=\"402\" y=\"76\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"var(--ink-soft)\">medium</text><rect x=\"452\" y=\"36\" width=\"84\" height=\"48\" rx=\"12\" fill=\"#fff\" stroke=\"#3FB4E8\" stroke-width=\"3\"/><text x=\"494\" y=\"58\" text-anchor=\"middle\" font-size=\"16\" font-weight=\"800\" fill=\"#3FB4E8\">− 3</text><text x=\"494\" y=\"76\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"var(--ink-soft)\">low</text><rect x=\"544\" y=\"36\" width=\"84\" height=\"48\" rx=\"12\" fill=\"#fff\" stroke=\"#9B6BF2\" stroke-width=\"3\"/><text x=\"586\" y=\"58\" text-anchor=\"middle\" font-size=\"16\" font-weight=\"800\" fill=\"#9B6BF2\">− 0</text><text x=\"586\" y=\"76\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"var(--ink-soft)\">info</text><path class=\"hand\" d=\"M640 60 L668 60\" stroke=\"var(--deep)\" stroke-width=\"3.5\"  marker-end=\"url(#ah)\"/><g transform=\"rotate(0 710 60)\"><rect x=\"672\" y=\"30\" width=\"76\" height=\"60\" rx=\"16\" fill=\"#fff\" stroke=\"var(--ac)\" stroke-width=\"3.5\"/><text x=\"710\" y=\"58\" text-anchor=\"middle\" font-size=\"15\" font-weight=\"800\" fill=\"var(--deep)\">0–100</text><text x=\"710\" y=\"76\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"600\" fill=\"var(--ink-soft)\">floor 0</text></g><rect x=\"176\" y=\"132\" width=\"84\" height=\"54\" rx=\"14\" fill=\"#2EC4A0\"/><text x=\"218\" y=\"160\" text-anchor=\"middle\" font-size=\"22\" font-weight=\"800\" fill=\"#fff\">A</text><text x=\"218\" y=\"178\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"#fff\">≥ 90</text><rect x=\"268\" y=\"132\" width=\"84\" height=\"54\" rx=\"14\" fill=\"#5c940d\"/><text x=\"310\" y=\"160\" text-anchor=\"middle\" font-size=\"22\" font-weight=\"800\" fill=\"#fff\">B</text><text x=\"310\" y=\"178\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"#fff\">≥ 75</text><rect x=\"360\" y=\"132\" width=\"84\" height=\"54\" rx=\"14\" fill=\"#FFB020\"/><text x=\"402\" y=\"160\" text-anchor=\"middle\" font-size=\"22\" font-weight=\"800\" fill=\"#fff\">C</text><text x=\"402\" y=\"178\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"#fff\">≥ 60</text><rect x=\"452\" y=\"132\" width=\"84\" height=\"54\" rx=\"14\" fill=\"#FF8A3D\"/><text x=\"494\" y=\"160\" text-anchor=\"middle\" font-size=\"22\" font-weight=\"800\" fill=\"#fff\">D</text><text x=\"494\" y=\"178\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"#fff\">≥ 40</text><rect x=\"544\" y=\"132\" width=\"84\" height=\"54\" rx=\"14\" fill=\"#C93F3F\"/><text x=\"586\" y=\"160\" text-anchor=\"middle\" font-size=\"22\" font-weight=\"800\" fill=\"#fff\">F</text><text x=\"586\" y=\"178\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" fill=\"#fff\">< 40</text><text x=\"96\" y=\"164\" text-anchor=\"middle\" font-size=\"13\" font-weight=\"800\" fill=\"var(--deep)\">grade</text><text x=\"380\" y=\"226\" text-anchor=\"middle\" font-size=\"11.5\" font-weight=\"700\" fill=\"var(--ink-soft)\">fixture SPA: AI visibility 0 · F   ·   fixture server-rendered site: 100 · A</text></svg>",
+   "caption": "Step 8. Fixed weights, no model, same result every run."
+  }
+ ],
+ "status": "toolkit",
+ "runbook": {
+  "runnable": true,
+  "prerequisites": [
+   "Node 24 and `npm install` in the forward-qa-agents repo; `npx playwright install chromium` once.",
+   "A site you own or are authorised to test: the audit sends about a dozen probes, including a request for `/.env`."
+  ],
+  "steps": [
+   {
+    "label": "Start the two fixture sites",
+    "cmd": "npm run fixture:audit-sites",
+    "why": "An AI-builder SPA on :4801 and a server-rendered site on :4802, so the first run needs no real site."
+   },
+   {
+    "label": "Audit the SPA",
+    "cmd": "LLM_PROVIDER=none npm run agent:audit -- --url http://127.0.0.1:4801/ --org acme-robotics",
+    "why": "Prints scores, grades, finding counts and the path to `report.html`.",
+    "firstRun": "Run a70d48e1 on 2026-09-13: 0 · F, 46 · D, 23 · F; 20 findings in 1.6 s."
+   },
+   {
+    "label": "Open the evaluation page",
+    "cmd": "open workspace/<run_id>/report.html",
+    "why": "Self-contained: email it, attach it to a ticket, or print it."
+   },
+   {
+    "label": "Audit a real site",
+    "cmd": "npm run agent:audit -- --url https://www.example.com/ --org acme --max-pages 20",
+    "why": [
+     "Start on the production domain to judge production; on a preview host, canonicals pointing at production are reported as info.",
+     "Raise `--timeout-ms` for slow sites; a page that cannot render is reported, never silently skipped."
+    ]
+   },
+   {
+    "label": "Same thing through the REST API",
+    "cmd": "npm start\ncurl -s -X POST localhost:8787/agents/ai-site-auditor/runs -H 'content-type: application/json' \\\n  -d '{\"engagement_id\":\"<id>\",\"input\":{\"target_url\":\"https://www.example.com/\",\"org_slug\":\"acme\"}}'\ncurl -s localhost:8787/agents/ai-site-auditor/runs/<run_id>/report > report.html",
+    "why": "The report route serves the evaluation page as HTML."
+   },
+   {
+    "label": "Run its tests",
+    "cmd": "npm test",
+    "why": "Robots matching, secret detection, rules on synthetic facts, five regression tests, and both fixture sites end to end.",
+    "firstRun": "Part of 99 green tests on 2026-09-13."
+   }
+  ],
+  "inputs": [
+   {
+    "name": "--url / target_url",
+    "desc": "Start page; only its host is fetched."
+   },
+   {
+    "name": "--org / org_slug",
+    "desc": "Label for the report."
+   },
+   {
+    "name": "--max-pages / max_pages",
+    "desc": "1–50, default 10."
+   },
+   {
+    "name": "--timeout-ms / timeout_ms",
+    "desc": "Per request and navigation, default 15000."
+   }
+  ],
+  "outputs": [
+   {
+    "name": "workspace/<run_id>/report.html",
+    "desc": "The evaluation page."
+   },
+   {
+    "name": "report.md, report.json",
+    "desc": "The same results for tickets and pipelines; JSON includes the per-bot access table and per-page word counts."
+   },
+   {
+    "name": "Rows in findings and artifacts",
+    "desc": "Category is the area; evidence holds the check id, pages and source."
+   }
+  ],
+  "rerun": [
+   "Deterministic: same site, same results. Re-run after each fix and compare grades.",
+   "Runs are never overwritten; every run gets its own directory."
+  ],
+  "integrate": [
+   "Run it in CI against each preview deployment and fail the build on any critical finding (`findings_by_severity.critical > 0`).",
+   "Hand `report.html` to whoever owns the site; each finding carries its own fix and source."
+  ]
+ }
+}

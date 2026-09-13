@@ -16,8 +16,10 @@
     "db:init": "tsx src/core/db.ts --init",
     "agent:fdt": "tsx src/agents/forward-deployed-tester/cli.ts",
     "agent:sdet": "tsx src/agents/sdet-architect/cli.ts",
+    "agent:audit": "tsx src/agents/ai-site-auditor/cli.ts",
+    "fixture:audit-sites": "tsx fixtures/ai-site-auditor/serve.ts",
     "progress": "node scripts/progress.mjs",
-    "catalog": "tsx _build/build-catalog.ts --site _build/sites/fdt --out ${FDT_SITE_DIR:-../forward-deployed-tester} && tsx _build/build-catalog.ts --site _build/sites/sdet --out ${SDET_SITE_DIR:-../sdet-architect}",
+    "catalog": "tsx _build/build-catalog.ts --site _build/sites/fdt --out ${FDT_SITE_DIR:-../forward-deployed-tester} && tsx _build/build-catalog.ts --site _build/sites/sdet --out ${SDET_SITE_DIR:-../sdet-architect} && tsx _build/build-catalog.ts --site _build/sites/audit --out ${AUDIT_SITE_DIR:-../ai-site-auditor}",
     "catalog:author": "node _build/author/plates.mjs && npm run catalog"
   },
   "dependencies": {

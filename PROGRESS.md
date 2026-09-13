@@ -16,14 +16,14 @@ best-effort and their numbers as exact.
 
 | Metric | Value |
 |---|---|
-| Commits on main | 3 (1 today, head `a160f25`) |
+| Commits on main | 7 (5 today, head `61115bd`) |
 | Pushed to origin | yes, in sync |
-| Uncommitted files | 0 |
+| Uncommitted files | 16 (CLAUDE.md, README.md, _build/author/diagrams.mjs, _build/author/plates.mjs, _build/build-catalog.ts, package.json, src/api/server.ts, src/core/db.ts, tests/db.test.ts, tsconfig.json, .claude/agents/ai-site-auditor.md, _build/sites/audit/, docs/agents/the-ai-site-auditor.md, fixtures/ai-site-auditor/, src/agents/ai-site-auditor/, tests/ai-site-auditor/) |
 | Typecheck | pass |
-| Tests | 89 pass, 0 fail (10 suites) |
-| Source lines (src/) | 4633 across 36 files |
-| Test lines (tests/) | 1161 across 14 files |
-| Agent runs in DB | 2 (forward-deployed-tester:succeeded,sdet-architect:succeeded) |
+| Tests | 99 pass, 0 fail (10 suites) |
+| Source lines (src/) | 6023 across 45 files |
+| Test lines (tests/) | 1431 across 16 files |
+| Agent runs in DB | 4 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
 
 **Done**
 
@@ -55,9 +55,32 @@ best-effort and their numbers as exact.
   (plate 45), each a GitHub Pages site holding output only. Fixed a link bug: source and test
   folders drop the plate's `the-` prefix. Hub branch `add-plates-44-45` deleted, hub back on main.
 
+- Evening: built **plate 46, The AI Site Auditor** (`src/agents/ai-site-auditor/`) at the user's
+  request: an evaluator for sites built with AI tools. Sees each page twice (raw HTML with JavaScript
+  off, as GPTBot/OAI-SearchBot/ClaudeBot/PerplexityBot get it, and rendered), checks robots.txt per
+  AI agent (RFC 9309 matcher), requests the home page with each crawler's real user agent, scans
+  bundles for keys (redacted), and runs 51 checks in three scored areas (AI visibility, Search,
+  Build quality). Deliverable: a self-contained `report.html`, plus md/json, findings, artifacts.
+  Grounded in vendor docs (OpenAI bots page, Anthropic crawler docs, Google "AI features",
+  Vercel/MERJ crawler study); `llms.txt` absence is info only.
+- DB: `AGENT_NAMES` drives the runs CHECK constraint; `Db` migrates old databases in place (tested).
+- Validated before release on three real local builds (two CRA, one Next.js). Found and fixed three
+  bugs: a render timeout that scored a site 100 while auditing nothing (now render never waits for
+  the load event, failures are findings, empty audits are critical), a 50-word threshold that
+  skipped small app shells (now 10 words, raw < max(5, 30%)), and a form label read as placeholder
+  copy. Also: sitemaps on other hosts are no longer fetched. **Disclosure:** before that fix, one
+  validation run followed a production sitemap URL and made up to six requests to that live site.
+- Fixture sites (`npm run fixture:audit-sites`) and recorded demo runs: SPA `a70d48e1` 0·F / 46·D /
+  23·F, 20 findings; server-rendered `23fed86c` 100·A / 97·A / 97·A, 2 low. 99 tests green.
+- Plate 46 authored (`_build/sites/audit`, four diagrams, report screenshot) and built locally into
+  `../ai-site-auditor`. Fixed the oversized single mascot on every generated home page; the two
+  published sites are rebuilt locally with that fix but **not pushed**.
+
 **Decided**
 
 - The `gh` token for `akc031185` now carries `workflow` scope; no more push blockers for CI edits.
+- The auditor is plate 46 in this repo, one folder like the others; its field guide gets its own
+  site like plates 44 and 45 once the user approves publishing.
 - Three field guides stay separate (QA Agents hub, SDET Architect, Forward Deployed Tester), each
   with its own home and cross-links in the masthead. No landing page for now.
 - forward-qa-agents is the single source and generator for both sites; the site repos are output
@@ -65,13 +88,16 @@ best-effort and their numbers as exact.
 
 **Open / next**
 
-1. Confirm both Pages sites are live: https://akc031185.github.io/forward-deployed-tester/ and
-   https://akc031185.github.io/sdet-architect/ (enabled 2026-09-13; first deploy takes a few minutes).
-2. Start the plate 44 redesign: ledger schema in `src/core/db.ts` first (Baseline, Eval cube,
+1. Ask the user: publish `akc031185/ai-site-auditor` as a GitHub Pages site (public repo, output of
+   `_build/sites/audit`), and push the mascot fix to the two existing site repos. Then add the audit
+   site to the other two sites' mastheads.
+2. Tell the user privately what the validation runs found on their own builds (see the scratch
+   reports), especially the "React App" title and the soft 404s; no secrets were found.
+3. Start the plate 44 redesign: ledger schema in `src/core/db.ts` first (Baseline, Eval cube,
    Cost, Outcome, Verdict keyed on a unit of work), since every phase writes rows there. Then the
    Discover phase, folding the existing crawler in as one probe.
-3. Update the README so plate 44 is described by the thesis definition, not as a crawler.
-4. Bump `actions/checkout` and `actions/setup-node` to v5 when convenient to clear the Node 20
+4. Update the README so plate 44 is described by the thesis definition, not as a crawler.
+5. Bump `actions/checkout` and `actions/setup-node` to v5 when convenient to clear the Node 20
    deprecation annotation.
 
 ---

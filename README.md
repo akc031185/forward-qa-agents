@@ -1,6 +1,6 @@
 # forward-qa-agents
 
-Two standalone QA agents that an organisation can drop into its own environment. No paid model,
+Three standalone QA agents that an organisation can drop into its own environment. No paid model,
 no SaaS dependency: everything runs deterministically, and any model enrichment comes from an
 open-weight model (DeepSeek, Kimi, Qwen) running locally. See [docs/models.md](docs/models.md).
 
@@ -8,6 +8,7 @@ open-weight model (DeepSeek, Kimi, Qwen) running locally. See [docs/models.md](d
 |------:|-------|--------------|
 | 44 | **The Forward Deployed Tester** (`forward-deployed-tester`) | Point it at a running web app. It crawls it, records findings (broken links, console errors, a11y gaps, slow pages), and provisions a complete Playwright + Playwright MCP test project with page objects, smoke specs, fixtures, CI workflow, and a report. Testing infrastructure delivered the way a forward-deployed engineer delivers software. |
 | 45 | **The SDET Architect** (`sdet-architect`) | Point it at an existing test estate (Selenium in Java / Python / C# / JS, Cucumber, Postman). It inventories every artifact, extracts tests, locators, and assertions, standardises locators into robust Playwright forms, and generates one standardised Playwright + MCP architecture with a migration report listing every leftover. |
+| 46 | **The AI Site Auditor** (`ai-site-auditor`) | Point it at a site built with an AI tool (Lovable, Bolt, v0, Replit, a Vite or CRA export). It compares what AI crawlers receive with what a browser renders, checks robots rules and firewalls per AI bot, search SEO, and builder mistakes including secrets in the JavaScript bundle, then writes a self-contained evaluation page with three scores. |
 
 Each agent is its own folder under `src/agents/`, has its own CLI, its own REST routes, its own
 tests, and its own field-guide plate under `docs/agents/`. Both persist to the same SQLite
@@ -25,6 +26,10 @@ npm run agent:fdt -- --url https://shop.example.test --org acme --max-pages 10
 
 # SDET Architect against an existing Selenium estate (fixture estate included)
 npm run agent:sdet -- --src ./fixtures/sdet-architect --org acme --base-url https://shop.example.test
+
+# AI Site Auditor against any site (two fabricated sites included)
+npm run fixture:audit-sites                                   # SPA on :4801, server-rendered on :4802
+npm run agent:audit -- --url http://127.0.0.1:4801/ --org acme  # then open workspace/<run_id>/report.html
 
 # REST API
 npm start                                # http://localhost:8787
@@ -49,6 +54,7 @@ Optional local model (free, offline once pulled):
 | GET  | `/runs/:id/findings`, `/runs/:id/artifacts` | findings / generated files |
 | GET  | `/agents/forward-deployed-tester/runs/:id/report` | report.md |
 | GET  | `/agents/sdet-architect/runs/:id/migration` | MIGRATION.md |
+| GET  | `/agents/ai-site-auditor/runs/:id/report` | report.html (the evaluation page) |
 | POST | `/agents/sdet-architect/preview` | `{ language, code }` → converted Playwright spec (no disk, no DB) |
 
 Example:
@@ -76,14 +82,15 @@ src/core/        config, db, llm adapter (local models only), agent contract, ru
 src/api/         Fastify REST server
 src/agents/forward-deployed-tester/
 src/agents/sdet-architect/
-docs/agents/     field-guide plates (the-forward-deployed-tester.md, the-sdet-architect.md)
+src/agents/ai-site-auditor/
+docs/agents/     field-guide plates (the-forward-deployed-tester.md, the-sdet-architect.md, the-ai-site-auditor.md)
 docs/models.md   model policy and tested local models
-fixtures/        fabricated legacy test estate used by tests and demos
+fixtures/        fabricated legacy test estate and fabricated sites used by tests and demos
 tests/           node:test suites, one folder per agent
 .claude/agents/  Claude Code subagent definitions for driving each agent
 ```
 
-## Field guides (two sites, one source)
+## Field guides (one site per agent, one source)
 
 Each agent has a field guide of its own, published from its own repo through GitHub Pages:
 
@@ -91,6 +98,7 @@ Each agent has a field guide of its own, published from its own repo through Git
 |---|---|---|
 | The Forward Deployed Tester (plate 44) + the engagement process page | https://akc031185.github.io/forward-deployed-tester/ | `akc031185/forward-deployed-tester` |
 | The SDET Architect (plate 45) | https://akc031185.github.io/sdet-architect/ | `akc031185/sdet-architect` |
+| The AI Site Auditor (plate 46) | not yet published (built locally into `../ai-site-auditor`) | — |
 
 Both are **generated from this repo**; the site repos hold output only.
 
@@ -98,14 +106,15 @@ Both are **generated from this repo**; the site repos hold output only.
 _build/build-catalog.ts        the generator (--site <config dir> --out <site dir>)
 _build/sites/fdt/              site.json, categories.json, content/, process.html
 _build/sites/sdet/             site.json, categories.json, content/
+_build/sites/audit/            site.json, categories.json, content/, report-sample.png
 _build/author/plates.mjs       plate text, code slices by line range, annotations
 _build/author/diagrams.mjs     the inline SVG figures
 assets/site.css                the shared stylesheet, copied into each site
 ```
 
 ```bash
-npm run catalog:author   # author → JSON → both sites (../forward-deployed-tester, ../sdet-architect)
-FDT_SITE_DIR=/path SDET_SITE_DIR=/path npm run catalog   # build only, custom site checkouts
+npm run catalog:author   # author → JSON → all three sites (../forward-deployed-tester, ../sdet-architect, ../ai-site-auditor)
+FDT_SITE_DIR=/path SDET_SITE_DIR=/path AUDIT_SITE_DIR=/path npm run catalog   # build only, custom site checkouts
 ```
 
 Then commit and push inside each site repo. Edit `plates.mjs` and `diagrams.mjs`, never the JSON or HTML.
@@ -132,3 +141,5 @@ MIT licensed.
 - The SDET Architect's parsers are line-oriented. A class minified onto a single line is
   classified as a page object and yields no tests; normal multi-line source converts as expected.
 - The Forward Deployed Tester crawls same-origin links only and does not submit forms.
+- The AI Site Auditor cannot observe prerendering served only to verified crawler IP addresses, and its
+  secret scan matches known key shapes rather than every credential.

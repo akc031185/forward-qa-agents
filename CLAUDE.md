@@ -22,10 +22,12 @@
 
 ## Field guide sites
 
-- Two generated sites, one source. `npm run catalog:author` runs `_build/author/plates.mjs`
+- One generated site per agent, one source. `npm run catalog:author` runs `_build/author/plates.mjs`
   (text, code slices, annotations) and `_build/author/diagrams.mjs` (inline SVG), writes
-  `_build/sites/{fdt,sdet}/content/*.json`, then builds into the sibling checkouts
-  `../forward-deployed-tester` and `../sdet-architect` (GitHub Pages repos, output only).
+  `_build/sites/{fdt,sdet,audit}/content/*.json`, then builds into the sibling checkouts
+  `../forward-deployed-tester`, `../sdet-architect` and `../ai-site-auditor` (GitHub Pages repos,
+  output only; the audit site is not published yet). Prefer `block(file, startRe, endRe)` over
+  line numbers for code slices so plates survive edits.
   Edit the two author files, never the JSON, never the HTML; then commit and push each site repo.
 - Code blocks in a plate must be the repo's real code (sliced by line range, then annotated), and
   every number must come from a recorded run (`workspace/*/run.log`, the `runs` table) or the test

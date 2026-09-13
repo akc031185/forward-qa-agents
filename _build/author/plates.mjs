@@ -18,6 +18,15 @@ function ann(code, notes) {
     return l;
   }).join('\n');
 }
+/** Lines from the first match of `start` through the next line matching `end` (inclusive). Survives edits above it. */
+function block(f, start, end) {
+  const ls = read(f);
+  const i = ls.findIndex(l => start.test(l));
+  if (i < 0) throw new Error(`block: ${start} not found in ${f}`);
+  const j = ls.findIndex((l, k) => k > i && end.test(l));
+  if (j < 0) throw new Error(`block: ${end} not found after ${start} in ${f}`);
+  return ls.slice(i, j + 1).join('\n');
+}
 const join = (...parts) => parts.join('\n\n');
 const GAP = '  // …';
 
@@ -660,18 +669,289 @@ const sdet = {
   },
 };
 
-for (const a of [fdt, sdet]) {
+// ────────────────────────────────────────────────────────────────────── plate 46
+const AU = 'src/agents/ai-site-auditor';
+const audit = {
+  slug: 'the-ai-site-auditor',
+  plate: 46,
+  name: 'The AI Site Auditor',
+  techName: 'src/agents/ai-site-auditor/ — bots.ts · robots.ts · parse.ts · collect.ts · rules.ts · report.ts · index.ts',
+  category: 'audit',
+  oneLiner: 'Point it at a site built with an AI tool; it scores whether AI assistants can read and cite it, whether search engines will index it, and which build mistakes were left behind, then writes an evaluation page.',
+  lead: [
+    'Built for sites made with Lovable, Bolt, v0, Replit or a Vite/CRA export: they look finished in a browser and are often empty to a crawler.',
+    'Sees every page twice: the raw HTML with JavaScript off, which is all OpenAI, Anthropic and Perplexity crawlers get, and the page rendered in Chromium.',
+    'Checks robots.txt per AI agent, requests the site with each crawler\'s real user agent to catch firewall blocks, and scans the JavaScript bundle for leaked keys.',
+    '51 deterministic checks in three areas, each scored 0–100: **AI visibility**, **Search**, **Build quality**.',
+    'Writes one self-contained `report.html` for the site owner, plus markdown, JSON and database findings.',
+    'Fixture runs on 2026-09-13: the AI-builder SPA scores 0 · F for AI visibility with 97 words in a browser and 0 for crawlers; the server-rendered site scores 100 · A.',
+  ],
+  chore: [
+    'Nobody checks what a crawler receives; an empty shell goes unnoticed.',
+    'SEO tools ignore AI assistants and never open the bundle.',
+    'Scaffold titles, placeholders and API keys ship because the preview looked right.',
+  ],
+  instead: [
+    'One command against the URL.',
+    'Three grades and a crawler-versus-browser comparison.',
+    'Each finding says why it matters, how to fix it, which pages, and cites its source.',
+  ],
+  whyItMatters: [
+    'A growing share of discovery happens inside ChatGPT, Claude, Perplexity and AI Overviews.',
+    'Those assistants can only cite what their crawlers can read, and most of those crawlers do not run JavaScript.',
+    'A site can rank in Google and still be invisible to every assistant that answers without rendering.',
+  ],
+  howItWorks: [
+    {
+      step: 'Probes the site over plain HTTP before any browser starts: robots.txt, same-origin sitemaps, llms.txt, a random URL, /.env, the http redirect and security headers.',
+      short: 'Probe the site without a browser',
+      fn: 'collect() site facts + fetchText() — collect.ts',
+      explain: [
+        '`fetchText` never throws: timeouts and DNS failures come back as status 0 with the error, so one dead probe cannot sink the audit.',
+        'An HTML page served at `/robots.txt` is recorded as status -1: the SPA catch-all answering every path.',
+        'Sitemaps on another host are recorded and never fetched, so auditing a staging copy never touches production.',
+        'A random `/ai-site-auditor-<id>-not-a-page` path answering 200 is a soft 404.',
+      ],
+      code: join(
+        ann(block(`${AU}/collect.ts`, /^export async function fetchText/, /^}/), [
+          [/AbortSignal\.timeout/, 'every request is bounded'],
+          [/MAX_BODY/, '3 MB cap per response'],
+          [/status: 0, headers: \{\}/, 'failures are data, not exceptions'],
+        ]),
+        GAP,
+        ann(block(`${AU}/collect.ts`, /status -1 = an HTML page/, /const robots = /), [[/robotsIsHtml =/, 'SPA fallback detection']]),
+        GAP,
+        ann(block(`${AU}/collect.ts`, /Only this origin is ever fetched/, /const sitemapPages/), [[/offHost = /, 'recorded, never followed']]),
+      ),
+    },
+    {
+      step: 'Requests the home page with the real user-agent strings of OAI-SearchBot, ChatGPT-User, GPTBot, ClaudeBot and PerplexityBot, and compares the answers with a browser\'s.',
+      short: 'Knock as each AI crawler',
+      fn: 'looksBlocked() + botProbes — collect.ts · AI_BOTS — bots.ts',
+      explain: [
+        'robots.txt can allow a crawler while a CDN or firewall rule still turns it away; only a request with its user agent shows that.',
+        'Blocked means 401, 403, 429, 5xx or a challenge page, and only when the browser request itself was fine.',
+        'User-agent strings come from the vendors\' own documentation.',
+        'Prerendering served only to verified crawler IPs cannot be seen from outside; the report says so.',
+      ],
+      code: join(
+        ann(block(`${AU}/bots.ts`, /^export const AI_BOTS/, /^\];/), [
+          [/token: 'OAI-SearchBot'/, 'search: decides whether ChatGPT search cites you'],
+          [/token: 'GPTBot'/, 'training: blocking it is a policy choice'],
+          [/token: 'Googlebot'/, 'the only one here that renders JavaScript'],
+          [/token: 'Google-Extended'/, 'a robots.txt token, never a request'],
+        ]),
+        GAP,
+        ann(block(`${AU}/collect.ts`, /^function looksBlocked/, /^}/), [[/cf-chl\|challenge-platform/, 'Cloudflare-style challenge pages']]),
+      ),
+    },
+    {
+      step: 'Fetches each page\'s raw HTML once, then loads it into Chromium twice: with JavaScript disabled and that exact response fulfilled into the page, and normally.',
+      short: 'See each page twice',
+      fn: 'rawView() + renderedView() — collect.ts',
+      explain: [
+        'The raw view is not a second request: `page.route` fulfils the bytes already fetched, so both views describe the same response.',
+        'With JavaScript off, Chromium still parses the HTML and lays it out, so one extraction script reads both views identically.',
+        'The rendered view does not wait for the load event; one slow image can hold it forever. It waits up to 8 s, then reads the page anyway.',
+        'If rendering fails, the raw view stands in and the failure becomes a finding.',
+      ],
+      code: join(
+        ann(block(`${AU}/collect.ts`, /^async function rawView/, /^}/), [
+          [/page\.route/, 'serve the fetched bytes, do not refetch'],
+          [/waitUntil: 'domcontentloaded'/, 'no scripts run: javaScriptEnabled is false on this context'],
+        ]),
+        GAP,
+        ann(block(`${AU}/collect.ts`, /Do not wait for the load event/, /return \{ rendered: view/), [
+          [/waitForLoadState\('load'/, 'bounded: 8 s, then carry on'],
+          [/networkidle/, 'give client rendering a moment'],
+        ]),
+      ),
+    },
+    {
+      step: 'Extracts the same fields from both views: title, description, canonical, robots meta, h1s, readable words, links, hash routes, images and alt text, JSON-LD types, Open Graph, favicon.',
+      short: 'Read both views the same way',
+      fn: 'EXTRACT_SCRIPT — collect.ts',
+      explain: [
+        'Plain JavaScript source, not a TypeScript function, so no transpiler helpers leak into the page.',
+        'JSON-LD blocks are parsed and walked, including `@graph`; a block that is not valid JSON is counted as an error.',
+        'The copy used for placeholder checks strips forms, labels and controls: "Company Name" on a field is not placeholder text.',
+      ],
+      code: ann(block(`${AU}/collect.ts`, /^export const EXTRACT_SCRIPT/, /^}`;/), [
+        [/const words = /, 'the number the AI-visibility verdict rests on'],
+        [/querySelectorAll\('form,label,input/, 'regression fix: field labels are not placeholder copy'],
+        [/if \(node\['@graph'\]\)/, 'walk @graph'],
+        [/hashRouteLinks:/, '#/ routes are invisible to every crawler'],
+      ]),
+    },
+    {
+      step: 'Scans every same-origin script for credentials: OpenAI, Anthropic, Stripe, AWS and GitHub keys, private keys, and Supabase JWTs decoded to tell anon from service_role.',
+      short: 'Scan the bundle for secrets',
+      fn: 'findSecrets() + redact() — parse.ts',
+      explain: [
+        'AI builders often call an API straight from the browser with a real key; everything in a bundle is public.',
+        'Supabase anon keys are expected in the browser and ignored; a `service_role` key bypasses row-level security and is critical.',
+        'Google browser keys are reported as info: normal for Maps or Firebase when restricted.',
+        'Values are redacted to six characters everywhere: database, report, JSON.',
+      ],
+      code: join(
+        ann(block(`${AU}/parse.ts`, /^const SECRET_PATTERNS/, /^\];/), [[/severity: 'info'/, 'restricted browser keys are normal']]),
+        GAP,
+        ann(block(`${AU}/parse.ts`, /^export function findSecrets/, /^}/), [
+          [/role === 'service_role'/, 'decode the JWT: role decides the severity'],
+          [/preview: redact\(v\)/, 'never the value itself'],
+        ]),
+      ),
+    },
+    {
+      step: 'Decides robots.txt access per AI agent the way RFC 9309 does: the most specific user-agent group, the longest matching rule, allow winning ties, * and $ wildcards.',
+      short: 'Decide access per crawler',
+      fn: 'parseRobots() + isAllowed() — robots.ts',
+      explain: [
+        'A crawler with its own group ignores the `*` group entirely; a common surprise when "User-agent: GPTBot" blocks were added.',
+        'Blocking search or user-fetch agents is a high finding; blocking training agents is never a finding.',
+        'Every decision carries the rule that made it, shown in the report\'s access table.',
+      ],
+      code: ann(block(`${AU}/robots.ts`, /^export function isAllowed/, /^}/), [
+        [/groupFor\(robots, token\)/, 'exact token group, else *, else none'],
+        [/r\.path\.length > best\.path\.length/, 'longest rule wins'],
+        [/r\.allow && !best\.allow/, 'allow wins a tie'],
+      ]),
+    },
+    {
+      step: 'Runs 51 checks with fixed severities and aggregates across pages: one root cause on fifty pages is one finding listing the fifty pages.',
+      short: 'Apply the rules',
+      fn: 'evaluate() + jsOnly() + integrity() — rules.ts',
+      explain: [
+        'The central verdict: rendered words ≥ 10 and raw words below max(5, 30% of rendered) means the content needs JavaScript. Critical on the home page.',
+        'Integrity checks run first: a page that could not render is a finding, and no audited page means a critical in every area, never a silent 100.',
+        'Local, private-network and preview hosts downgrade production canonicals to info; they are expected there.',
+      ],
+      code: join(
+        ann(block(`${AU}/rules.ts`, /^export const MIN_RENDERED_WORDS/, /^}/), [
+          [/MIN_RENDERED_WORDS = 10/, 'regression fix: was 50, and skipped small app shells'],
+          [/Math\.max\(RAW_FLOOR, ren \* RAW_SHARE\)/, 'the whole verdict in one line'],
+        ]),
+        GAP,
+        ann(block(`${AU}/rules.ts`, /^function integrity/, /^  const failed = /), [[/audit\.nothing-audited'/, 'regression fix: a failed audit once scored 100']]),
+      ),
+    },
+    {
+      step: 'Scores each area as 100 minus 40 per critical, 18 per high, 8 per medium and 3 per low finding, grades A to F, and writes the evaluation page, markdown and JSON.',
+      short: 'Score and write the page',
+      fn: 'scores() + grade() — rules.ts · renderReportHtml() — report.ts',
+      explain: [
+        'The page is self-contained HTML with inline CSS, light and dark, printable, and runs no JavaScript.',
+        'It leads with the three grades, then the crawler-versus-browser comparison, the AI access table, findings by area, pages and site files.',
+        'The summary is built from counts; a local model may only rephrase it, and the footer says whether one did.',
+      ],
+      code: join(
+        ann(block(`${AU}/rules.ts`, /^export const WEIGHTS/, /^export function grade/), [[/critical: 40/, 'one critical drops an area to 60']]),
+        GAP,
+        ann(block(`${AU}/report.ts`, /^export function deterministicSummary/, /^}/), [[/in the HTML that AI crawlers receive/, 'the sentence a site owner remembers']]),
+      ),
+    },
+  ],
+  examples: [
+    {
+      caption: 'The fixture AI-builder SPA: run a70d48e1, 2026-09-13',
+      input: '`npm run agent:audit -- --url http://127.0.0.1:4801/ --org acme-robotics` against a Vite-style SPA: empty `<div id="root">`, catch-all server, "Vite + React" title, a Lovable badge, an OpenAI-shaped key in the bundle, PerplexityBot answered with 403.',
+      output: [
+        'Scores: AI visibility 0 · F, search 46 · D, build quality 23 · F. 20 findings: 2 critical, 5 high, 7 medium, 6 low. 2 pages in 1.6 s.',
+        'critical: content only after JavaScript on 2 of 2 pages (home: 97 words rendered, 0 raw).',
+        'critical: OpenAI API key in /assets/index.js, shown as sk-pro…(56 chars).',
+        'high: title set by JavaScript, h1 set by JavaScript, PerplexityBot blocked by user agent, soft 404, scaffold title "Vite + React".',
+        'medium: no sitemap, duplicate titles and descriptions, placeholder copy (John Doe, 555 number, example email), console errors.',
+      ],
+    },
+    {
+      caption: 'The fixture server-rendered site: run 23fed86c, 2026-09-13',
+      input: '`npm run agent:audit -- --url http://127.0.0.1:4802/ --org acme-robotics` against the same content served as HTML, with a robots.txt that blocks only GPTBot, a sitemap, llms.txt, JSON-LD, canonicals, and one image request that never finishes.',
+      output: [
+        'Scores: AI visibility 100 · A, search 97 · A, build quality 97 · A. 2 low findings.',
+        'Home page: 126 words raw, 126 rendered.',
+        'GPTBot blocked by its own robots group; OAI-SearchBot still allowed; no finding, because blocking training is a choice.',
+        'low: the load event never fired (the hanging image), yet both pages were fully audited.',
+        'low: robots.txt lists a sitemap on another host; recorded, not fetched.',
+      ],
+    },
+    {
+      caption: 'Validation on three real builds, before release',
+      input: 'Two Create React App builds and one Next.js build from this machine, served locally with the SPA fallback that Vercel and Netlify apply.',
+      output: [
+        'CRA build 1: AI visibility D, 0 of 18 words visible without JavaScript.',
+        'CRA build 2: AI visibility F, 9 of 435 words on the home page; "React App" title on 8 pages; soft 404; 1.3 MB of JavaScript.',
+        'Next.js build: AI visibility A, 192 of 193 words; no canonical and no og:image, both confirmed in the raw HTML.',
+        'Found and fixed three bugs: a render timeout that scored a site 100 while auditing nothing, a threshold that skipped small shells, a form label read as placeholder copy.',
+      ],
+    },
+  ],
+  underHood: [
+    { heading: 'Site facts', whenRuns: 'First, over plain HTTP, in parallel.', input: 'The start URL.', output: 'robots.txt (or -1 for an HTML fallback), same-origin sitemaps, llms.txt, soft-404 status, http redirect, /.env, security headers, one response per AI user agent — via `collect()`, `fetchText()`, `parseRobots()`, `parseSitemap()`.' },
+    { heading: 'Two views', whenRuns: 'Per page, up to `max_pages`.', input: 'The raw response, fetched once.', output: 'A `PageView` with JavaScript off and one with JavaScript on, plus console errors, failed requests, mixed content and script sizes — via `rawView()`, `renderedView()`, `EXTRACT_SCRIPT`.' },
+    { heading: 'Bundle scan', whenRuns: 'For each same-origin script, up to 8 MB in total.', input: 'Script text.', output: 'Redacted secret hits and public source maps — via `findSecrets()`, `redact()`.' },
+    { heading: 'Rules and scores', whenRuns: 'After collection; pure.', input: '`SiteFacts`.', output: 'Sorted `CheckResult[]` with area, severity, why, fix, pages, evidence and source; three scores and grades — via `evaluate()`, `scores()`, `grade()`.' },
+    { heading: 'Evaluation page', whenRuns: 'Last.', input: 'Facts, results, summary.', output: '`report.html`, `report.md`, `report.json`; one findings row per result and one artifact row per file — via `renderReportHtml()`, `renderReportMarkdown()`, `buildReportJson()`.' },
+  ],
+  outputSample: { heading: 'The evaluation page', whenRuns: 'Written at the end of every run.', input: 'The fixture SPA audit.', output: 'Three grades, the crawler-versus-browser comparison, the AI access table and findings by area.', img: 'report-sample.png', imgAlt: 'Top of the evaluation page: grades F, D, F and the AI crawler versus browser comparison', caption: 'report.html for the fixture SPA' },
+  diagrams: [
+    { heading: 'Pipeline', after: 'lead', svg: D.auditPipeline, caption: 'Probes, two views, rules, report. Only the audited host is ever fetched.' },
+    { heading: 'One page, two views', after: 'flow', svg: D.auditTwoViews, caption: 'Steps 3 and 4 on the fixture SPA home page. The comparison, not either view alone, is the finding.' },
+    { heading: 'Who reads what', after: 'flow', svg: D.auditBots, caption: 'Steps 2 and 6. Blocking a search or user-fetch agent costs citations; blocking a training agent does not.' },
+    { heading: 'How the scores work', after: 'flow', svg: D.auditScore, caption: 'Step 8. Fixed weights, no model, same result every run.' },
+  ],
+  status: 'toolkit',
+  runbook: {
+    runnable: true,
+    prerequisites: [
+      'Node 24 and `npm install` in the forward-qa-agents repo; `npx playwright install chromium` once.',
+      'A site you own or are authorised to test: the audit sends about a dozen probes, including a request for `/.env`.',
+    ],
+    steps: [
+      { label: 'Start the two fixture sites', cmd: 'npm run fixture:audit-sites', why: 'An AI-builder SPA on :4801 and a server-rendered site on :4802, so the first run needs no real site.' },
+      { label: 'Audit the SPA', cmd: 'LLM_PROVIDER=none npm run agent:audit -- --url http://127.0.0.1:4801/ --org acme-robotics', why: 'Prints scores, grades, finding counts and the path to `report.html`.', firstRun: 'Run a70d48e1 on 2026-09-13: 0 · F, 46 · D, 23 · F; 20 findings in 1.6 s.' },
+      { label: 'Open the evaluation page', cmd: 'open workspace/<run_id>/report.html', why: 'Self-contained: email it, attach it to a ticket, or print it.' },
+      { label: 'Audit a real site', cmd: 'npm run agent:audit -- --url https://www.example.com/ --org acme --max-pages 20', why: [
+        'Start on the production domain to judge production; on a preview host, canonicals pointing at production are reported as info.',
+        'Raise `--timeout-ms` for slow sites; a page that cannot render is reported, never silently skipped.',
+      ] },
+      { label: 'Same thing through the REST API', cmd: 'npm start\ncurl -s -X POST localhost:8787/agents/ai-site-auditor/runs -H \'content-type: application/json\' \\\n  -d \'{"engagement_id":"<id>","input":{"target_url":"https://www.example.com/","org_slug":"acme"}}\'\ncurl -s localhost:8787/agents/ai-site-auditor/runs/<run_id>/report > report.html', why: 'The report route serves the evaluation page as HTML.' },
+      { label: 'Run its tests', cmd: 'npm test', why: 'Robots matching, secret detection, rules on synthetic facts, five regression tests, and both fixture sites end to end.', firstRun: 'Part of 99 green tests on 2026-09-13.' },
+    ],
+    inputs: [
+      { name: '--url / target_url', desc: 'Start page; only its host is fetched.' },
+      { name: '--org / org_slug', desc: 'Label for the report.' },
+      { name: '--max-pages / max_pages', desc: '1–50, default 10.' },
+      { name: '--timeout-ms / timeout_ms', desc: 'Per request and navigation, default 15000.' },
+    ],
+    outputs: [
+      { name: 'workspace/<run_id>/report.html', desc: 'The evaluation page.' },
+      { name: 'report.md, report.json', desc: 'The same results for tickets and pipelines; JSON includes the per-bot access table and per-page word counts.' },
+      { name: 'Rows in findings and artifacts', desc: 'Category is the area; evidence holds the check id, pages and source.' },
+    ],
+    rerun: [
+      'Deterministic: same site, same results. Re-run after each fix and compare grades.',
+      'Runs are never overwritten; every run gets its own directory.',
+    ],
+    integrate: [
+      'Run it in CI against each preview deployment and fail the build on any critical finding (`findings_by_severity.critical > 0`).',
+      'Hand `report.html` to whoever owns the site; each finding carries its own fix and source.',
+    ],
+  },
+};
+
+for (const a of [fdt, sdet, audit]) {
   for (const ex of a.examples) {
     const strip = (v) => Array.isArray(v) ? v.map((s) => s.replace(/\*\*/g, '')) : v.replace(/\*\*/g, '');
     ex.input = strip(ex.input); ex.output = strip(ex.output);
   }
 }
+
 // Two sites, one source. The SDET site has no process page of its own, so its links go to the FDT site.
 const FDT_SITE = 'https://akc031185.github.io/forward-deployed-tester/';
 const sdetOut = JSON.parse(JSON.stringify(sdet).replace(/\.\.\/process\.html/g, FDT_SITE + 'process.html'));
-for (const [site, content] of [['fdt', fdt], ['sdet', sdetOut]]) {
+for (const [site, content] of [['fdt', fdt], ['sdet', sdetOut], ['audit', audit]]) {
   const dir = path.join(R, '_build/sites', site, 'content');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, `${content.slug}.json`), JSON.stringify(content, null, 1) + '\n');
 }
-console.log('wrote _build/sites/fdt/content and _build/sites/sdet/content');
+console.log('wrote _build/sites/{fdt,sdet,audit}/content');
