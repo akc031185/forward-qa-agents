@@ -17,7 +17,8 @@
     "agent:fdt": "tsx src/agents/forward-deployed-tester/cli.ts",
     "agent:sdet": "tsx src/agents/sdet-architect/cli.ts",
     "progress": "node scripts/progress.mjs",
-    "catalog": "tsx _build/build-catalog.ts"
+    "catalog": "tsx _build/build-catalog.ts",
+    "catalog:author": "node _build/author/plates.mjs && tsx _build/build-catalog.ts"
   },
   "dependencies": {
     "@playwright/mcp": "^0.0.40",

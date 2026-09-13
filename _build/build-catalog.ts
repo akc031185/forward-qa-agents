@@ -24,9 +24,11 @@ const CONTENT_DIR = path.join(BUILD, 'content');
 const OUT_AGENTS = path.join(SITE, 'agents');
 
 // ── Content schema (the fan-out fills these) ──────────────────────────────
-interface Example { caption: string; input: string; output: string; }
+interface Example { caption: string; input: Prose; output: Prose; }
 /** v2 flow step: a plain step mapped to the real function that implements it. */
-interface FlowStep { step: string; fn?: string; explain?: string; code?: string; }
+interface FlowStep { step: string; short?: string; fn?: string; explain?: Prose; code?: string; }
+/** v5 diagram: an inline SVG figure in the house style; `after` says where it goes. */
+interface Diagram { heading: string; caption?: string; svg: string; after: 'lead' | 'flow' | 'examples'; }
 /** v2 under-the-hood slide: one embedded mini-deck slide per idea. */
 interface HoodSlide { heading: string; whenRuns: string; input: string; output: string; }
 /** Optional final carousel slide: shows the agent's output turned into an HTML page. */
@@ -38,11 +40,12 @@ interface AgentContent {
   techName: string;             // original file, shown small
   category: string;             // must match a categories.json id
   oneLiner: string;             // what it does for you, one sentence
-  lead: string;                 // 2-3 sentence plain-English summary
-  chore: string;                // the tedious human task it removes
-  instead: string;              // what you get instead
-  whyItMatters?: string;        // the stakes, in human terms
+  lead: Prose;                  // summary: a short paragraph or up to six bullets
+  chore: Prose;                 // the tedious human task it removes
+  instead: Prose;               // what you get instead
+  whyItMatters?: Prose;         // the stakes, in human terms
   howItWorks: (string | FlowStep)[];   // v1 strings OR v2 flow steps (with code)
+  diagrams?: Diagram[];         // v5: diagram-first plates
   examples: Example[];          // one or more worked examples
   underHood?: string | HoodSlide[];    // v1 string OR v2 slideable mini-deck
   runbook?: Runbook;            // v3: "Run it & wire it in"
@@ -50,7 +53,7 @@ interface AgentContent {
   status: 'reference' | 'toolkit';
 }
 /** v3 runbook — beginner-verbose "how to actually run it". */
-interface RunStep { label: string; cmd?: string; why: string; firstRun?: string; rerun?: string; }
+interface RunStep { label: string; cmd?: string; why: Prose; firstRun?: string; rerun?: string; }
 interface NamedThing { name: string; desc: string; }
 interface Runbook {
   runnable: boolean;            // true = you can really run it; false = needs its target system
@@ -58,11 +61,11 @@ interface Runbook {
   steps: RunStep[];            // node install → deps → config → run, each with WHY
   inputs: NamedThing[];        // what you give it
   outputs: NamedThing[];       // what comes back
-  rerun: string;               // what's different the second time
-  integrate: string;           // how to plug it into an existing system
+  rerun: Prose;                // what's different the second time
+  integrate: Prose;            // how to plug it into an existing system
 }
 const asStep = (s: string | FlowStep): FlowStep => (typeof s === 'string' ? { step: s } : s);
-interface Category { id: string; no: string; name: string; desc: string; accent?: number; }
+interface Category { id: string; no: string; name: string; desc: Prose; accent?: number; }
 /** Per-suite chrome — title, hero copy and stat tiles. Lives in _build/site.json. */
 interface Site {
   title: string;        // <title> and masthead brand
@@ -70,8 +73,8 @@ interface Site {
   nav: { label: string; href: string }[];   // masthead links, relative to the site root
   footer: string;
   heroH1: string;
-  heroLead: string;
-  primerP: string;
+  heroLead: Prose;
+  primerP: Prose;
   stats: { num: string; lbl: string }[];
 }
 const SITE_CFG: Site = JSON.parse(fs.readFileSync(path.join(__dirname, 'site.json'), 'utf8'));
@@ -103,6 +106,19 @@ function docLinkify(html: string): string {
   return html;
 }
 
+/** A paragraph or a bullet list. Lists are capped at six items by house rule. */
+type Prose = string | string[];
+function prose(v: Prose | undefined, cls = ''): string {
+  if (!v) return '';
+  if (Array.isArray(v)) {
+    if (v.length > 6) throw new Error(`bullet list has ${v.length} items (max 6): ${v[0]}`);
+    return `<ul class="bul${cls ? ' ' + cls : ''}">${v.map(b => `<li>${rich(b)}</li>`).join('')}</ul>`;
+  }
+  return `<p${cls ? ` class="${cls}"` : ''}>${rich(v)}</p>`;
+}
+/** Plain-text form for <pre> blocks: bullets become "• " lines. */
+function plain(v: Prose): string { return Array.isArray(v) ? v.map(b => `• ${b}`).join('\n') : v; }
+
 /** Safe-embed JSON in a <script> tag (escape < so </script> can't break out). */
 function jsonScript(data: unknown): string {
   return JSON.stringify(data).replace(/</g, '\\u003c');
@@ -118,14 +134,14 @@ function flowchartHtml(steps: FlowStep[]): string {
     return `<${tag} ${attrs}>
         <span class="fc-node__n">${String(i + 1).padStart(2, '0')}</span>
         <span class="fc-node__body">
-          <span class="fc-node__t">${rich(s.step)}</span>
+          <span class="fc-node__t${s.short ? ' fc-node__t--short' : ''}">${rich(s.short ?? s.step)}</span>
           ${s.fn ? `<span class="fc-node__fn">${esc(s.fn)}</span>` : ''}
         </span>
         ${clickable ? '<span class="fc-node__peek">view code →</span>' : ''}
       </${tag}>`;
   }).join('\n      <div class="fc-arrow" aria-hidden="true">↓</div>\n      ');
 
-  const data = steps.map(s => ({ fn: s.fn || '', explain: s.explain || '', code: s.code || '' }));
+  const data = steps.map(s => ({ fn: s.fn || '', explainHtml: (s.short ? `<p class="cm-step">${rich(s.step)}</p>` : '') + prose(s.explain), code: s.code || '' }));
   const modal = hasCode ? `
     <div class="code-modal" id="codeModal" hidden>
       <div class="code-modal__backdrop" data-close></div>
@@ -138,7 +154,7 @@ function flowchartHtml(steps: FlowStep[]): string {
           </div>
           <aside class="code-modal__explain">
             <h4>What this step does</h4>
-            <p id="cmExplain"></p>
+            <div id="cmExplain"></div>
           </aside>
         </div>
       </div>
@@ -149,6 +165,18 @@ function flowchartHtml(steps: FlowStep[]): string {
     <div class="flowchart">
       ${nodes}
     </div>${modal}`;
+}
+
+/** Inline SVG figures. */
+function diagramsHtml(ds: Diagram[] | undefined, where: Diagram['after']): string {
+  const list = (ds ?? []).filter(d => d.after === where);
+  if (!list.length) return '';
+  return list.map(d => `
+    <figure class="fig">
+      <div class="fig__head">${esc(d.heading)}</div>
+      ${d.svg}
+      ${d.caption ? `<figcaption>${rich(d.caption)}</figcaption>` : ''}
+    </figure>`).join('\n');
 }
 
 /** "Run it & wire it in" — the engineer-facing runbook. */
@@ -168,7 +196,7 @@ function runbookHtml(rb: Runbook | undefined): string {
       ${rb.steps.map(s => `<li class="rb__step">
         <div class="rb__label">${rich(s.label)}</div>
         ${s.cmd ? `<pre class="rb__cmd"><code>${esc(s.cmd)}</code></pre>` : ''}
-        <div class="rb__why"><span>Why</span> ${rich(s.why)}</div>
+        <div class="rb__why"><span>Why</span> ${Array.isArray(s.why) ? prose(s.why, 'bul--inline') : rich(s.why)}</div>
         ${s.firstRun ? `<div class="rb__run rb__run--first"><span>First run</span> ${rich(s.firstRun)}</div>` : ''}
         ${s.rerun ? `<div class="rb__run rb__run--again"><span>Re-run</span> ${rich(s.rerun)}</div>` : ''}
       </li>`).join('\n      ')}
@@ -179,8 +207,8 @@ function runbookHtml(rb: Runbook | undefined): string {
       <div><h3 class="display">What comes back</h3><dl class="rb__list">${rb.outputs.map(o => `<dt>${esc(o.name)}</dt><dd>${rich(o.desc)}</dd>`).join('')}</dl></div>
     </div>
 
-    <div class="rb__note"><strong>Running it again.</strong> ${rich(rb.rerun)}</div>
-    <div class="rb__note rb__note--wire"><strong>Plug it into your stack.</strong> ${rich(rb.integrate)}</div>` : '';
+    <div class="rb__note"><strong>Running it again.</strong> ${Array.isArray(rb.rerun) ? prose(rb.rerun, 'bul--inline') : rich(rb.rerun)}</div>
+    <div class="rb__note rb__note--wire"><strong>Plug it into your stack.</strong> ${Array.isArray(rb.integrate) ? prose(rb.integrate, 'bul--inline') : rich(rb.integrate)}</div>` : '';
 
 
   return docLinkify(`<h2 class="display">Run it &amp; wire it in</h2>
@@ -244,7 +272,7 @@ const PLATE_JS = `<script>
     var data = JSON.parse(dataEl.textContent);
     var cmFn = document.getElementById('cmFn'), cmCode = document.getElementById('cmCode'), cmExplain = document.getElementById('cmExplain');
     function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-    function open(i){ var d = data[i]; if(!d) return; cmFn.textContent = d.fn || 'code'; cmCode.textContent = d.code || ''; cmExplain.innerHTML = esc(d.explain || '').replace(/\`([^\`]+)\`/g, '<code>$1</code>').replace(/\\*\\*([^*]+)\\*\\*/g, '<strong>$1</strong>'); modal.hidden = false; document.body.style.overflow='hidden'; }
+    function open(i){ var d = data[i]; if(!d) return; cmFn.textContent = d.fn || 'code'; cmCode.textContent = d.code || ''; cmExplain.innerHTML = d.explainHtml || ''; modal.hidden = false; document.body.style.overflow='hidden'; }
     function close(){ modal.hidden = true; document.body.style.overflow=''; }
     document.querySelectorAll('.fc-node--live').forEach(function(n){ n.addEventListener('click', function(){ open(+n.getAttribute('data-fc')); }); });
     modal.querySelectorAll('[data-close]').forEach(function(b){ b.addEventListener('click', close); });
@@ -303,8 +331,8 @@ function plateHtml(a: AgentContent, cats: Category[], prev?: AgentContent, next?
     <figure class="specimen">
       <figcaption class="specimen__cap">${esc(ex.caption)}</figcaption>
       <div class="specimen__body">
-        <div class="specimen__io"><h4>What goes in</h4><pre>${esc(ex.input)}</pre></div>
-        <div class="specimen__io"><h4>What comes out</h4><pre>${esc(ex.output)}</pre></div>
+        <div class="specimen__io"><h4>What goes in</h4><pre>${esc(plain(ex.input))}</pre></div>
+        <div class="specimen__io"><h4>What comes out</h4><pre>${esc(plain(ex.output))}</pre></div>
       </div>
     </figure>`).join('\n');
 
@@ -324,21 +352,24 @@ ${MAST('../')}
       </div>
     </div>
 
-    <p>${rich(a.lead)}</p>
+    ${prose(a.lead)}
+    ${a.diagrams?.some(d => d.after === 'lead') ? `<h2 class="display">At a glance</h2>${diagramsHtml(a.diagrams, 'lead')}` : ''}
 
     <h2 class="display">Why this exists</h2>
     <div class="beforeafter">
-      <div class="ba ba--before"><div class="ba__label">The chore it removes</div><p>${rich(a.chore)}</p></div>
+      <div class="ba ba--before"><div class="ba__label">The chore it removes</div>${prose(a.chore)}</div>
       <div class="ba__arrow">→</div>
-      <div class="ba ba--after"><div class="ba__label">What you get instead</div><p>${rich(a.instead)}</p></div>
+      <div class="ba ba--after"><div class="ba__label">What you get instead</div>${prose(a.instead)}</div>
     </div>
-    ${a.whyItMatters ? `<p>${rich(a.whyItMatters)}</p>` : ''}
+    ${prose(a.whyItMatters)}
 
     <h2 class="display">How it works</h2>
     ${flowchartHtml(a.howItWorks.map(asStep))}
+    ${diagramsHtml(a.diagrams, 'flow')}
 
     <h2 class="display">See it in action</h2>
-    ${examples}
+    ${a.diagrams?.length ? `<details class="underhood examples-fold"><summary>${a.examples.length} worked examples from real runs</summary><div class="underhood__body">${examples}</div></details>` : examples}
+    ${diagramsHtml(a.diagrams, 'examples')}
 
     ${runbookHtml(a.runbook)}
 
@@ -410,7 +441,7 @@ function indexHtml(agents: AgentContent[], cats: Category[]): string {
     <section class="section s${sN}" id="${esc(c.id)}">
       <div class="wrap">
         <div class="section__head"><span class="section__no">${esc(c.no)}</span><h2 class="display">${esc(c.name)}</h2></div>
-        <p class="section__desc">${rich(c.desc)}</p>
+        ${prose(c.desc, 'section__desc')}
         <div class="roster">${cards}</div>
       </div>
     </section>`;
@@ -428,7 +459,7 @@ ${MAST('')}
   <div class="wrap">
   <div class="eyebrow hero__eyebrow">${esc(SITE_CFG.eyebrow)}</div>
   <h1 class="display">${esc(SITE_CFG.heroH1)}</h1>
-  <p class="lead">${rich(SITE_CFG.heroLead)}</p>
+  ${prose(SITE_CFG.heroLead, 'lead')}
   <div class="hero__crew" aria-hidden="true">
     ${crewSvg(total)}
   </div>
@@ -442,7 +473,7 @@ ${MAST('')}
   <div>
     <div class="eyebrow">What "agent" means here</div>
     <h2 class="display">Scoped automation, not a chat assistant.</h2>
-    <p>${rich(SITE_CFG.primerP)}</p>
+    ${prose(SITE_CFG.primerP)}
   </div>
   <div class="primer__figure">"One job, one contract — composable, scriptable, and boring by design."</div>
 </div></div></section>

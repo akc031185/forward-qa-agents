@@ -26,7 +26,7 @@
   <div class="wrap">
   <div class="eyebrow hero__eyebrow">Plates 44 and 45 of the field guide</div>
   <h1 class="display">Two agents that land in a stranger&#39;s environment and leave working test infrastructure behind.</h1>
-  <p class="lead">Plate 44 points a real browser at a running web app, records what is broken, and provisions a complete Playwright + Playwright MCP project with page objects, a smoke suite and CI. Plate 45 reads whatever legacy test estate already exists — Selenium in Java, Python, C# or JavaScript, Cucumber, Postman, markdown test plans — and rebuilds it as one standardised Playwright architecture with a migration report that lists every line it could not convert. Both run to completion with no model at all; a local open-weight model only polishes text.</p>
+  <ul class="bul lead"><li>Plate 44 points a real browser at a running web app, records what is broken, and provisions a Playwright + Playwright MCP project.</li><li>Plate 45 reads whatever legacy tests exist (Selenium in any language, Cucumber, Postman, test plans) and rebuilds them as one Playwright architecture.</li><li>Both run to completion with no model at all; a local open-weight model only polishes text.</li></ul>
   <div class="hero__crew" aria-hidden="true">
     <svg viewBox="0 0 146 84"><rect x="6" y="18" width="52" height="52" rx="16" fill="#FF6B6B"/><circle cx="24" cy="40" r="3.4" fill="#3B3532"/><circle cx="40" cy="40" r="3.4" fill="#3B3532"/><path d="M24 52c2.8 3 5.6 4.5 8 4.5s5.2-1.5 8-4.5" fill="none" stroke="#3B3532" stroke-width="3" stroke-linecap="round"/><circle cx="103" cy="44" r="27" fill="#FFB020"/><circle cx="95" cy="40" r="3.4" fill="#3B3532"/><circle cx="111" cy="40" r="3.4" fill="#3B3532"/><path d="M95 51c2.8 3 5.6 4.5 8 4.5s5.2-1.5 8-4.5" fill="none" stroke="#3B3532" stroke-width="3" stroke-linecap="round"/></svg>
   </div>
@@ -42,7 +42,7 @@
   <div>
     <div class="eyebrow">What "agent" means here</div>
     <h2 class="display">Scoped automation, not a chat assistant.</h2>
-    <p>Each agent is one folder under <code>src/agents/</code>, one CLI, a handful of REST routes and a <code>node:test</code> suite. Every deliverable exists with <code>LLM_PROVIDER=none</code>: the crawl, the findings, the generated project, the report. Both persist to the same SQLite database (<code>engagements</code>, <code>runs</code>, <code>findings</code>, <code>artifacts</code>) through Node&#39;s built-in <code>node:sqlite</code>, so every number in a report can be traced to a run id and every generated file to an artifact row. The only model the adapter will talk to is one you run yourself; public endpoints are rejected.</p>
+    <ul class="bul"><li>One folder under <code>src/agents/</code>, one CLI, a few REST routes, one <code>node:test</code> suite per agent.</li><li>Every deliverable exists with <code>LLM_PROVIDER=none</code>: crawl, findings, generated project, report.</li><li>One SQLite database (<code>engagements</code>, <code>runs</code>, <code>findings</code>, <code>artifacts</code>), so every number traces to a run id.</li><li>The adapter only talks to a model you run yourself; public endpoints are rejected.</li></ul>
   </div>
   <div class="primer__figure">"One job, one contract — composable, scriptable, and boring by design."</div>
 </div></div></section>
@@ -51,7 +51,7 @@
     <section class="section s6" id="probe">
       <div class="wrap">
         <div class="section__head"><span class="section__no">Part 1</span><h2 class="display">Landing in a new environment</h2></div>
-        <p class="section__desc">The first week of an engagement, done in one run. The Forward Deployed Tester is the surface probe of the Discover phase described on the <a class="doclink" href="process.html">process page</a>: it crawls the running app, records findings by severity, and leaves behind a runnable Playwright + MCP project so the deterministic regression layer exists before anyone argues about what the AI delivered.</p>
+        <ul class="bul section__desc"><li>The first week of an engagement, done in one run.</li><li>The surface probe of the Discover phase on the <a class="doclink" href="process.html">process page</a>: crawl the running app, record findings by severity, leave a runnable Playwright + MCP project behind.</li><li>The deterministic regression layer exists before anyone argues about what the AI delivered.</li></ul>
         <div class="roster">
       <div class="rcard rcard--toolkit">
         <div class="rcard__no">Agent 44</div>
@@ -68,7 +68,7 @@
     <section class="section s8" id="standardise">
       <div class="wrap">
         <div class="section__head"><span class="section__no">Part 2</span><h2 class="display">Standardising what already exists</h2></div>
-        <p class="section__desc">Most organisations do not start from nothing; they start from a <code>selenium-java</code> module nobody has run since the last Chrome upgrade, a Python folder a contractor left, a <code>.feature</code> file whose step definitions drifted and a Postman collection with the real API expectations buried in <code>pm.test</code> scripts. The SDET Architect inventories all of it and emits one architecture, one <code>MIGRATION.md</code>, and a <code>TODO(sdet-architect)</code> comment for every line a human still has to think about.</p>
+        <ul class="bul section__desc"><li>Most organisations start from Selenium nobody has run, a <code>.feature</code> file whose steps drifted, and a Postman collection with the real expectations in <code>pm.test</code> scripts.</li><li>The SDET Architect inventories all of it and emits one architecture and one <code>MIGRATION.md</code>.</li><li>Every line a human still has to think about carries a <code>TODO(sdet-architect)</code> comment with its source <code>file:line</code>.</li></ul>
         <div class="roster">
       <div class="rcard rcard--toolkit">
         <div class="rcard__no">Agent 45</div>

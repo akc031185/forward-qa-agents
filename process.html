@@ -51,7 +51,12 @@
       <div>
         <span class="eyebrow">A process guide · for the whole team</span>
         <h1 class="display">How a Forward Deployed Tester engagement runs</h1>
-        <p class="lead">A vendor's forward-deployed engineers deliver the AI. Nobody independently measures what they delivered. This page is the process for doing that measurement: seven phases, five ledgers, one unit of work, and the two agents in this repo doing the deterministic parts. It also records how <em>we</em> work on the repo itself, so the next person, or the next model, can pick up where the last one stopped.</p>
+        <p class="lead">Vendors' forward-deployed engineers deliver the AI. Nobody independently measures it. This is the process for that measurement.</p>
+        <ul class="bul">
+          <li>Seven phases, five ledgers, one unit of work.</li>
+          <li>The two agents in this repo do the deterministic parts.</li>
+          <li>Plus how <em>we</em> work on the repo, so the next person or model can pick up where the last one stopped.</li>
+        </ul>
       </div>
       <figure class="fig fig--tint">
         <svg viewBox="0 0 560 260" role="img" aria-label="A vendor hands over an AI box; a tester with a clipboard measures it against a baseline">
@@ -85,19 +90,30 @@
   <!-- ============ 1 · Why a process ============ -->
   <section class="s6">
     <h2 class="display">Why this process exists</h2>
-    <p>The research behind the <a class="doclink" href="docs/forward-deployed-tester-thesis.md">thesis</a> found the same gap in every thread. Palantir, OpenAI and Anthropic all field forward-deployed engineers whose success is "impact on the customer's goal", yet no vendor publishes a pre-deployment baseline protocol, no named role independently audits what an FDE delivered, and the studies that did measure rigorously (METR, DORA 2024) found effects that contradict the vendor claims. MIT's "95% of pilots show no P&amp;L impact" is mostly a story about <strong>absent baselines</strong>, not about broken models.</p>
+    <p>The research behind the <a class="doclink" href="docs/forward-deployed-tester-thesis.md">thesis</a> found the same gap in every thread:</p>
+    <ul class="bul">
+      <li>Palantir, OpenAI and Anthropic all field forward-deployed engineers whose success is "impact on the customer's goal".</li>
+      <li>No vendor publishes a pre-deployment baseline protocol.</li>
+      <li>No named role independently audits what an FDE delivered.</li>
+      <li>The rigorous studies (METR, DORA 2024) found effects that contradict the vendor claims.</li>
+      <li>MIT's "95% of pilots show no P&amp;L impact" is mostly a story about <strong>absent baselines</strong>, not broken models.</li>
+    </ul>
     <div class="beforeafter">
-      <div class="ba ba--before"><div class="ba__label">How it goes today</div><p>The vendor defines "resolved". The customer has no pre-AI numbers. The pilot ends with a slide deck, a disputed tally, and nobody who can say what a resolution cost.</p></div>
+      <div class="ba ba--before"><div class="ba__label">How it goes today</div><ul class="bul"><li>The vendor defines "resolved".</li><li>The customer has no pre-AI numbers.</li><li>The pilot ends with a slide deck and a disputed tally.</li></ul></div>
       <div class="ba__arrow">→</div>
-      <div class="ba ba--after"><div class="ba__label">With a Forward Deployed Tester</div><p>One unit of work is named up front. Its cost before AI is frozen and signed. The AI is scored on that unit across every rubric axis. Tokens and infra are ledgered on that unit. The verdict states its causal design and its limits.</p></div>
+      <div class="ba ba--after"><div class="ba__label">With a Forward Deployed Tester</div><ul class="bul"><li>One unit of work is named up front; its pre-AI cost is frozen and signed.</li><li>The AI is scored on that unit across every rubric axis.</li><li>Tokens and infra are ledgered on that unit.</li><li>The verdict states its causal design and its limits.</li></ul></div>
     </div>
-    <p>Everything below is keyed on the <strong>unit of work</strong>: a support ticket, a claim, a document, a pull request, a report. Pick it in the first week or nothing later can be compared.</p>
+    <p>Everything below is keyed on the <strong>unit of work</strong>: a ticket, a claim, a document, a pull request. Pick it in the first week or nothing later can be compared.</p>
   </section>
 
   <!-- ============ 2 · The seven phases ============ -->
   <section class="s2">
     <h2 class="display">The seven phases</h2>
-    <p>Each phase produces rows in one of the ledgers in the next section, and each is runnable with no model at all. The two agents in this catalog do the deterministic work of phases 1 and 6; the rest is the redesign still ahead of this repo (see the progress log).</p>
+    <ul class="bul">
+      <li>Each phase writes rows into one of the ledgers in the next section.</li>
+      <li>Each is runnable with no model at all.</li>
+      <li>Plates 44 and 45 do the deterministic work of phases 1 and 6; the rest is the redesign still ahead (see the progress log).</li>
+    </ul>
     <figure class="fig">
       <svg viewBox="0 0 680 150" role="img" aria-label="Seven phases drawn as a chain of pills left to right: discover, baseline, golden set, eval cube, cost ledger, pilot, verdict">
         <defs><marker id="ah-ph" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--ac)"/></marker></defs>
@@ -118,19 +134,23 @@
       <figcaption>Left to right, once per engagement; phases 4 and 6 repeat on every change after handover.</figcaption>
     </figure>
 
-    <div class="phase"><div class="phase__n">1</div><div class="phase__body"><h3>Discover</h3><p>Map the workflow, define the unit of work, and name the KPI owner on the customer side — the research shows this owner is usually missing. Run the surface probes: the existing crawler (<a class="doclink" href="agents/the-forward-deployed-tester.html">plate 44</a>), API probes, log probes. Output: a written unit-of-work definition and a findings baseline for the app as it stands.</p><span class="phase__row">rows → Baseline (surface), Findings</span></div></div>
-    <div class="phase"><div class="phase__n">2</div><div class="phase__body"><h3>Baseline</h3><p>Instrument the pre-AI workflow, or replay 30–90 days of historical records, and freeze the baseline with the KPI owner's signature: human time, error rate, throughput and cost per unit of work. Nothing downstream is valid without this row.</p><span class="phase__row">rows → Baseline</span></div></div>
-    <div class="phase"><div class="phase__n">3</div><div class="phase__body"><h3>Golden set</h3><p>Build the eval dataset from real traffic with offline PII redaction, labelled by the customer's own experts. This is OpenAI's FDE "trajectories" practice done independently of the vendor.</p><span class="phase__row">rows → Golden set (unit × label)</span></div></div>
-    <div class="phase"><div class="phase__n">4</div><div class="phase__body"><h3>Eval cube</h3><p>Run rubric evals with a local open-weight judge, calibrated against a human-labelled slice, with the documented judge-bias mitigations built in. Rubric axes × workflow steps × variants (model, prompt, retrieval, temperature). Rotating one face must not silently degrade another; a regression gate watches every cell.</p><span class="phase__row">rows → Eval cube (unit × axis × step × variant)</span></div></div>
-    <div class="phase"><div class="phase__n">5</div><div class="phase__body"><h3>Cost ledger</h3><p>Tokens per unit of work per model from the customer's own usage records — never estimated, because the Claude tokenizer is not public — plus self-hosted infra measured under real concurrency, priced from vendored tables with their snapshot date printed.</p><span class="phase__row">rows → Cost (unit)</span></div></div>
-    <div class="phase"><div class="phase__n">6</div><div class="phase__body"><h3>Pilot with a causal design</h3><p>Shadow mode or A/B where possible; pre/post with stated limits where not. The standardised regression suite (<a class="doclink" href="agents/the-sdet-architect.html">plate 45</a>) runs on every change so a quality regression is caught by a test, not by a customer.</p><span class="phase__row">rows → Outcome (unit)</span></div></div>
-    <div class="phase"><div class="phase__n">7</div><div class="phase__body"><h3>Verdict and handover</h3><p>Cost per verified outcome, confidence, go / no-go / conditions, and the harness left behind so the organisation can re-run the whole validation on every future change without us.</p><span class="phase__row">rows → Verdict (engagement)</span></div></div>
+    <div class="phase"><div class="phase__n">1</div><div class="phase__body"><h3>Discover</h3><ul class="bul"><li>Map the workflow, define the unit of work, name the KPI owner on the customer side (usually missing).</li><li>Run the surface probes: the crawler (<a class="doclink" href="agents/the-forward-deployed-tester.html">plate 44</a>), API probes, log probes.</li><li>Output: a written unit-of-work definition and a findings baseline for the app as it stands.</li></ul><span class="phase__row">rows → Baseline (surface), Findings</span></div></div>
+    <div class="phase"><div class="phase__n">2</div><div class="phase__body"><h3>Baseline</h3><ul class="bul"><li>Instrument the pre-AI workflow, or replay 30–90 days of historical records.</li><li>Freeze human time, error rate, throughput and cost per unit of work, with the KPI owner's signature.</li><li>Nothing downstream is valid without this row.</li></ul><span class="phase__row">rows → Baseline</span></div></div>
+    <div class="phase"><div class="phase__n">3</div><div class="phase__body"><h3>Golden set</h3><ul class="bul"><li>Build the eval dataset from real traffic, PII redacted offline.</li><li>Labelled by the customer's own experts.</li><li>OpenAI's FDE "trajectories" practice, done independently of the vendor.</li></ul><span class="phase__row">rows → Golden set (unit × label)</span></div></div>
+    <div class="phase"><div class="phase__n">4</div><div class="phase__body"><h3>Eval cube</h3><ul class="bul"><li>Rubric evals with a local open-weight judge, calibrated against a human-labelled slice, judge-bias mitigations built in.</li><li>Rubric axes × workflow steps × variants (model, prompt, retrieval, temperature).</li><li>Rotating one face must not silently degrade another; a regression gate watches every cell.</li></ul><span class="phase__row">rows → Eval cube (unit × axis × step × variant)</span></div></div>
+    <div class="phase"><div class="phase__n">5</div><div class="phase__body"><h3>Cost ledger</h3><ul class="bul"><li>Tokens per unit of work per model, from the customer's own usage records; never estimated, the Claude tokenizer is not public.</li><li>Self-hosted infra measured under real concurrency.</li><li>Priced from vendored tables with their snapshot date printed.</li></ul><span class="phase__row">rows → Cost (unit)</span></div></div>
+    <div class="phase"><div class="phase__n">6</div><div class="phase__body"><h3>Pilot with a causal design</h3><ul class="bul"><li>Shadow mode or A/B where possible; pre/post with stated limits where not.</li><li>The standardised regression suite (<a class="doclink" href="agents/the-sdet-architect.html">plate 45</a>) runs on every change.</li><li>A quality regression is caught by a test, not by a customer.</li></ul><span class="phase__row">rows → Outcome (unit)</span></div></div>
+    <div class="phase"><div class="phase__n">7</div><div class="phase__body"><h3>Verdict and handover</h3><ul class="bul"><li>Cost per verified outcome, confidence, go / no-go / conditions.</li><li>The harness stays behind, so the organisation re-runs the validation on every future change without us.</li></ul><span class="phase__row">rows → Verdict (engagement)</span></div></div>
   </section>
 
   <!-- ============ 3 · The five ledgers ============ -->
   <section class="s3">
     <h2 class="display">The five ledgers</h2>
-    <p>Everything the engagement produces is a row in one of five tables, keyed on the unit of work. The existing SQLite schema (<code>engagements</code>, <code>runs</code>, <code>findings</code>, <code>artifacts</code>) is the substrate; the ledgers are the next tables to add, and the first work item of the redesign.</p>
+    <ul class="bul">
+      <li>Everything the engagement produces is a row in one of five tables, keyed on the unit of work.</li>
+      <li>The existing SQLite schema (<code>engagements</code>, <code>runs</code>, <code>findings</code>, <code>artifacts</code>) is the substrate.</li>
+      <li>The ledgers are the next tables to add: the first work item of the redesign.</li>
+    </ul>
     <div class="tablewrap"><table class="ledgers">
       <thead><tr><th>Ledger</th><th>Question it answers</th><th>Keyed on</th></tr></thead>
       <tbody>
@@ -170,10 +190,14 @@
   <!-- ============ 4 · Where the two agents sit ============ -->
   <section class="s4">
     <h2 class="display">Where plates 44 and 45 sit</h2>
-    <p>Plate 44 as built is a web-app crawler that provisions Playwright infrastructure. The thesis is blunt about it: that is a useful <strong>surface probe</strong>, not the Forward Deployed Tester. It becomes one probe inside Discover, and the agent itself is redefined around the seven phases above. Plate 45 stays exactly as it is.</p>
+    <ul class="bul">
+      <li>Plate 44 as built is a crawler that provisions Playwright infrastructure: a useful <strong>surface probe</strong>, not yet the Forward Deployed Tester.</li>
+      <li>It becomes one probe inside Discover; the agent itself is redefined around the seven phases above.</li>
+      <li>Plate 45 stays exactly as it is.</li>
+    </ul>
     <div class="paths">
-      <a class="path" href="agents/the-forward-deployed-tester.html"><span class="rcard__no">Agent 44 · Discover</span><h3 class="display">The Forward Deployed Tester</h3><p>Crawls the running app, records findings by severity, provisions the smoke suite and page objects. Its <code>report.json</code> is the first Baseline row: what is broken, how slow, how testable, before anything changes.</p><span class="path__go">Open the plate →</span></a>
-      <a class="path" href="agents/the-sdet-architect.html"><span class="rcard__no">Agent 45 · Pilot</span><h3 class="display">The SDET Architect</h3><p>Rebuilds whatever tests the organisation already has as one Playwright + MCP project. That project is the deterministic regression layer under the eval cube: it runs on every change during and after the pilot.</p><span class="path__go">Open the plate →</span></a>
+      <a class="path" href="agents/the-forward-deployed-tester.html"><span class="rcard__no">Agent 44 · Discover</span><h3 class="display">The Forward Deployed Tester</h3><p>Crawl, findings, smoke suite. Its <code>report.json</code> is the first Baseline row.</p><span class="path__go">Open the plate →</span></a>
+      <a class="path" href="agents/the-sdet-architect.html"><span class="rcard__no">Agent 45 · Pilot</span><h3 class="display">The SDET Architect</h3><p>Existing tests rebuilt as one project: the regression layer under the eval cube.</p><span class="path__go">Open the plate →</span></a>
     </div>
     <div class="rb__note"><strong>What is not built yet.</strong> The ledger tables, the Baseline and Golden-set phases, the eval cube runner with a local judge, the cost ledger and the verdict. The order of work is on the <a class="doclink" href="PROGRESS.md">progress log</a>: ledger schema first, because every phase writes rows there.</div>
   </section>
@@ -181,22 +205,26 @@
   <!-- ============ 5 · Working rules ============ -->
   <section class="s8">
     <h2 class="display">Working rules for the repo</h2>
-    <p>Four principles from the README, enforced by code where possible, and three verification gates that every change passes before it lands.</p>
+    <p>Four principles from the README, enforced by code where possible, and three gates every change passes.</p>
     <ol class="rb__steps">
-      <li class="rb__step"><div class="rb__label">Deterministic first</div><span class="rb__why"><span>Rule</span>Every deliverable exists with <code>LLM_PROVIDER=none</code>. A model may only enrich text, and <code>maybeLlm()</code> guarantees the fallback. CI runs with the provider set to <code>none</code> so nothing can pass only when a model is present.</span></li>
-      <li class="rb__step"><div class="rb__label">Local open-weight models only</div><span class="rb__why"><span>Rule</span><code>assertLocalEndpoint()</code> rejects any host that is not loopback, RFC 1918 or <code>.local</code> unless <code>LLM_ALLOW_REMOTE=1</code> is set for a server you own. There is no paid-provider code path; <code>grep -rn "api.openai.com\|api.anthropic.com" src</code> returns nothing.</span></li>
+      <li class="rb__step"><div class="rb__label">Deterministic first</div><span class="rb__why"><span>Rule</span>Every deliverable exists with <code>LLM_PROVIDER=none</code>; <code>maybeLlm()</code> guarantees the fallback. CI runs with the provider set to <code>none</code>.</span></li>
+      <li class="rb__step"><div class="rb__label">Local open-weight models only</div><span class="rb__why"><span>Rule</span><code>assertLocalEndpoint()</code> rejects any host that is not loopback, RFC 1918 or <code>.local</code>. There is no paid-provider code path.</span></li>
       <li class="rb__step"><div class="rb__label">One agent, one folder, one owner</div><span class="rb__why"><span>Rule</span>Agents never import from each other. Each has its own CLI, routes, tests and plate. Shared code lives in <code>src/core</code> only.</span></li>
       <li class="rb__step"><div class="rb__label">No real names</div><span class="rb__why"><span>Rule</span>No client, product or colleague names in code, fixtures, docs or the progress log. The fixture estate is "Fabricated Shop" on <code>shop.example.test</code>.</span></li>
       <li class="rb__step"><div class="rb__label">Gate 1 · typecheck</div><pre class="rb__cmd"><code>npm run typecheck</code></pre><span class="rb__why"><span>Why</span>Strict TypeScript with <code>NodeNext</code> resolution. The generated Playwright project is also compiled by the end-to-end test, so a generator that emits bad TypeScript fails here.</span></li>
-      <li class="rb__step"><div class="rb__label">Gate 2 · tests, no model</div><pre class="rb__cmd"><code>LLM_PROVIDER=none npm test</code></pre><span class="rb__why"><span>Why</span>89 tests on 2026-09-11: parsers for every dialect, locator tables, generators, report rendering, database, the model adapter's endpoint guard, one real Chromium crawl against an in-process server and one end-to-end migration of the fixture estate.</span></li>
-      <li class="rb__step"><div class="rb__label">Gate 3 · CI on push and pull request</div><pre class="rb__cmd"><code>cat .github/workflows/ci.yml   # Node 24, Chromium, typecheck, test</code></pre><span class="rb__why"><span>Why</span>The same two gates on a clean Ubuntu runner. The workflow is written and not yet committed; committing it is the first open item on the progress log.</span></li>
+      <li class="rb__step"><div class="rb__label">Gate 2 · tests, no model</div><pre class="rb__cmd"><code>LLM_PROVIDER=none npm test</code></pre><span class="rb__why"><span>Why</span>89 tests: parsers, locator tables, generators, reports, database, the endpoint guard, one real Chromium crawl, one end-to-end migration of the fixture estate.</span></li>
+      <li class="rb__step"><div class="rb__label">Gate 3 · CI on push and pull request</div><pre class="rb__cmd"><code>cat .github/workflows/ci.yml   # Node 24, Chromium, typecheck, test</code></pre><span class="rb__why"><span>Why</span>The same two gates on a clean Ubuntu runner with Node 24. First run green on 2026-09-13.</span></li>
     </ol>
   </section>
 
   <!-- ============ 6 · The daily loop ============ -->
   <section class="s5">
     <h2 class="display">The session loop</h2>
-    <p>Sessions are short and models change between them. The only memory that survives is the repo, so every session starts by reading the progress log and ends by writing to it. <code>CLAUDE.md</code> makes this mandatory for any agent working here; for a person it is a habit.</p>
+    <ul class="bul">
+      <li>Sessions are short and models change between them; the only memory that survives is the repo.</li>
+      <li>Every session starts by reading the progress log and ends by writing to it.</li>
+      <li><code>CLAUDE.md</code> makes this mandatory for any agent; for a person it is a habit.</li>
+    </ul>
     <figure class="fig">
       <svg viewBox="0 0 460 440" role="img" aria-label="The session loop drawn as a circle of six steps: read the progress log, pick the top open item, work, typecheck and test, commit, stamp and fill in the progress log">
         <defs><marker id="ah-loop" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--ac)"/></marker></defs>
@@ -223,8 +251,8 @@ npm run typecheck &amp;&amp; LLM_PROVIDER=none npm test   # 4 · both gates
 git add -A &amp;&amp; git commit -m "..."    # 5 · snapshot, with the why
 npm run progress                    # 6 · stamps today's header + measured snapshot at the top
                                     #     then fill in Done / Decided / Open by hand</code></pre>
-    <div class="rb__note"><strong>What the snapshot measures.</strong> Commits on main and today, sync with origin, uncommitted files, typecheck result, test pass/fail counts, source and test line counts, and the agent runs in the database. Numbers are exact; the narrative sections are written by whoever did the work. An entry rebuilt after the fact is marked <em>reconstructed</em>.</div>
-    <div class="rb__note rb__note--wire"><strong>If a session ended without the log.</strong> The next session's first job is to backfill from <code>git log --date=iso</code>, file modification times, <code>workspace/*/run.log</code> and the <code>runs</code> table, mark the entry reconstructed, and only then start on the open items.</div>
+    <div class="rb__note"><strong>What the snapshot measures.</strong> Commits, sync with origin, uncommitted files, typecheck, test counts, line counts, agent runs in the database. Numbers are exact; the narrative is written by whoever did the work.</div>
+    <div class="rb__note rb__note--wire"><strong>If a session ended without the log.</strong> Backfill from <code>git log --date=iso</code>, file times, <code>workspace/*/run.log</code> and the <code>runs</code> table; mark the entry <em>reconstructed</em>; then start on the open items.</div>
   </section>
 
   <!-- ============ 7 · Risks ============ -->

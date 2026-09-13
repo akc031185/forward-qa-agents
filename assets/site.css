@@ -309,3 +309,34 @@ button.fc-node{cursor:pointer;}
   .rcard,.rcard__tag,.fc-node,.fc-node__peek,.platenav a,.uh-btn,.uh-track,.code-modal__x{transition:none;}
   .rcard:hover,.fc-node--live:hover,.platenav a:hover{transform:none;}
 }
+
+/* ---------- Diagram-first plates (v5) ---------- */
+.fig{margin:18px 0 26px;background:var(--card);border-radius:var(--r-lg);box-shadow:var(--shadow-1);padding:22px 20px 14px;text-align:center;}
+.fig--tint{background:var(--tint);}
+.fig svg{width:100%;max-width:760px;height:auto;display:inline-block;}
+.fig figcaption{margin-top:8px;color:var(--ink-soft);font-weight:700;font-size:.85rem;}
+.fig svg text{font-family:var(--font);}
+.fig svg .hand{stroke-linecap:round;stroke-linejoin:round;fill:none;}
+.fig__head{display:inline-block;font-weight:800;font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;background:var(--tint);color:var(--deep);padding:6px 14px;border-radius:var(--r-pill);margin-bottom:12px;}
+.fc-node__t--short{font-weight:800;color:var(--ink);font-size:1rem;}
+.examples-fold{margin-bottom:8px;}
+.examples-fold > .underhood__body{padding-top:10px;}
+.examples-fold .specimen{box-shadow:none;border:1.5px solid var(--line);}
+
+/* ---------- Bullet prose (house rule: > 2 lines becomes a list, max 6) ---------- */
+.bul{list-style:none;margin:12px 0 16px;padding:0;max-width:72ch;}
+.bul li{position:relative;padding-left:22px;margin:6px 0;color:var(--ink-soft);font-weight:600;line-height:1.5;}
+.bul li::before{content:"";position:absolute;left:2px;top:.55em;width:9px;height:9px;border-radius:50%;background:var(--ac);}
+.bul li code{font-family:var(--mono);font-size:.84em;background:#FBF5EA;border-radius:6px;padding:1px 6px;}
+.bul.lead{font-size:clamp(1rem,1.5vw,1.15rem);max-width:64ch;}
+.bul.lead li{color:var(--ink-soft);font-weight:600;}
+.bul.section__desc{margin:14px 0 26px;font-size:1.02rem;max-width:66ch;}
+.bul--inline{margin:8px 0 2px;}
+.ba .bul{margin:0;}
+.ba .bul li{font-size:.95rem;}
+.ba--after .bul li{color:#7A5200;}
+.ba--after .bul li::before{background:var(--deep);}
+.code-modal__explain .bul li{color:#5c5148;font-size:.94rem;}
+.code-modal__explain .bul li code{background:rgba(255,255,255,.6);}
+.cm-step{color:var(--ink);font-weight:800;font-size:.95rem;margin-bottom:8px;}
+.hero .bul.lead{margin-top:6px;}

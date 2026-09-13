@@ -9,8 +9,17 @@
  ],
  "footer": "Forward QA Agents · two agents an organisation can drop into its own environment · the [process page](process.html) explains the engagement they belong to.",
  "heroH1": "Two agents that land in a stranger's environment and leave working test infrastructure behind.",
- "heroLead": "Plate 44 points a real browser at a running web app, records what is broken, and provisions a complete Playwright + Playwright MCP project with page objects, a smoke suite and CI. Plate 45 reads whatever legacy test estate already exists — Selenium in Java, Python, C# or JavaScript, Cucumber, Postman, markdown test plans — and rebuilds it as one standardised Playwright architecture with a migration report that lists every line it could not convert. Both run to completion with no model at all; a local open-weight model only polishes text.",
- "primerP": "Each agent is one folder under `src/agents/`, one CLI, a handful of REST routes and a `node:test` suite. Every deliverable exists with `LLM_PROVIDER=none`: the crawl, the findings, the generated project, the report. Both persist to the same SQLite database (`engagements`, `runs`, `findings`, `artifacts`) through Node's built-in `node:sqlite`, so every number in a report can be traced to a run id and every generated file to an artifact row. The only model the adapter will talk to is one you run yourself; public endpoints are rejected.",
+ "heroLead": [
+  "Plate 44 points a real browser at a running web app, records what is broken, and provisions a Playwright + Playwright MCP project.",
+  "Plate 45 reads whatever legacy tests exist (Selenium in any language, Cucumber, Postman, test plans) and rebuilds them as one Playwright architecture.",
+  "Both run to completion with no model at all; a local open-weight model only polishes text."
+ ],
+ "primerP": [
+  "One folder under `src/agents/`, one CLI, a few REST routes, one `node:test` suite per agent.",
+  "Every deliverable exists with `LLM_PROVIDER=none`: crawl, findings, generated project, report.",
+  "One SQLite database (`engagements`, `runs`, `findings`, `artifacts`), so every number traces to a run id.",
+  "The adapter only talks to a model you run yourself; public endpoints are rejected."
+ ],
  "stats": [
   { "num": "89", "lbl": "Tests, all green with no model" },
   { "num": "91.7%", "lbl": "Steps converted on the fixture estate" },
