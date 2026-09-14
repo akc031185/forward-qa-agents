@@ -41,6 +41,9 @@ best-effort and their numbers as exact.
   Playwright (6 stages, 31 gates). Each stage: goal, ≤ 6 steps, deliverable, exit gate table of
   metric · target · how to measure, with a browser-local checklist. Five diagrams. Checked at desktop
   and phone width: no overflow, no bullet over two lines, checklist persists across reloads.
+- Session closed for the night. Local-only state to know about: `../ai-site-auditor` and
+  `../sdet-roadmap` are built but not git repos; `../forward-deployed-tester` and
+  `../sdet-architect` each have one uncommitted `index.html` (mascot size fix). Preview servers stopped.
 
 **Decided**
 
@@ -51,7 +54,7 @@ best-effort and their numbers as exact.
 
 **Open / next**
 
-1. Ask the user whether to publish three sites: `akc031185/ai-site-auditor`, `akc031185/sdet-roadmap`,
+1. **Decide first thing in the morning (user said "make a call tomorrow"):** publish three sites? `akc031185/ai-site-auditor`, `akc031185/sdet-roadmap`,
    plus the mascot fix already rebuilt into the FDT and SDET site repos. Then cross-link all mastheads.
 2. Add a clear next step (run it, contact, engagement offer) to the FDT and SDET sites; the comparison
    showed ours has none.
