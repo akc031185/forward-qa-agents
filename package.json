@@ -20,7 +20,8 @@
     "fixture:audit-sites": "tsx fixtures/ai-site-auditor/serve.ts",
     "progress": "node scripts/progress.mjs",
     "catalog": "tsx _build/build-catalog.ts --site _build/sites/fdt --out ${FDT_SITE_DIR:-../forward-deployed-tester} && tsx _build/build-catalog.ts --site _build/sites/sdet --out ${SDET_SITE_DIR:-../sdet-architect} && tsx _build/build-catalog.ts --site _build/sites/audit --out ${AUDIT_SITE_DIR:-../ai-site-auditor}",
-    "catalog:author": "node _build/author/plates.mjs && npm run catalog"
+    "catalog:author": "node _build/author/plates.mjs && npm run catalog",
+    "catalog:roadmap": "node _build/author/roadmap.mjs ${ROADMAP_SITE_DIR:-../sdet-roadmap}"
   },
   "dependencies": {
     "@playwright/mcp": "^0.0.40",

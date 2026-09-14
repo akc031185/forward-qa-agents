@@ -99,6 +99,7 @@ Each agent has a field guide of its own, published from its own repo through Git
 | The Forward Deployed Tester (plate 44) + the engagement process page | https://akc031185.github.io/forward-deployed-tester/ | `akc031185/forward-deployed-tester` |
 | The SDET Architect (plate 45) | https://akc031185.github.io/sdet-architect/ | `akc031185/sdet-architect` |
 | The AI Site Auditor (plate 46) | not yet published (built locally into `../ai-site-auditor`) | — |
+| The SDET Roadmap (agentic AI testing, Selenium → Playwright) | not yet published (built locally into `../sdet-roadmap`) | — |
 
 Both are **generated from this repo**; the site repos hold output only.
 
@@ -113,6 +114,7 @@ assets/site.css                the shared stylesheet, copied into each site
 ```
 
 ```bash
+npm run catalog:roadmap  # the SDET Roadmap from _build/author/roadmap-data.mjs → ../sdet-roadmap
 npm run catalog:author   # author → JSON → all three sites (../forward-deployed-tester, ../sdet-architect, ../ai-site-auditor)
 FDT_SITE_DIR=/path SDET_SITE_DIR=/path AUDIT_SITE_DIR=/path npm run catalog   # build only, custom site checkouts
 ```

@@ -10,6 +10,56 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-09-14 (Monday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 8 (0 today, head `bf46c26`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 6 (CLAUDE.md, README.md, _build/author/diagrams.mjs, package.json, _build/author/roadmap-data.mjs, _build/author/roadmap.mjs) |
+| Typecheck | pass |
+| Tests | 99 pass, 0 fail (10 suites) |
+| Source lines (src/) | 6023 across 45 files |
+| Test lines (tests/) | 1431 across 16 files |
+| Agent runs in DB | 4 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
+
+**Done**
+
+- Crawled a comparison site (an SDET interview-prep business) at the user's request with a polite
+  content-only crawler (1 req/s, no security probes; the AI Site Auditor was deliberately not used on
+  a third-party site). 175 pages, 83,190 unique prose words vs our FDT site's 3 pages / 3,806 words.
+  Theirs: far more content, 35% boilerplate, 412 calls to action, almost no citations. Ours: denser
+  and more directive, but no calls to action. No FDT coverage on their side.
+- User then asked for a dedicated space for what SDET openings ask for: agentic AI testing and
+  Selenium-to-Playwright migration, with workflow, steps and measurables. Researched real 2026
+  postings (RBC "Agentic SDET I", Apple "Senior SDET, LLM Evaluation & Automation"), Playwright test
+  agents docs, OWASP LLM Top 10 (2025), Langfuse's evaluation layers, judge calibration (κ ≥ 0.6).
+- Built **The SDET Roadmap**: `_build/author/roadmap-data.mjs` + `roadmap.mjs` → `../sdet-roadmap`
+  (`npm run catalog:roadmap`). Track 1 agentic AI testing (6 stages, 29 gates), Track 2 Selenium →
+  Playwright (6 stages, 31 gates). Each stage: goal, ≤ 6 steps, deliverable, exit gate table of
+  metric · target · how to measure, with a browser-local checklist. Five diagrams. Checked at desktop
+  and phone width: no overflow, no bullet over two lines, checklist persists across reloads.
+
+**Decided**
+
+- Track order follows the user's list (agentic first); new-to-Playwright learners do Track 2 stages
+  0–2 first.
+- No borrowed numbers as targets: case-study speed-ups (unverifiable) are excluded; targets are fixed
+  bars or relative to the learner's own stage-0 baseline, and "our bar" is labelled.
+
+**Open / next**
+
+1. Ask the user whether to publish three sites: `akc031185/ai-site-auditor`, `akc031185/sdet-roadmap`,
+   plus the mascot fix already rebuilt into the FDT and SDET site repos. Then cross-link all mastheads.
+2. Add a clear next step (run it, contact, engagement offer) to the FDT and SDET sites; the comparison
+   showed ours has none.
+3. Plate 44 redesign: ledger schema in `src/core/db.ts` first.
+4. Bump `actions/checkout` and `actions/setup-node` to v5.
+
+---
+
 ## 2026-09-13 (Sunday)
 
 **Snapshot at end of day**

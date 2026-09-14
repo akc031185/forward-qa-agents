@@ -298,3 +298,6 @@ export const auditScore = svg(760, 250, 'How each area score is computed: start 
   lbl(96, 164, 'grade', { fs: 13, fw: 800, fill: 'var(--deep)' }),
   lbl(380, 226, 'fixture SPA: AI visibility 0 · F   ·   fixture server-rendered site: 100 · A'),
 ].join(''));
+
+// Shared drawing helpers, for page renderers outside the plates (the SDET Roadmap).
+export const draw = { T, box, pill, diamond, arrow, lbl, db, svg };
