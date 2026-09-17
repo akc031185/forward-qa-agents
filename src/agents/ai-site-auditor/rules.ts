@@ -8,6 +8,7 @@ import {
   buzzwordHits, emDashDensity, emojiHeadings, failingContrast, fontTells,
   spacingOffScale, violetBlueGradients,
 } from './design.js';
+import { findPolicies, formProblems, looksCommercial, trackingThirdParty, unhelpful404 } from './essentials.js';
 import type { Area, CheckResult, PageAudit, Severity, SiteFacts } from './types.js';
 
 export const SOURCES = {
@@ -472,6 +473,147 @@ function design(f: SiteFacts): CheckResult[] {
   return out;
 }
 
+// ─────────────────────────────────────────── Readiness: what a site needs before it is launched
+/**
+ * The pre-launch and pre-sale list: policy pages, consent, working forms, spam protection,
+ * analytics, contact details, keyboard access. Items that need a human ruling — dark patterns,
+ * hidden fees, unsupported claims, fake reviews, font and image licensing, whether the data
+ * collected is necessary — are deliberately not here. A deterministic checker cannot judge them,
+ * and pretending otherwise would be worse than saying nothing.
+ */
+function readiness(f: SiteFacts): CheckResult[] {
+  const out: CheckResult[] = [];
+  const pages = live(f).filter(p => p.essentials);
+  if (!pages.length) {
+    if (live(f).length) out.push(r('readiness.not-measured', 'readiness', 'medium', 'Launch readiness could not be measured',
+      'The page rendered but its links, forms and third-party scripts could not be read, so none of these checks ran. This area is not a pass.',
+      'Re-run; if it repeats, the page is probably replacing its own document after load.'));
+    return out;
+  }
+  const GDPR = 'https://gdpr.eu/privacy-notice/';
+  const A11Y = 'https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html';
+  const links = pages.flatMap(p => p.essentials!.links);
+  const text = pages.map(p => p.rendered?.textSample ?? '').join(' ');
+  const policies = findPolicies(links);
+  const commercial = looksCommercial(text, links);
+  const thirdParty = [...new Set(pages.flatMap(p => p.essentials!.thirdParty))];
+  const tracking = trackingThirdParty(thirdParty);
+  const banner = pages.some(p => p.essentials!.cookieBanner);
+  const analytics = [...new Set(pages.flatMap(p => p.essentials!.analytics))];
+  const forms = pages.flatMap(p => p.essentials!.forms);
+
+  if (!policies.privacy) out.push(r('readiness.no-privacy-policy', 'readiness', 'high',
+    'No privacy policy page is linked',
+    `Any site that collects a name, an email or an analytics identifier needs one; ${tracking.length ? `this site already loads ${tracking.length} tracking third part${tracking.length === 1 ? 'y' : 'ies'}` : 'app stores, payment providers and ad platforms all require one'}.`,
+    'Publish a privacy notice saying what you collect, why, who you share it with and how to get it deleted, and link it in the footer.',
+    { evidence: tracking.slice(0, 8), source: GDPR }));
+
+  if (!policies.terms) out.push(r('readiness.no-terms', 'readiness', 'medium',
+    'No terms of service page is linked',
+    'Terms are what limit your liability and set the rules for accounts, payment and acceptable use. Without them every dispute starts from nothing.',
+    'Publish terms covering the service, payment, termination and liability, and link them in the footer.', { source: GDPR }));
+
+  if (tracking.length && !policies.cookies) out.push(r('readiness.no-cookie-policy', 'readiness', 'low',
+    `${tracking.length} tracking third part${tracking.length === 1 ? 'y is' : 'ies are'} loaded with no cookie policy`,
+    `Named: ${tracking.slice(0, 4).map(t => `${safeHost(t.origin)} (${t.kind})`).join(', ')}.`,
+    'List each third party, what it sets and how to opt out.', { evidence: tracking, source: GDPR }));
+
+  if (tracking.length && !banner) out.push(r('readiness.no-consent-banner', 'readiness', 'medium',
+    `${tracking.length} tracking third part${tracking.length === 1 ? 'y loads' : 'ies load'} before any consent is asked for`,
+    `Under GDPR and the ePrivacy rules, analytics and advertising identifiers need consent before they are set, not after. Loaded: ${tracking.slice(0, 4).map(t => safeHost(t.origin)).join(', ')}.`,
+    'Gate these scripts behind a consent choice, or move to an analytics tool that sets no identifier.',
+    { evidence: tracking, source: GDPR }));
+
+  if (commercial && !policies.refund) out.push(r('readiness.no-refund-policy', 'readiness', 'low',
+    'The site sells something but links no refund or cancellation policy',
+    'Card networks and app stores expect one, and its absence is a common chargeback trigger.',
+    'State the refund window, what qualifies and how long money takes to come back.', { source: GDPR }));
+
+  if ((commercial || forms.length) && !policies.deletion) out.push(r('readiness.no-data-deletion', 'readiness', 'low',
+    'No route for a visitor to have their data deleted',
+    'A deletion request is a right under GDPR and CCPA, and a requirement for app-store listings.',
+    'Add a "delete my account" route or an email address that is documented in the privacy notice.', { source: GDPR }));
+
+  const problems = formProblems(forms);
+  const byKind = (k: string) => problems.filter(p => p.kind === k);
+  const nowhere = byKind('goes-nowhere');
+  if (nowhere.length) out.push(r('readiness.form-goes-nowhere', 'readiness', 'high',
+    `${nowhere.length} form${nowhere.length === 1 ? '' : 's'} with no action attribute`,
+    `${nowhere[0]!.detail} This is the single most expensive defect on a generated site: the page looks finished and every enquiry is silently lost.`,
+    'Point the form at an endpoint and confirm a real submission arrives.', { evidence: nowhere }));
+
+  const noValid = [...byKind('no-validation'), ...byKind('no-required')];
+  if (noValid.length) out.push(r('readiness.form-no-validation', 'readiness', 'medium',
+    `${noValid.length} form${noValid.length === 1 ? '' : 's'} accept an empty or malformed submission`,
+    noValid[0]!.detail,
+    'Mark the fields you need as required and use type="email" so the browser validates for free.', { evidence: noValid }));
+
+  const unlabelled = byKind('unlabelled');
+  if (unlabelled.length) out.push(r('readiness.form-unlabelled', 'readiness', 'medium',
+    `${unlabelled.length} form${unlabelled.length === 1 ? ' has' : 's have'} controls with no label`,
+    `${unlabelled[0]!.detail} Placeholder text is not a label: it disappears as soon as someone types.`,
+    'Give every control a <label for>, or an aria-label where the design has no room.',
+    { evidence: unlabelled, source: A11Y }));
+
+  const spam = byKind('no-spam-protection');
+  if (spam.length) out.push(r('readiness.no-spam-protection', 'readiness', 'medium',
+    `${spam.length} form${spam.length === 1 ? '' : 's'} with no spam protection`,
+    `${spam[0]!.detail} A public form with no protection fills with bot submissions within days of being indexed.`,
+    'Add a honeypot field or a privacy-respecting captcha such as Turnstile or hCaptcha.', { evidence: spam }));
+
+  if (!analytics.length) out.push(r('readiness.no-analytics', 'readiness', 'low',
+    'No analytics are installed',
+    'Nothing records whether anyone arrives, what they read or where they leave, so there is no way to tell whether a change helped.',
+    'Install one analytics tool. A cookieless one (Plausible, Fathom, Umami) avoids the consent problem entirely.'));
+
+  const homeCtas = pages[0]!.essentials!.ctas;
+  if (!homeCtas.length) out.push(r('readiness.no-call-to-action', 'readiness', 'medium',
+    'The first screen of the home page offers no action',
+    'A visitor who is convinced has nothing to click, so the page can only be read and left.',
+    'Put one primary action in the first screen and repeat it at the end of the page.'));
+  else if (new Set(homeCtas.map(c => c.href)).size > 4) out.push(r('readiness.competing-calls-to-action', 'readiness', 'low',
+    `${new Set(homeCtas.map(c => c.href)).size} different actions compete in the first screen`,
+    `Offered: ${homeCtas.slice(0, 5).map(c => `"${c.text}"`).join(', ')}. When everything is a call to action, none of them is.`,
+    'Choose one primary action; make the rest quieter links.', { evidence: homeCtas.slice(0, 8) }));
+
+  const contact = pages[0]!.essentials!.contact;
+  if (!contact.email && !contact.phone) out.push(r('readiness.no-contact-details', 'readiness', 'medium',
+    'No way to contact the business is published',
+    'A visitor with a question, and a regulator asking who runs the site, both need this. Its absence is also a trust signal buyers read quickly.',
+    'Put an email address or a contact form link in the footer.'));
+  else if (!contact.company) out.push(r('readiness.no-business-identity', 'readiness', 'low',
+    'The footer names no legal entity',
+    'Consumer law in the UK, EU and India expects a trading name and address; app stores and payment providers ask for the same.',
+    'Add the registered name and address, or the trading name and a contact address.'));
+
+  const nf = f.softNotFound;
+  if (unhelpful404(nf.status, nf.title, nf.words, nf.links)) out.push(r('readiness.unhelpful-404', 'readiness', 'low',
+    'The 404 page is a dead end',
+    `A missing URL returns the right status but shows ${nf.words} words and ${nf.links} links, so a visitor who mistypes or follows an old link has nowhere to go.`,
+    'Give the 404 page your navigation, a search box and a link home.',
+    { evidence: { title: nf.title, words: nf.words, links: nf.links } }));
+
+  const focus = pages.reduce((n, p) => n + p.essentials!.focusSuppressed, 0);
+  if (focus) out.push(r('readiness.focus-outline-removed', 'readiness', 'medium',
+    'The keyboard focus outline is removed and never replaced',
+    'Anyone navigating by keyboard, including every screen-reader user, loses track of where they are on the page.',
+    'Delete the `outline: none`, or pair it with a visible `:focus-visible` style.', { source: A11Y }));
+
+  const clickable = pages.reduce((n, p) => n + p.essentials!.clickableNonButtons, 0);
+  if (clickable >= 2) out.push(r('readiness.clickable-non-buttons', 'readiness', 'medium',
+    `${clickable} clickable elements are not buttons or links`,
+    'A div with a click handler cannot be reached by keyboard or announced by a screen reader, so the action simply does not exist for those visitors.',
+    'Use <button> or <a>, or add role="button", tabindex="0" and a key handler.', { source: A11Y }));
+
+  if (thirdParty.length >= 8) out.push(r('readiness.many-third-parties', 'readiness', 'low',
+    `The page loads code from ${thirdParty.length} third-party origins`,
+    `Each one can read the page, see the visitor and slow the site down. Named: ${thirdParty.slice(0, 6).map(safeHost).join(', ')}.`,
+    'Remove what you are not using; self-host fonts; keep the rest listed in the privacy notice.',
+    { evidence: thirdParty.slice(0, 20) }));
+
+  return out;
+}
+
 /** Audit integrity: a check that could not run must never read as a pass. */
 function integrity(f: SiteFacts): CheckResult[] {
   const out: CheckResult[] = [];
@@ -482,6 +624,7 @@ function integrity(f: SiteFacts): CheckResult[] {
     out.push(r('audit.nothing-audited-search', 'search', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));
     out.push(r('audit.nothing-audited-build', 'build', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));
     out.push(r('audit.nothing-audited-design', 'design', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));
+    out.push(r('audit.nothing-audited-readiness', 'readiness', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));
     return out;
   }
   const failed = f.pages.filter(p => p.raw && !p.rendered);
@@ -499,7 +642,7 @@ function integrity(f: SiteFacts): CheckResult[] {
 }
 
 export function evaluate(f: SiteFacts): CheckResult[] {
-  const all = [...integrity(f), ...aiVisibility(f), ...search(f), ...build(f), ...design(f)];
+  const all = [...integrity(f), ...aiVisibility(f), ...search(f), ...build(f), ...design(f), ...readiness(f)];
   const order: Severity[] = ['critical', 'high', 'medium', 'low', 'info'];
   return all.sort((a, b) => order.indexOf(a.severity) - order.indexOf(b.severity));
 }
@@ -516,7 +659,7 @@ const NOT_MEASURED = new Set(['design.not-measured', 'audit.nothing-audited-desi
 
 /** 0–100 per area: 100 minus the weight of each failed check, floored at 0. */
 export function scores(results: CheckResult[]): Record<Area, number> {
-  const s: Record<Area, number> = { 'ai-visibility': 100, search: 100, build: 100, design: 100 };
+  const s: Record<Area, number> = { 'ai-visibility': 100, search: 100, build: 100, design: 100, readiness: 100 };
   for (const x of results) if (x.area !== 'design') s[x.area] = Math.max(0, s[x.area] - WEIGHTS[x.severity]);
   const design = results.filter(x => x.area === 'design');
   s.design = design.some(x => NOT_MEASURED.has(x.id))

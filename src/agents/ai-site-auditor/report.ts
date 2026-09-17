@@ -15,16 +15,17 @@ export interface ReportInput {
   modelUsed: boolean;
 }
 
-export const AREA_LABEL: Record<Area, string> = { 'ai-visibility': 'AI visibility', search: 'Search', build: 'Build quality', design: 'Design originality' };
+export const AREA_LABEL: Record<Area, string> = { 'ai-visibility': 'AI visibility', search: 'Search', build: 'Build quality', design: 'Design originality', readiness: 'Launch readiness' };
 export const AREA_BLURB: Record<Area, string> = {
   'ai-visibility': 'Can ChatGPT, Claude and Perplexity read, cite and quote this site?',
   search: 'Will search engines index the right pages with the right titles?',
   build: 'Did the AI builder leave mistakes, placeholders or secrets behind?',
   design: 'Does this look like a site someone designed, or like an untouched scaffold?',
+  readiness: 'Is this ready to put in front of customers, and in front of a regulator?',
 };
 const SEVERITIES: Severity[] = ['critical', 'high', 'medium', 'low', 'info'];
 /** Render order. Every area lives here once, so adding one cannot half-appear. */
-export const AREAS: Area[] = ['ai-visibility', 'search', 'build', 'design'];
+export const AREAS: Area[] = ['ai-visibility', 'search', 'build', 'design', 'readiness'];
 
 export function countBySeverity(results: CheckResult[]): Record<Severity, number> {
   const c: Record<Severity, number> = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };

@@ -1,6 +1,7 @@
 // Data shapes for The AI Site Auditor. Browser-free, so rules and reports are testable in isolation.
 import type { Robots } from './robots.js';
 import type { DesignRaw } from './design.js';
+import type { EssentialsRaw } from './essentials.js';
 
 /** What the in-page extraction script returns, for either view of a page. */
 export interface PageView {
@@ -42,6 +43,7 @@ export interface PageAudit {
   scripts: string[];             // same-origin script URLs seen while rendering
   jsBytes: number;
   design?: DesignRaw;            // computed-style and CSSOM measurements, rendered view only
+  essentials?: EssentialsRaw;    // policy links, forms, third parties, consent; rendered view only
   error?: string;
 }
 
@@ -64,7 +66,7 @@ export interface SiteFacts {
   robots?: { status: number; text: string; parsed: Robots };
   sitemaps: { url: string; status: number; kind: string; urls: number; sampleBroken: string[] }[];
   llmsTxt?: { status: number; ok: boolean; h1?: string; links: number; problems: string[] };
-  softNotFound: { url: string; status: number };
+  softNotFound: { url: string; status: number; title: string; words: number; links: number };
   httpRedirect?: { status: number; location?: string };
   envExposed?: { status: number; looksLikeEnv: boolean };
   securityHeaders: Record<string, string | undefined>;
@@ -76,7 +78,7 @@ export interface SiteFacts {
   durationMs: number;
 }
 
-export type Area = 'ai-visibility' | 'search' | 'build' | 'design';
+export type Area = 'ai-visibility' | 'search' | 'build' | 'design' | 'readiness';
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
 /** One evaluated check. Per-page problems are aggregated into one result listing the pages. */

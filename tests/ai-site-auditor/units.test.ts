@@ -7,6 +7,7 @@ import { renderReportHtml } from '../../src/agents/ai-site-auditor/report.js';
 import { wordsInHtml } from '../../src/agents/ai-site-auditor/collect.js';
 import type { PageAudit, PageView, SiteFacts } from '../../src/agents/ai-site-auditor/types.js';
 import type { DesignRaw } from '../../src/agents/ai-site-auditor/design.js';
+import type { EssentialsRaw } from '../../src/agents/ai-site-auditor/essentials.js';
 
 test('robots: most specific group wins, longest rule wins, allow wins ties, wildcards', () => {
   const r = parseRobots(`# comment
@@ -72,16 +73,29 @@ export const cleanDesign: DesignRaw = {
   scrollFadeCount: 0, cursorBeam: false, hoverOpacityRules: 0, spacingPx: [8, 16, 24, 32],
   serifItalicCount: 0, contrastPairs: [], grainOverlay: false, darkBackground: false,
 };
-const page = (path: string, raw: Partial<PageView>, rendered: Partial<PageView>, design: DesignRaw = cleanDesign): PageAudit => ({
+/** Likewise for launch readiness: a site with its policies, a working form and contact details. */
+export const cleanEssentials: EssentialsRaw = {
+  links: [
+    { href: 'https://acme.example.test/privacy', text: 'Privacy policy' },
+    { href: 'https://acme.example.test/terms', text: 'Terms of service' },
+    { href: 'https://acme.example.test/delete-account', text: 'Delete your account' },
+  ],
+  forms: [{ action: '/subscribe', method: 'post', fields: 2, required: 2, emailTyped: 1, labelled: 2, novalidate: false, consentCheckbox: true, captcha: true, honeypot: false }],
+  thirdParty: [], analytics: ['Plausible'], cookieBanner: false,
+  ctas: [{ text: 'Start now', href: '/signup' }],
+  focusSuppressed: 0, clickableNonButtons: 0,
+  contact: { email: true, phone: true, address: true, company: true },
+};
+const page = (path: string, raw: Partial<PageView>, rendered: Partial<PageView>, design: DesignRaw = cleanDesign, essentials: EssentialsRaw = cleanEssentials): PageAudit => ({
   url: `https://acme.example.test${path}`, path, status: 200, raw: view(raw), rendered: view(rendered), loadMs: 100,
-  consoleErrors: [], failedRequests: [], mixedContent: [], scripts: [], jsBytes: 200_000, design,
+  consoleErrors: [], failedRequests: [], mixedContent: [], scripts: [], jsBytes: 200_000, design, essentials,
 });
 const facts = (pages: PageAudit[], over: Partial<SiteFacts> = {}): SiteFacts => ({
   origin: 'https://acme.example.test', startUrl: 'https://acme.example.test/', https: true,
   robots: { status: 200, text: 'User-agent: *\nAllow: /', parsed: parseRobots('User-agent: *\nAllow: /\nSitemap: https://acme.example.test/sitemap.xml') },
   sitemaps: [{ url: 'https://acme.example.test/sitemap.xml', status: 200, kind: 'urlset', urls: pages.length, sampleBroken: [] }],
   llmsTxt: { status: 200, ok: true, h1: 'Acme', links: 3, problems: [] },
-  softNotFound: { url: 'x', status: 404 }, httpRedirect: { status: 301, location: 'https://acme.example.test/' }, envExposed: { status: 404, looksLikeEnv: false },
+  softNotFound: { url: 'x', status: 404, title: 'Page not found — Acme', words: 40, links: 6 }, httpRedirect: { status: 301, location: 'https://acme.example.test/' }, envExposed: { status: 404, looksLikeEnv: false },
   securityHeaders: { 'strict-transport-security': 'max-age=1', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'self'" },
   botProbes: [], secrets: [], sourceMaps: [], pages, skipped: [], durationMs: 1000, ...over,
 });
@@ -90,7 +104,7 @@ test('rules: a well-built site produces no findings and straight A grades', () =
   const f = facts([page('/', {}, {}), page('/about', { title: 'About Acme', canonical: 'https://acme.example.test/about', metaDescription: 'About.' }, { title: 'About Acme', canonical: 'https://acme.example.test/about', metaDescription: 'About.' })]);
   const results = evaluate(f);
   assert.deepEqual(results.map(r => r.id), []);
-  assert.deepEqual(scores(results), { 'ai-visibility': 100, search: 100, build: 100, design: 100 });
+  assert.deepEqual(scores(results), { 'ai-visibility': 100, search: 100, build: 100, design: 100, readiness: 100 });
 });
 
 test('rules: the SPA shell pattern is caught once per root cause, with the right severities', () => {
@@ -100,7 +114,7 @@ test('rules: the SPA shell pattern is caught once per root cause, with the right
     page('/pricing', shell, { title: 'Pricing', canonical: 'https://acme.example.test/' }),
     page('/team', shell, { title: 'Pricing', canonical: 'https://acme.example.test/', textSample: 'Jane Doe, CEO. Call (555) 010-2030' }),
   ], {
-    softNotFound: { url: 'x', status: 200 },
+    softNotFound: { url: 'x', status: 200, title: 'Acme', words: 300, links: 4 },
     robots: { status: 200, text: '', parsed: parseRobots('User-agent: OAI-SearchBot\nDisallow: /') },
     secrets: [{ script: '/assets/index.js', kind: 'OpenAI API key', severity: 'critical', preview: 'sk-pro…(48 chars)', note: '' }],
   });
@@ -133,14 +147,16 @@ test('regressions from validation: a failed render or an empty audit never reads
 
   const r2 = evaluate(facts([{ ...page('/', {}, {}), status: 0, raw: undefined, rendered: undefined, error: 'ECONNREFUSED' }]));
   const s2 = scores(r2);
-  assert.deepEqual([s2['ai-visibility'] < 100, s2.search < 100, s2.build < 100, s2.design < 100], [true, true, true, true], 'nothing audited drags every area down');
-  assert.deepEqual(r2.filter(r => r.id.startsWith('audit.')).map(r => r.severity), ['critical', 'critical', 'critical', 'critical'], 'one critical per area');
+  assert.deepEqual([s2['ai-visibility'] < 100, s2.search < 100, s2.build < 100, s2.design < 100, s2.readiness < 100], [true, true, true, true, true], 'nothing audited drags every area down');
+  assert.deepEqual(r2.filter(r => r.id.startsWith('audit.')).map(r => r.severity), ['critical', 'critical', 'critical', 'critical', 'critical'], 'one critical per area');
   assert.equal(s2.design, 0, 'design cannot pass on a page that never rendered');
 
   // rendered, but the style measurement itself failed: still not a pass
-  const r3 = evaluate(facts([{ ...page('/', {}, {}), design: undefined }]));
+  const r3 = evaluate(facts([{ ...page('/', {}, {}), design: undefined, essentials: undefined }]));
   assert.ok(r3.some(x => x.id === 'design.not-measured'), 'an unmeasured design area is reported');
   assert.equal(scores(r3).design, 0, 'and scores zero rather than a silent 100');
+  assert.ok(r3.some(x => x.id === 'readiness.not-measured'), 'the same for launch readiness');
+  assert.ok(scores(r3).readiness < 100);
 });
 
 test('regressions from validation: small app shells, form labels, staging canonicals, off-host sitemaps', () => {

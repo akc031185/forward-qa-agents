@@ -8,6 +8,8 @@ import { parseRobots } from './robots.js';
 import { checkLlmsTxt, findSecrets, parseSitemap } from './parse.js';
 import { DESIGN_SCRIPT } from './design.js';
 import type { DesignRaw } from './design.js';
+import { ESSENTIALS_SCRIPT } from './essentials.js';
+import type { EssentialsRaw } from './essentials.js';
 import type { BotProbe, FetchResult, PageAudit, PageView, SiteFacts } from './types.js';
 
 export const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 ai-site-auditor/1.0';
@@ -153,7 +155,8 @@ async function renderedView(ctx: BrowserContext, url: string, timeoutMs: number)
     // Design tells need computed styles and the CSSOM, so they are measured in the live page.
     // A failure here must never lose the page: the area is simply not scored.
     const design = await (page.evaluate(`(${DESIGN_SCRIPT})()`) as Promise<DesignRaw>).catch(() => undefined);
-    return { rendered: view, design, loadMs: Date.now() - t0, loadTimedOut, consoleErrors, failedRequests, mixedContent, scripts: [...scripts], jsBytes };
+    const essentials = await (page.evaluate(`(${ESSENTIALS_SCRIPT})()`) as Promise<EssentialsRaw>).catch(() => undefined);
+    return { rendered: view, design, essentials, loadMs: Date.now() - t0, loadTimedOut, consoleErrors, failedRequests, mixedContent, scripts: [...scripts], jsBytes };
   } catch (err) {
     return { loadMs: Date.now() - t0, consoleErrors, failedRequests, mixedContent, scripts: [...scripts], jsBytes, error: err instanceof Error ? err.message.split('\n')[0] : String(err) };
   } finally {
@@ -287,7 +290,12 @@ export async function collect(opts: CollectOptions): Promise<SiteFacts> {
     origin, startUrl, https: start.protocol === 'https:',
     robots, sitemaps,
     llmsTxt: llms,
-    softNotFound: { url: notFound.url, status: notFound.status },
+    softNotFound: {
+      url: notFound.url, status: notFound.status,
+      title: /<title[^>]*>([^<]*)</i.exec(notFound.body)?.[1]?.trim() ?? '',
+      words: wordsInHtml(notFound.body),
+      links: (notFound.body.match(/<a\s[^>]*href=/gi) ?? []).length,
+    },
     httpRedirect,
     envExposed: { status: envRes.status, looksLikeEnv: envLooks },
     securityHeaders: {

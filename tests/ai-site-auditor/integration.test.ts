@@ -112,9 +112,17 @@ test('vibecoded site: technically sound, but the design tells are all present', 
   assert.deepEqual(missing, [], `design tells missed: ${missing.join(', ')}\nfound: ${a.ids.filter(i => i.startsWith('design.')).join(', ')}`);
   assert.ok(a.output.scores.design < 60, `design score should be poor, got ${a.output.scores.design}`);
 
-  // the report has to show the new area
+  // launch readiness: the fixture links no policies, installs no analytics and publishes no contact
+  for (const id of ['readiness.no-privacy-policy', 'readiness.no-terms', 'readiness.no-analytics', 'readiness.no-contact-details', 'readiness.unhelpful-404']) {
+    assert.ok(a.ids.includes(id), `${id} missing; readiness findings: ${a.ids.filter(i => i.startsWith('readiness.')).join(', ')}`);
+  }
+  assert.ok(!a.ids.includes('readiness.no-call-to-action'), 'the hero does offer an action');
+  assert.ok(a.output.scores.readiness < 100);
+
+  // the report has to show the new areas
   const html = fs.readFileSync(a.output.report_html, 'utf8');
   assert.match(html, /Design originality/);
+  assert.match(html, /Launch readiness/);
   const report = JSON.parse(fs.readFileSync(path.join(a.workspaceDir, 'report.json'), 'utf8'));
   assert.ok(typeof report.scores.design === 'number');
   a.db.close(); fs.rmSync(a.workspaceDir, { recursive: true, force: true });
