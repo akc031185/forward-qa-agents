@@ -118,6 +118,57 @@ export const EFFORT: Record<string, Effort> = {
 };
 export function effortOf(id: string): Effort { return EFFORT[id] ?? 'medium'; }
 
+/** Nothing worth showing: undefined, null, an empty string, an empty list or an empty object. */
+export function isEmptyEvidence(v: unknown): boolean {
+  if (v === undefined || v === null) return true;
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.length === 0 || v.every(isEmptyEvidence);
+  if (typeof v === 'object') {
+    const e = Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== undefined);
+    return e.length === 0 || e.every(([, x]) => isEmptyEvidence(x));
+  }
+  return false;
+}
+
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+/** Turn `camelCase` and `snake_case` keys into something a client can read. */
+export function labelKey(k: string): string {
+  const spaced = k.replace(/[_-]+/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase().trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+const cell = (v: unknown): string =>
+  v === undefined || v === null ? '<span class="muted">–</span>'
+    : typeof v === 'object' ? `<code>${esc(JSON.stringify(v))}</code>`
+      : /^https?:\/\//.test(String(v)) || String(v).startsWith('/') ? `<code>${esc(String(v))}</code>`
+        : esc(String(v));
+
+/**
+ * Evidence, shown as what it is rather than as a blob of JSON: a list of values becomes a list,
+ * a list of records becomes a table, a record becomes a pair list. Empty evidence renders nothing,
+ * which is why a finding with nothing to show no longer prints "Evidence []".
+ */
+export function evidenceHtml(v: unknown): string {
+  if (isEmptyEvidence(v)) return '';
+  if (Array.isArray(v) && v.every(isPlainObject) && v.length) {
+    const keys = [...new Set(v.flatMap(o => Object.keys(o as Record<string, unknown>)))].slice(0, 6);
+    const rows = (v as Record<string, unknown>[]).slice(0, 12);
+    return `<div class="ev"><div class="tablewrap"><table class="ev__table"><thead><tr>${keys.map(k => `<th>${esc(labelKey(k))}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(o => `<tr>${keys.map(k => `<td>${cell(o[k])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      ${v.length > rows.length ? `<p class="small muted">and ${v.length - rows.length} more</p>` : ''}</div>`;
+  }
+  if (Array.isArray(v)) {
+    const rows = v.slice(0, 20);
+    return `<div class="ev"><ul class="ev__list">${rows.map(i => `<li>${cell(i)}</li>`).join('')}</ul>
+      ${v.length > rows.length ? `<p class="small muted">and ${v.length - rows.length} more</p>` : ''}</div>`;
+  }
+  if (isPlainObject(v)) {
+    const e = Object.entries(v).filter(([, x]) => !isEmptyEvidence(x)).slice(0, 12);
+    return `<div class="ev"><dl class="ev__pairs">${e.map(([k, val]) => `<dt>${esc(labelKey(k))}</dt><dd>${cell(val)}</dd>`).join('')}</dl></div>`;
+  }
+  return `<div class="ev"><pre>${esc(String(v).slice(0, 2000))}</pre></div>`;
+}
+
 export interface PlanItem { rank: number; result: CheckResult; effort: Effort }
 
 const SEV_RANK: Record<Severity, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
@@ -181,27 +232,35 @@ export function renderReportHtml(x: ReportInput): string {
   const plan = fixPlan(x.results);
   const quickWins = plan.filter(i => i.effort === 'quick').length;
 
-  const planTable = !plan.length ? '' : `<section class="card" id="plan">
-    <h2>What to fix, in order</h2>
-    <p class="muted">Most serious first; within the same severity, the quickest fix first. ${quickWins ? `${quickWins} of these ${quickWins === 1 ? 'is' : 'are'} under an hour each.` : ''}</p>
-    <div class="tablewrap"><table><thead><tr><th>#</th><th>Issue</th><th>Severity</th><th>Effort</th><th>Area</th></tr></thead><tbody>
-    ${plan.map(i => `<tr><td class="num">${i.rank}</td><td><a href="#fix-${i.rank}">${esc(i.result.title)}</a></td>
-      <td><span class="sev sev-${i.result.severity}" style="background:var(--sc)">${i.result.severity}</span></td>
-      <td class="muted small">${EFFORT_LABEL[i.effort]}</td><td class="muted small">${AREA_LABEL[i.result.area]}</td></tr>`).join('')}
-    </tbody></table></div></section>`;
-
-  const findings = !plan.length
+  // One list, not a table plus a duplicate list: each row opens to its own reasoning, fix and
+  // evidence. Critical and high findings start open, so the serious work is visible immediately
+  // and survives printing; the info-level tells stay folded away.
+  const planList = !plan.length
     ? `<section class="card"><h2>Findings</h2><p class="pass">No problems found.</p></section>`
-    : `<section class="card"><h2>The findings in full</h2>
-      ${plan.map(i => { const r = i.result; return `<article class="finding sev-${r.severity}" id="fix-${i.rank}">
-        <header><span class="rank">${i.rank}</span><span class="sev">${r.severity}</span><h3>${esc(r.title)}</h3></header>
-        <p class="tags"><span class="tag">${AREA_LABEL[r.area]}</span><span class="tag">${EFFORT_LABEL[i.effort]}</span></p>
-        <p><b>Why it matters.</b> ${esc(r.why)}</p>
-        <p><b>Fix.</b> ${esc(r.fix)}</p>
-        ${r.pages?.length ? `<p class="small"><b>Pages:</b> ${r.pages.slice(0, 12).map(p => `<code>${esc(p)}</code>`).join(' ')}${r.pages.length > 12 ? ` and ${r.pages.length - 12} more` : ''}</p>` : ''}
-        ${r.source ? `<p class="small"><a href="${esc(r.source)}" target="_blank" rel="noopener">Source</a> · <code>${esc(r.id)}</code></p>` : `<p class="small"><code>${esc(r.id)}</code></p>`}
-        ${r.evidence !== undefined ? `<details><summary>Evidence</summary><pre>${esc(JSON.stringify(r.evidence, null, 2).slice(0, 4000))}</pre></details>` : ''}
-      </article>`; }).join('')}</section>`;
+    : `<section class="card" id="plan">
+      <h2>What to fix, in order</h2>
+      <p class="muted">Most serious first; within the same severity, the quickest fix first.${quickWins ? ` ${quickWins} of these ${quickWins === 1 ? 'is' : 'are'} under an hour each.` : ''} Open a row for the reasoning, the fix and the evidence.</p>
+      <ol class="plan">${plan.map(i => {
+        const r = i.result;
+        const open = r.severity === 'critical' || r.severity === 'high' ? ' open' : '';
+        const ev = evidenceHtml(r.evidence);
+        return `<li class="planrow sev-${r.severity}" id="fix-${i.rank}"><details${open}>
+          <summary>
+            <span class="rank">${i.rank}</span>
+            <span class="sev">${r.severity}</span>
+            <span class="planrow__title">${esc(r.title)}</span>
+            <span class="tag">${AREA_LABEL[r.area]}</span>
+            <span class="tag tag--effort">${EFFORT_LABEL[i.effort]}</span>
+          </summary>
+          <div class="planrow__body">
+            <p><b>Why it matters.</b> ${esc(r.why)}</p>
+            <p><b>Fix.</b> ${esc(r.fix)}</p>
+            ${r.pages?.length ? `<p class="small"><b>Where:</b> ${r.pages.slice(0, 12).map(pp => `<code>${esc(pp)}</code>`).join(' ')}${r.pages.length > 12 ? ` and ${r.pages.length - 12} more` : ''}</p>` : ''}
+            ${ev ? `<p class="small evlabel"><b>Evidence</b></p>${ev}` : ''}
+            <p class="small muted">${r.source ? `<a href="${esc(r.source)}" target="_blank" rel="noopener">Read the standard</a> · ` : ''}<code>${esc(r.id)}</code></p>
+          </div>
+        </details></li>`;
+      }).join('')}</ol></section>`;
 
   const pageRows = f.pages.map(p => `<tr><td><code>${esc(p.path)}</code></td><td class="${p.status >= 400 || !p.status ? 'bad' : ''}">${p.status || esc(p.error)}</td>
     <td class="num ${p.rendered && p.rendered.words >= 50 && (p.raw?.words ?? 0) < p.rendered.words * 0.3 ? 'bad' : ''}">${p.raw?.words ?? '–'}</td><td class="num">${p.rendered?.words ?? '–'}</td>
@@ -253,11 +312,28 @@ details summary{cursor:pointer;font-size:.85rem;color:var(--soft)}pre{white-spac
 footer{margin-top:28px;color:var(--soft);font-size:.82rem}
 @media (max-width:640px){.compare{grid-template-columns:1fr}}
 .rank{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;border-radius:999px;background:var(--sc);color:#fff;font-weight:800;font-size:.8rem}
-.tags{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 0}.tag{font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:999px;background:color-mix(in srgb,var(--line) 70%,transparent);color:var(--soft)}
+.tag{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--line) 70%,transparent);color:var(--soft);white-space:nowrap}
 .apx{margin:34px 0 0;padding-top:18px;border-top:2px solid var(--line);font-size:1.05rem;color:var(--soft)}
-#plan td a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}#plan td a:hover{border-color:var(--accent)}
-#plan .sev{color:#fff}
-@media print{body{background:#fff}.card,.tile,.summary{break-inside:avoid}details{display:none}}
+.plan{list-style:none;margin:0;padding:0;counter-reset:none}
+.planrow{--sc:var(--info);border-left:5px solid var(--sc);background:color-mix(in srgb,var(--sc) 5%,transparent);border-radius:0 10px 10px 0;margin:8px 0}
+.planrow.sev-critical{--sc:var(--crit)}.planrow.sev-high{--sc:var(--high)}.planrow.sev-medium{--sc:var(--med)}.planrow.sev-low{--sc:var(--low)}.planrow.sev-info{--sc:var(--info)}
+.planrow summary{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:11px 14px;cursor:pointer;list-style:none}
+.planrow summary::-webkit-details-marker{display:none}
+.planrow summary::after{content:"+";margin-left:auto;font-weight:800;color:var(--soft);font-size:1.05rem;line-height:1}
+.planrow details[open]>summary::after{content:"−"}
+.planrow summary:hover{background:color-mix(in srgb,var(--sc) 9%,transparent)}
+.planrow__title{font-weight:700;flex:1 1 320px;min-width:0}
+.planrow__body{padding:2px 14px 14px 50px}.planrow__body p{margin:6px 0}
+.evlabel{margin-top:10px!important;color:var(--soft);text-transform:uppercase;letter-spacing:.06em;font-size:.7rem}
+.ev{background:color-mix(in srgb,var(--line) 32%,transparent);border-radius:9px;padding:8px 12px;margin:4px 0}
+.ev__list{margin:0;padding-left:18px}.ev__list li{margin:2px 0;overflow-wrap:anywhere}
+.ev__pairs{display:grid;grid-template-columns:max-content 1fr;gap:3px 14px;margin:0}
+.ev__pairs dt{color:var(--soft);font-size:.82rem}.ev__pairs dd{margin:0;overflow-wrap:anywhere}
+.ev__table{font-size:.83rem}.ev__table th{padding-top:0}
+@media (max-width:560px){.planrow__body{padding-left:14px}.planrow summary{gap:7px}}
+@media print{body{background:#fff}.card,.tile,.summary,.planrow{break-inside:avoid}
+  .planrow details>*{display:block}.planrow summary::after{content:""}
+  .apx~.card details{display:none}}
 </style></head>
 <body><main class="wrap">
   <div class="eyebrow">AI Site Audit · ${esc(x.orgSlug)}</div>
@@ -266,8 +342,7 @@ footer{margin-top:28px;color:var(--soft);font-size:.82rem}
   <div class="summary"><ul class="summary__list">${x.summary.split(/(?<=[.!?])\s+(?=[A-Z])/).map(t => `<li>${esc(t)}</li>`).join('')}</ul>
     <div class="counts">${SEVERITIES.filter(sv => c[sv]).map(sv => `<span class="sev-${sv}" style="background:var(--sc)">${c[sv]} ${sv}</span>`).join('')}</div></div>
   <div class="tiles">${tiles}</div>
-  ${planTable}
-  ${findings}
+  ${planList}
   <h2 class="apx">What was measured</h2>
   ${compare}
   <section class="card"><h2>AI crawler access</h2>

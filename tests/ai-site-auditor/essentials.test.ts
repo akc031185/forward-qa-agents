@@ -5,7 +5,7 @@ import {
   classifyThirdParty, findPolicies, formProblems, looksCommercial, trackingThirdParty, unhelpful404,
 } from '../../src/agents/ai-site-auditor/essentials.js';
 import type { FormRaw } from '../../src/agents/ai-site-auditor/essentials.js';
-import { effortOf, fixPlan } from '../../src/agents/ai-site-auditor/report.js';
+import { effortOf, evidenceHtml, fixPlan, isEmptyEvidence, labelKey } from '../../src/agents/ai-site-auditor/report.js';
 import type { CheckResult } from '../../src/agents/ai-site-auditor/types.js';
 
 const L = (href: string, text = '') => ({ href, text });
@@ -121,4 +121,40 @@ test('fix plan: same input always gives the same order, and unknown checks defau
   assert.equal(effortOf('something.unlisted'), 'medium');
   assert.equal(effortOf('build.no-favicon'), 'quick');
   assert.deepEqual(fixPlan([]), []);
+});
+
+// ── evidence rendering ──────────────────────────────────────────────────────
+test('evidence: empty shapes render nothing at all', () => {
+  for (const v of [undefined, null, '', '   ', [], {}, [[], {}], { a: undefined, b: [] }]) {
+    assert.equal(isEmptyEvidence(v), true, `${JSON.stringify(v)} should count as empty`);
+    assert.equal(evidenceHtml(v), '', `${JSON.stringify(v)} should render nothing`);
+  }
+  // this is the regression: a check whose evidence list came back empty printed "Evidence []"
+  assert.equal(evidenceHtml([]), '');
+});
+
+test('evidence: each shape renders as what it is', () => {
+  const list = evidenceHtml(['seamless', 'supercharge']);
+  assert.match(list, /<ul class="ev__list">/);
+  assert.match(list, /seamless/);
+
+  const table = evidenceHtml([{ origin: 'https://a.test', kind: 'analytics' }, { origin: 'https://b.test', kind: 'fonts' }]);
+  assert.match(table, /<table class="ev__table">/);
+  assert.match(table, /<th>Origin<\/th>/, 'keys become readable column headings');
+  assert.match(table, /<th>Kind<\/th>/);
+
+  const pairs = evidenceHtml({ offScale: [7, 13], usedValues: 18 });
+  assert.match(pairs, /<dl class="ev__pairs">/);
+  assert.match(pairs, /<dt>Off scale<\/dt>/, 'camelCase keys are humanised');
+  assert.match(pairs, /<dt>Used values<\/dt>/);
+
+  assert.equal(labelKey('raw_words'), 'Raw words');
+  assert.equal(labelKey('offScale'), 'Off scale');
+});
+
+test('evidence: long lists are capped and the remainder is counted, and HTML is escaped', () => {
+  const many = evidenceHtml(Array.from({ length: 30 }, (_, i) => `item-${i}`));
+  assert.match(many, /and 10 more/);
+  assert.match(evidenceHtml(['<script>alert(1)</script>']), /&lt;script&gt;/, 'evidence is never injected raw');
+  assert.ok(!evidenceHtml(['<script>alert(1)</script>']).includes('<script>alert'));
 });
