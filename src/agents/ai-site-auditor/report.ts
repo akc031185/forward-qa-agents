@@ -86,7 +86,7 @@ export const EFFORT: Record<string, Effort> = {
   'ai.nosnippet': 'quick', 'ai.no-llms-txt': 'quick', 'ai.llms-txt-malformed': 'quick',
   'build.no-favicon': 'quick', 'build.scaffold-title': 'quick', 'build.placeholder-content': 'quick',
   'build.builder-fingerprints': 'quick', 'build.source-maps-public': 'quick',
-  'readiness.no-analytics': 'quick', 'readiness.unhelpful-404': 'quick',
+  'readiness.no-analytics': 'quick', 'readiness.unhelpful-404': 'quick', 'readiness.form-submit-unverified': 'quick',
   'readiness.focus-outline-removed': 'quick', 'readiness.no-contact-details': 'quick',
   'readiness.no-business-identity': 'quick', 'readiness.competing-calls-to-action': 'quick',
   'design.emoji-headings': 'quick', 'design.badge-above-headline': 'quick', 'design.grain-over-gradient': 'quick',
@@ -112,7 +112,7 @@ export const EFFORT: Record<string, Effort> = {
   'ai.h1-set-by-javascript': 'project', 'ai.description-set-by-javascript': 'project',
   'ai.structured-data-by-javascript': 'project', 'seo.hash-routes': 'project', 'seo.soft-404': 'project',
   'build.secret-in-javascript': 'project', 'build.public-browser-keys': 'project',
-  'build.heavy-javascript': 'project', 'readiness.form-goes-nowhere': 'project',
+  'build.heavy-javascript': 'project', 
   'readiness.many-third-parties': 'project', 'design.untouched-shadcn': 'project',
   'design.inconsistent-spacing': 'project',
 };

@@ -80,7 +80,7 @@ export const cleanEssentials: EssentialsRaw = {
     { href: 'https://acme.example.test/terms', text: 'Terms of service' },
     { href: 'https://acme.example.test/delete-account', text: 'Delete your account' },
   ],
-  forms: [{ action: '/subscribe', method: 'post', fields: 2, required: 2, emailTyped: 1, labelled: 2, novalidate: false, consentCheckbox: true, captcha: true, honeypot: false }],
+  forms: [{ action: '/subscribe', method: 'post', fields: 2, required: 2, emailTyped: 1, labelled: 2, novalidate: false, consentCheckbox: true, captcha: true, honeypot: false, inlineSubmitHandler: false }],
   thirdParty: [], analytics: ['Plausible'], cookieBanner: false,
   ctas: [{ text: 'Start now', href: '/signup' }],
   focusSuppressed: 0, clickableNonButtons: 0,

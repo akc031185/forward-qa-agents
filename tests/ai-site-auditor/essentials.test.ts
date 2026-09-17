@@ -57,13 +57,20 @@ test('third parties are classified, and only the tracking ones need consent', ()
 
 const form = (over: Partial<FormRaw> = {}): FormRaw => ({
   action: '/subscribe', method: 'post', fields: 3, required: 3, emailTyped: 1, labelled: 3,
-  novalidate: false, consentCheckbox: false, captcha: true, honeypot: false, ...over,
+  novalidate: false, consentCheckbox: false, captcha: true, honeypot: false, inlineSubmitHandler: false, ...over,
 });
 
-test('forms: the expensive defect is a form that goes nowhere', () => {
-  const nowhere = formProblems([form({ action: '' })]);
-  assert.ok(nowhere.some(p => p.kind === 'goes-nowhere'));
-  assert.match(nowhere.find(p => p.kind === 'goes-nowhere')!.detail, /no action attribute/);
+test('forms: a missing action is unverifiable, not proof of a defect', () => {
+  const bare = formProblems([form({ action: '' })]);
+  assert.ok(bare.some(p => p.kind === 'unverifiable-submit'));
+  assert.match(bare.find(p => p.kind === 'unverifiable-submit')!.detail, /nothing in the page shows where a submission goes/);
+
+  // a React form wired with onSubmit works perfectly well with no action attribute, and an audit
+  // that calls that broken is wrong
+  assert.ok(!formProblems([form({ action: '', inlineSubmitHandler: true })]).some(p => p.kind === 'unverifiable-submit'),
+    'an inline handler proves something receives the submit');
+  assert.ok(!formProblems([form({ action: '/subscribe' })]).some(p => p.kind === 'unverifiable-submit'),
+    'an action attribute is proof enough');
 
   assert.deepEqual(formProblems([form()]), [], 'a complete form reports nothing');
   assert.deepEqual(formProblems([form({ fields: 0, required: 0, labelled: 0 })]), [],

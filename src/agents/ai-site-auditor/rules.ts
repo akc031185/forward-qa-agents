@@ -536,15 +536,16 @@ function readiness(f: SiteFacts): CheckResult[] {
 
   const problems = formProblems(forms);
   const byKind = (k: string) => problems.filter(p => p.kind === k);
-  const nowhere = byKind('goes-nowhere');
-  if (nowhere.length) out.push(r('readiness.form-goes-nowhere', 'readiness', 'high',
-    `${nowhere.length} form${nowhere.length === 1 ? '' : 's'} with no action attribute`,
-    `${nowhere[0]!.detail} This is the single most expensive defect on a generated site: the page looks finished and every enquiry is silently lost.`,
-    'Point the form at an endpoint and confirm a real submission arrives.', { evidence: nowhere }));
+  const unverifiable = byKind('unverifiable-submit');
+  if (unverifiable.length) out.push(r('readiness.form-submit-unverified', 'readiness', 'high',
+    `${unverifiable.length} form${unverifiable.length === 1 ? '' : 's'} where submissions cannot be traced`,
+    `${unverifiable[0]!.detail} A form wired up in JavaScript works perfectly well without an action attribute, so this is not proof of a defect — but it is also not proof it works, and a generated site often ships a form that only looks connected. When it does fail it fails silently: the visitor sees a success message and the enquiry never arrives.`,
+    'Submit a real test entry and confirm it reaches you. If nothing is handling it, point the form at an endpoint.',
+    { evidence: unverifiable }));
 
   const noValid = [...byKind('no-validation'), ...byKind('no-required')];
   if (noValid.length) out.push(r('readiness.form-no-validation', 'readiness', 'medium',
-    `${noValid.length} form${noValid.length === 1 ? '' : 's'} accept an empty or malformed submission`,
+    `${noValid.length} form${noValid.length === 1 ? ' accepts' : 's accept'} an empty or malformed submission`,
     noValid[0]!.detail,
     'Mark the fields you need as required and use type="email" so the browser validates for free.', { evidence: noValid }));
 
