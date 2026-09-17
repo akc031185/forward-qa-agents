@@ -136,7 +136,7 @@ best-effort and their numbers as exact.
 
 **Done**
 
-- 16:55 Verified no TCC / EPERM blockers: file writes, git, both GitHub logins, Node 24, SQLite all fine.
+- 16:55 Verified no TCC / EPERM blockers: file writes, git, GitHub auth, Node 24, SQLite all fine.
 - 16:57 Gates green (typecheck, 89 tests). Committed all of Friday's work as `a160f25`
   (16 files, +2680): CI workflow, progress tooling, CLAUDE.md, field guide, README.
 - 16:58 First push rejected: the `gh` OAuth token lacked the `workflow` scope needed to add
@@ -200,8 +200,7 @@ best-effort and their numbers as exact.
 1. Ask the user: publish `akc031185/ai-site-auditor` as a GitHub Pages site (public repo, output of
    `_build/sites/audit`), and push the mascot fix to the two existing site repos. Then add the audit
    site to the other two sites' mastheads.
-2. Tell the user privately what the validation runs found on their own builds (see the scratch
-   reports), especially the "React App" title and the soft 404s; no secrets were found.
+2. Report the validation findings back privately (see the scratch reports); no secrets were found.
 3. Start the plate 44 redesign: ledger schema in `src/core/db.ts` first (Baseline, Eval cube,
    Cost, Outcome, Verdict keyed on a unit of work), since every phase writes rows there. Then the
    Discover phase, folding the existing crawler in as one probe.
@@ -242,7 +241,7 @@ best-effort and their numbers as exact.
   progress log, the `npm run progress` measurement script, and `CLAUDE.md` so future sessions
   keep the log current.
 - 19:00–19:30 Built the field guide in the house catalog format (same generator and stylesheet as
-  the QA, OSCAR and FinOps guides, adapted for ESM and this repo's `src/agents/<slug>/` layout):
+  the earlier guides in this format, adapted for ESM and this repo's `src/agents/<slug>/` layout):
   `index.html`, `agents/the-forward-deployed-tester.html` (plate 44), `agents/the-sdet-architect.html`
   (plate 45), and a hand-written `process.html` covering the seven phases, five ledgers, working
   rules, session loop and cheat-sheet. Every code block is sliced from the real source by line
