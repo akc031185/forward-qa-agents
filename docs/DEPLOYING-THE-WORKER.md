@@ -59,6 +59,7 @@ Nothing about them changed.
 | `PORT` | host (usually automatic) | the worker binds `0.0.0.0:$PORT`; every platform below sets this for you |
 | `LLM_PROVIDER` | you (default `none`) | keep `none` unless you are also running a local open-weight model next to the worker; there is no paid-API path (see [docs/models.md](models.md)) |
 | `CHROMIUM_NO_SANDBOX` | the Dockerfile (`1`) | not something you need to set by hand; see [Why `--no-sandbox`](#why-no-sandbox-and-why-its-still-safe) |
+| `AUDIT_WORKER_CONCURRENCY` | you, optional (default `2`) | how many audits this worker process runs their browser for at once; raise it with container memory, not independently — see [Memory and CPU](#memory-and-cpu) |
 | `DB_PATH`, `WORKSPACE_DIR` | the Dockerfile | point at `/data/...`; mount a volume there if you want run history and reports to survive a redeploy (optional — the worker still works with an ephemeral disk, it just forgets old runs) |
 | `BRAND_*` | you, optional | report letterhead; see `.env.example` |
 
@@ -119,11 +120,14 @@ Chromium is the whole reason this can't run on Vercel, and it is the whole sizin
 - **CPU:** 1 vCPU is enough for the deterministic checks this repo runs (no model inference in the
   default `LLM_PROVIDER=none` — see [docs/models.md](models.md)). Rendering many pages back to
   back is I/O- and render-bound more than CPU-bound.
-- **Concurrency:** the worker does not queue or limit concurrent audits itself — each `POST
-  /worker/audits` starts its own Chromium instance immediately. Size memory for how many audits
-  you expect in flight at once, or add a queue/concurrency limit in front of it if the calling app
-  can submit many at a time. That limiter is deliberately not built in here, since it is exactly
-  the kind of policy that differs per deployment and per host's own queueing primitives.
+- **Concurrency:** `POST /worker/audits` still answers `202` immediately, but the browser for the
+  audit only launches once a slot is free — `AUDIT_WORKER_CONCURRENCY` (default `2`) caps how many
+  run at once *per worker process*; anything past that queues in memory, in submission order (see
+  `src/core/concurrency.ts`). `GET /worker/queue` reports `{ active, queued, limit }` for an
+  operator deciding whether to raise the limit or run more replicas. This is a single process's
+  queue: it does not survive a restart and does not coordinate across replicas — see
+  [docs/ANALYZER-ARCHITECTURE.md](ANALYZER-ARCHITECTURE.md) ("Orchestration") for the point at
+  which that stops being enough and a durable, cross-process queue is worth the extra moving part.
 - **Disk:** each run writes `report.html`/`.md`/`.json` under `$WORKSPACE_DIR/<run_id>/` and a
   row in the SQLite file at `$DB_PATH`. Neither needs to survive a redeploy for the worker
   contract above to work (the callback carries the full report inline), so an ephemeral disk is

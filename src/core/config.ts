@@ -35,6 +35,14 @@ export const config = {
    * test keep today's behaviour; the worker Dockerfile sets it to 1.
    */
   chromiumNoSandbox: process.env.CHROMIUM_NO_SANDBOX === '1',
+
+  /**
+   * How many audits this worker process runs their browser for at once (see src/core/concurrency.ts).
+   * A Chromium context idles around 150-250MB and grows with page weight, so on the documented
+   * 1GB minimum container, 2 is the safe default; a 2GB container can reasonably run 4. Anything
+   * submitted beyond this queues in-process, in order — see docs/ANALYZER-ARCHITECTURE.md.
+   */
+  workerConcurrency: Math.max(1, Number(process.env.AUDIT_WORKER_CONCURRENCY ?? 2)),
 };
 
 /**

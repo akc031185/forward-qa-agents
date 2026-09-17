@@ -20,6 +20,14 @@ export const inputSchema = z.object({
   max_pages: z.number().int().min(1).max(50).default(10),
   timeout_ms: z.number().int().min(1000).max(120_000).default(15_000),
   headless: z.boolean().default(true),
+  /**
+   * Chromium is the default and the only engine run automatically. WebKit is the closest proxy
+   * this repo has for Safari/iOS layout, and Firefox is the third real engine — either is a
+   * request to re-run the same audit under a different rendering engine, not something turned on
+   * by default. See docs/ANALYZER-ARCHITECTURE.md ("Multi-browser") for why running all three on
+   * every audit was rejected.
+   */
+  engine: z.enum(['chromium', 'firefox', 'webkit']).default('chromium'),
 });
 export type Input = z.infer<typeof inputSchema>;
 
@@ -36,7 +44,7 @@ export interface Output {
 async function run(input: Input, ctx: AgentContext): Promise<Output> {
   const generatedAt = new Date().toISOString();
   ctx.log(`phase 1/3 collect: ${input.target_url} (max_pages=${input.max_pages}, timeout=${input.timeout_ms} ms)`);
-  const facts = await collect({ startUrl: input.target_url, maxPages: input.max_pages, timeoutMs: input.timeout_ms, headless: input.headless, log: ctx.log });
+  const facts = await collect({ startUrl: input.target_url, maxPages: input.max_pages, timeoutMs: input.timeout_ms, headless: input.headless, engine: input.engine, log: ctx.log });
   ctx.log(`collected ${facts.pages.length} pages, ${facts.skipped.length} skipped, ${facts.secrets.length} key-like strings, ${facts.durationMs} ms`);
 
   ctx.log('phase 2/3 evaluate');
@@ -74,7 +82,7 @@ async function run(input: Input, ctx: AgentContext): Promise<Output> {
   return {
     pages_audited: facts.pages.length,
     scores: s,
-    grades: { 'ai-visibility': grade(s['ai-visibility']), search: grade(s.search), build: grade(s.build), design: grade(s.design), readiness: grade(s.readiness) },
+    grades: { 'ai-visibility': grade(s['ai-visibility']), search: grade(s.search), build: grade(s.build), design: grade(s.design), responsive: grade(s.responsive), readiness: grade(s.readiness) },
     findings_by_severity: countBySeverity(results),
     report_html: htmlPath,
     report_md: mdPath,

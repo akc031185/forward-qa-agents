@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audit-worker-config
+  namespace: ai-site-auditor
+data:
+  LLM_PROVIDER: "none"
+  # How many audits a single pod runs their browser for at once (src/core/concurrency.ts). Tied to
+  # the memory request/limit below — raise both together, never this alone. See
+  # docs/ANALYZER-ARCHITECTURE.md ("Orchestration") for the reasoning.
+  AUDIT_WORKER_CONCURRENCY: "2"

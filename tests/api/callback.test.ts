@@ -5,8 +5,8 @@ import type { Output as AuditOutput } from '../../src/agents/ai-site-auditor/ind
 
 const OUTPUT: AuditOutput = {
   pages_audited: 3,
-  scores: { 'ai-visibility': 80, search: 70, build: 90, design: 60, readiness: 75 },
-  grades: { 'ai-visibility': 'B', search: 'C', build: 'A', design: 'D', readiness: 'C' },
+  scores: { 'ai-visibility': 80, search: 70, build: 90, design: 60, responsive: 85, readiness: 75 },
+  grades: { 'ai-visibility': 'B', search: 'C', build: 'A', design: 'D', responsive: 'B', readiness: 'C' },
   findings_by_severity: { critical: 0, high: 1, medium: 2, low: 3, info: 4 },
   report_html: '/workspace/r1/report.html',
   report_md: '/workspace/r1/report.md',

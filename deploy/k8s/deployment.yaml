@@ -1,0 +1,96 @@
+# Sized around AUDIT_WORKER_CONCURRENCY=2 (configmap.yaml) and the memory numbers in
+# docs/DEPLOYING-THE-WORKER.md: a Chromium context idles 150-250MB and grows with page weight, so
+# two concurrent audits plus the Node process itself comfortably fits 1.5Gi with headroom before
+# an OOM-kill. If you raise AUDIT_WORKER_CONCURRENCY, raise requests/limits with it — the two are
+# not independent knobs.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audit-worker
+  namespace: ai-site-auditor
+  labels:
+    app: audit-worker
+spec:
+  # A floor of 2 from the start: one pod alone means a redeploy or a crash briefly serves nothing,
+  # and it means the HPA below (minReplicas: 2) is never fighting the Deployment's own default.
+  replicas: 2
+  selector:
+    matchLabels:
+      app: audit-worker
+  strategy:
+    # An audit in flight takes tens of seconds; a plain rolling update can send SIGTERM to a pod
+    # mid-crawl. maxUnavailable: 0 means a new pod is ready before an old one is removed, and the
+    # container's own terminationGracePeriodSeconds below gives an in-flight audit time to finish
+    # its callback rather than being killed outright.
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: audit-worker
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        # The image already runs as its own non-root `pwuser` (see Dockerfile); this just asserts
+        # that in the pod spec too, so a misconfigured image can never silently run as root here.
+        runAsNonRoot: true
+      containers:
+        - name: audit-worker
+          # Replace with your registry path; this repo's Dockerfile builds the image.
+          image: ghcr.io/your-org/ai-site-auditor-worker:latest
+          ports:
+            - containerPort: 8787
+              name: http
+          env:
+            - name: PORT
+              value: "8787"
+            - name: AUDIT_WORKER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: audit-worker-token
+                  key: AUDIT_WORKER_TOKEN
+          envFrom:
+            - configMapRef:
+                name: audit-worker-config
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "768Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1536Mi"
+          # Cheap: is the Node process up at all. Does NOT launch a browser, so it cannot flap
+          # under load the way the readiness probe below could.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # The one that matters: actually launches and closes Chromium (see the comment on
+          # GET /health/browser in src/api/server.ts). A longer period than liveness on purpose —
+          # this genuinely costs a browser launch, so checking it every few seconds on every pod
+          # adds up; every 20s with a generous timeout is enough to pull a broken pod from the
+          # Service without adding meaningful load.
+          readinessProbe:
+            httpGet:
+              path: /health/browser
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 2
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        # Ephemeral on purpose (docs/DEPLOYING-THE-WORKER.md: the callback carries the full report
+        # inline, so surviving a pod restart is a convenience, not a requirement). Swap for a PVC
+        # only if you want run history to outlive a pod, and then drop the fsGroup/ownership
+        # question this avoids by not using one.
+        - name: data
+          emptyDir: {}

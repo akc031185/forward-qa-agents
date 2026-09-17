@@ -1,0 +1,50 @@
+# Single-box orchestration for the AI Site Auditor worker. This is the rung of the ladder below
+# Kubernetes — see docs/ANALYZER-ARCHITECTURE.md ("Orchestration") for when it stops being enough.
+#
+# One container, sized for docs/DEPLOYING-THE-WORKER.md's own numbers: a Chromium context idles
+# 150-250MB and grows with page weight, AUDIT_WORKER_CONCURRENCY=2 caps how many run their browser
+# at once inside this one process (src/core/concurrency.ts), so 1.5GB gives that pair comfortable
+# headroom without needing a second container just to run more audits at once.
+#
+# Usage:
+#   cp .env.example .env && edit AUDIT_WORKER_TOKEN in it
+#   docker compose -f deploy/docker-compose.yml up --build -d
+#   curl -sf http://localhost:8787/health/browser
+#
+# Scaling out on one box: `docker compose up --scale audit-worker=3` works (each replica gets its
+# own AUDIT_WORKER_CONCURRENCY budget and its own /data), but nothing load-balances across them —
+# see the architecture doc for why that is exactly where a second box, or Kubernetes, earns its
+# keep instead of stacking replicas behind a hand-rolled proxy.
+
+services:
+  audit-worker:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: ai-site-auditor-worker:local
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      AUDIT_WORKER_TOKEN: ${AUDIT_WORKER_TOKEN:?set AUDIT_WORKER_TOKEN in .env — the worker refuses to start /worker/* without it}
+      AUDIT_WORKER_CONCURRENCY: ${AUDIT_WORKER_CONCURRENCY:-2}
+      LLM_PROVIDER: none
+    # Ephemeral by default (docs/DEPLOYING-THE-WORKER.md: the callback carries the full report
+    # inline, so run history surviving a restart is a convenience, not a requirement). Uncomment
+    # to keep it across `docker compose down` / redeploys:
+    # volumes:
+    #   - audit-worker-data:/data
+    mem_limit: 1.5g
+    mem_reservation: 768m
+    cpus: "1.0"
+    healthcheck:
+      # The image's own Dockerfile HEALTHCHECK already does this; repeated here so `docker compose
+      # ps` and any `depends_on: condition: service_healthy` in a larger compose file see it too.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/health/browser').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 20s
+      start_period: 30s
+      retries: 3
+
+# volumes:
+#   audit-worker-data:

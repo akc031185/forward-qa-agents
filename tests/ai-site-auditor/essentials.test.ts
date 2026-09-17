@@ -1,8 +1,11 @@
-// Launch readiness is pure: measurements in, judgements out. No browser needed.
+// Launch readiness is pure: measurements in, judgements out. No browser needed — except the
+// honeypot-detection tests below, which exercise the in-page ESSENTIALS_SCRIPT itself, since
+// "is this field hidden" is a DOM measurement (getComputedStyle up the ancestor chain), not a
+// judgement that can be pulled out into a pure function.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  classifyThirdParty, findPolicies, formProblems, looksCommercial, trackingThirdParty, unhelpful404,
+  classifyThirdParty, ESSENTIALS_SCRIPT, findPolicies, formProblems, looksCommercial, trackingThirdParty, unhelpful404,
 } from '../../src/agents/ai-site-auditor/essentials.js';
 import type { FormRaw } from '../../src/agents/ai-site-auditor/essentials.js';
 import { auditDate, effortOf, evidenceHtml, fixPlan, isEmptyEvidence, labelKey } from '../../src/agents/ai-site-auditor/report.js';
@@ -171,6 +174,65 @@ test('evidence: long lists are capped and the remainder is counted, and HTML is 
 test('audit date: a client reads a date, not an ISO timestamp', () => {
   assert.equal(auditDate('2026-09-17T08:39:03.133Z'), '17 September 2026');
   assert.equal(auditDate('not-a-date'), 'not-a-date', 'an unparseable value passes through unchanged');
+});
+
+// ── honeypot detection (regression: opacity is not inherited) ──────────────────────────────
+// A honeypot is almost always hidden by styling the *wrapper*, not the field: `opacity` is not
+// an inherited CSS property, so `getComputedStyle(control)` alone reports opacity 1 even when a
+// parent has opacity:0. The old check only read the control's own computed style and missed this
+// — a site with a real, working honeypot was reported as having none.
+async function evalEssentials(html: string): Promise<{ forms: { honeypot: boolean; fields: number }[] }> {
+  const { chromium } = await import('playwright');
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html);
+    return await page.evaluate(`(${ESSENTIALS_SCRIPT})()`) as { forms: { honeypot: boolean; fields: number }[] };
+  } finally {
+    await browser.close();
+  }
+}
+
+test('honeypot: a field wrapped in an opacity:0 container is still detected as hidden', async (t) => {
+  let chromiumOk = true;
+  try { const { chromium } = await import('playwright'); await (await chromium.launch()).close(); } catch { chromiumOk = false; }
+  if (!chromiumOk) { t.skip('Chromium is not installed'); return; }
+
+  const out = await evalEssentials(`<!doctype html><html><body><form>
+    <div style="opacity:0" aria-hidden="true"><label>Leave this blank<input name="hp_field" type="text"></label></div>
+    <input type="text" name="name" required><input type="email" name="email" required>
+    <button type="submit">Send</button>
+  </form></body></html>`);
+  assert.equal(out.forms.length, 1);
+  assert.equal(out.forms[0]!.honeypot, true, 'the wrapper carries opacity:0, not the input itself');
+});
+
+test('honeypot: a field shoved off-canvas is detected even at full opacity', async (t) => {
+  let chromiumOk = true;
+  try { const { chromium } = await import('playwright'); await (await chromium.launch()).close(); } catch { chromiumOk = false; }
+  if (!chromiumOk) { t.skip('Chromium is not installed'); return; }
+
+  const out = await evalEssentials(`<!doctype html><html><body><form>
+    <div style="position:absolute;left:-9999px;top:-9999px"><label>Leave this blank<input name="hp_field" type="text"></label></div>
+    <input type="text" name="name" required><input type="email" name="email" required>
+    <button type="submit">Send</button>
+  </form></body></html>`);
+  assert.equal(out.forms.length, 1);
+  assert.equal(out.forms[0]!.honeypot, true, 'off-canvas positioning is the other common honeypot pattern');
+});
+
+test('honeypot: a plainly visible extra field is not mistaken for one', async (t) => {
+  let chromiumOk = true;
+  try { const { chromium } = await import('playwright'); await (await chromium.launch()).close(); } catch { chromiumOk = false; }
+  if (!chromiumOk) { t.skip('Chromium is not installed'); return; }
+
+  const out = await evalEssentials(`<!doctype html><html><body><form>
+    <input type="text" name="middle_name"><input type="text" name="name" required><input type="email" name="email" required>
+    <button type="submit">Send</button>
+  </form></body></html>`);
+  assert.equal(out.forms.length, 1);
+  assert.equal(out.forms[0]!.honeypot, false, 'nothing here is actually hidden');
+  assert.equal(out.forms[0]!.fields, 3);
 });
 
 test('noindex on a private path is correct practice, not a finding', () => {

@@ -16,17 +16,18 @@ export interface ReportInput {
   modelUsed: boolean;
 }
 
-export const AREA_LABEL: Record<Area, string> = { 'ai-visibility': 'AI visibility', search: 'Search', build: 'Build quality', design: 'Design originality', readiness: 'Launch readiness' };
+export const AREA_LABEL: Record<Area, string> = { 'ai-visibility': 'AI visibility', search: 'Search', build: 'Build quality', design: 'Design originality', responsive: 'Responsiveness', readiness: 'Launch readiness' };
 export const AREA_BLURB: Record<Area, string> = {
   'ai-visibility': 'Can ChatGPT, Claude and Perplexity read, cite and quote this site?',
   search: 'Will search engines index the right pages with the right titles?',
   build: 'Did the AI builder leave mistakes, placeholders or secrets behind?',
   design: 'Does this look like a site someone designed, or like an untouched scaffold?',
+  responsive: 'Does the layout survive a phone, a tablet and a laptop, not just the desktop it was built on?',
   readiness: 'Is this ready to put in front of customers, and in front of a regulator?',
 };
 const SEVERITIES: Severity[] = ['critical', 'high', 'medium', 'low', 'info'];
 /** Render order. Every area lives here once, so adding one cannot half-appear. */
-export const AREAS: Area[] = ['ai-visibility', 'search', 'build', 'design', 'readiness'];
+export const AREAS: Area[] = ['ai-visibility', 'search', 'build', 'design', 'responsive', 'readiness'];
 
 export function countBySeverity(results: CheckResult[]): Record<Severity, number> {
   const c: Record<Severity, number> = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
@@ -93,6 +94,7 @@ export const EFFORT: Record<string, Effort> = {
   'design.emoji-headings': 'quick', 'design.badge-above-headline': 'quick', 'design.grain-over-gradient': 'quick',
   'design.em-dash-density': 'quick', 'design.cursor-beam': 'quick', 'design.gradient-hero-text': 'quick',
   'design.hover-opacity': 'quick', 'design.serif-italic-accents': 'quick', 'design.fade-in-on-scroll': 'quick',
+  'responsive.small-tap-targets': 'quick', 'responsive.clipped-text': 'quick',
 
   // needs a decision, a document, or a pass over the design
   'seo.no-sitemap': 'medium', 'seo.sitemap-broken-urls': 'medium', 'seo.sitemap-other-host': 'medium',
@@ -107,6 +109,8 @@ export const EFFORT: Record<string, Effort> = {
   'design.violet-blue-gradient': 'medium', 'design.scaffold-fonts': 'medium', 'design.low-contrast-text': 'medium',
   'design.buzzword-copy': 'medium', 'design.colored-border-cards': 'medium', 'design.glassmorphism': 'medium',
   'design.three-icon-row': 'medium', 'design.lucide-icons': 'medium',
+  'responsive.overlapping-tap-targets': 'medium', 'responsive.disappearing-content': 'medium',
+  'responsive.oversized-images': 'medium',
 
   // architectural
   'ai.content-needs-javascript': 'project', 'ai.title-set-by-javascript': 'project',
@@ -115,7 +119,8 @@ export const EFFORT: Record<string, Effort> = {
   'build.secret-in-javascript': 'project', 'build.public-browser-keys': 'project',
   'build.heavy-javascript': 'project', 
   'readiness.many-third-parties': 'project', 'design.untouched-shadcn': 'project',
-  'design.inconsistent-spacing': 'project',
+  'design.inconsistent-spacing': 'project', 'responsive.horizontal-overflow': 'project',
+  'responsive.breaks-between-breakpoints': 'project',
 };
 export function effortOf(id: string): Effort { return EFFORT[id] ?? 'medium'; }
 
@@ -390,7 +395,7 @@ footer{margin-top:28px;color:var(--soft);font-size:.82rem}
 <body><main class="wrap">
   <div class="eyebrow">AI Site Audit · ${esc(x.orgSlug)}</div>
   <h1>${esc(new URL(f.origin).host)}</h1>
-  <div class="muted small">${esc(auditDate(x.generatedAt))} · ${f.pages.length} page${f.pages.length === 1 ? '' : 's'} audited${f.skipped.length ? `, ${f.skipped.length} more not reached` : ''}</div>
+  <div class="muted small">${esc(auditDate(x.generatedAt))} · ${f.pages.length} page${f.pages.length === 1 ? '' : 's'} audited${f.skipped.length ? `, ${f.skipped.length} more not reached` : ''}${f.engine !== 'chromium' ? ` · rendered with ${esc(f.engine[0]!.toUpperCase() + f.engine.slice(1))}` : ''}</div>
   <div class="summary"><ul class="summary__list">${x.summary.split(/(?<=[.!?])\s+(?=[A-Z])/).map(t => `<li>${esc(t)}</li>`).join('')}</ul>
     <div class="counts">${SEVERITIES.filter(sv => c[sv]).map(sv => `<span class="sev-${sv}" style="background:var(--sc)">${c[sv]} ${sv}</span>`).join('')}</div></div>
   <div class="tiles">${tiles}</div>

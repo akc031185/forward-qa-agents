@@ -2,6 +2,7 @@
 import type { Robots } from './robots.js';
 import type { DesignRaw } from './design.js';
 import type { EssentialsRaw } from './essentials.js';
+import type { ResponsiveRaw } from './responsive.js';
 
 /** What the in-page extraction script returns, for either view of a page. */
 export interface PageView {
@@ -44,6 +45,7 @@ export interface PageAudit {
   jsBytes: number;
   design?: DesignRaw;            // computed-style and CSSOM measurements, rendered view only
   essentials?: EssentialsRaw;    // policy links, forms, third parties, consent; rendered view only
+  responsive?: ResponsiveRaw[];  // one entry per viewport in responsive.ts VIEWPORTS; first RESPONSIVE_MAX_PAGES pages only
   error?: string;
 }
 
@@ -59,10 +61,13 @@ export interface FetchResult {
 
 export interface BotProbe { token: string; status: number; words: number; blockedLike: boolean; error?: string }
 
+export type BrowserEngine = 'chromium' | 'firefox' | 'webkit';
+
 export interface SiteFacts {
   origin: string;
   startUrl: string;
   https: boolean;
+  engine: BrowserEngine;
   robots?: { status: number; text: string; parsed: Robots };
   sitemaps: { url: string; status: number; kind: string; urls: number; sampleBroken: string[] }[];
   llmsTxt?: { status: number; ok: boolean; h1?: string; links: number; problems: string[] };
@@ -78,7 +83,7 @@ export interface SiteFacts {
   durationMs: number;
 }
 
-export type Area = 'ai-visibility' | 'search' | 'build' | 'design' | 'readiness';
+export type Area = 'ai-visibility' | 'search' | 'build' | 'design' | 'responsive' | 'readiness';
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
 /** One evaluated check. Per-page problems are aggregated into one result listing the pages. */
