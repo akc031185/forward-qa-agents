@@ -64,10 +64,27 @@ export const ESSENTIALS_SCRIPT = String.raw`() => {
       if (c.id && f.querySelector('label[for="' + CSS.escape(c.id) + '"]')) return true;
       return !!c.closest('label');
     });
+    // CSS opacity is NOT an inherited property: a control sitting inside a wrapper styled
+    // opacity:0 still computes its own opacity as 1, so checking only getComputedStyle(control)
+    // misses the single most common honeypot pattern (wrap the field, not the field itself).
+    // visibility is inherited, so that half already worked; walk the ancestor chain for the rest,
+    // and treat the classic "shove it off-canvas" trick (left/top in the thousands of px) the same way.
+    const hiddenByAncestor = (el) => {
+      let n = el;
+      while (n && n.nodeType === 1) {
+        let st; try { st = getComputedStyle(n); } catch (e) { return false; }
+        if (st.display === 'none' || st.visibility === 'hidden' || parseFloat(st.opacity) === 0) return true;
+        n = n.parentElement;
+      }
+      return false;
+    };
+    const isOffscreen = (el) => {
+      let r; try { r = el.getBoundingClientRect(); } catch (e) { return false; }
+      return r.left <= -5000 || r.top <= -5000;
+    };
     const hidden = controls.filter((c) => {
       if (c.type === 'hidden') return false;
-      const st = getComputedStyle(c);
-      return st.display === 'none' || st.visibility === 'hidden' || parseFloat(st.opacity) === 0;
+      return hiddenByAncestor(c) || isOffscreen(c);
     });
     const html = f.innerHTML || '';
     out.forms.push({

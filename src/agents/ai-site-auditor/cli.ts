@@ -21,13 +21,14 @@ async function main() {
   const url = typeof args.url === 'string' ? args.url : undefined;
   const org = typeof args.org === 'string' ? args.org : undefined;
   if (!url || !org || args.help) {
-    console.error('usage: npm run agent:audit -- --url <site_url> --org <org_slug> [--max-pages 10] [--timeout-ms 15000] [--headed]');
+    console.error('usage: npm run agent:audit -- --url <site_url> --org <org_slug> [--max-pages 10] [--timeout-ms 15000] [--headed] [--engine chromium|firefox|webkit]');
     process.exit(2);
   }
   const input: Record<string, unknown> = { target_url: url, org_slug: org };
   if (typeof args['max-pages'] === 'string') input.max_pages = Number(args['max-pages']);
   if (typeof args['timeout-ms'] === 'string') input.timeout_ms = Number(args['timeout-ms']);
   if (args.headed === true) input.headless = false;
+  if (typeof args.engine === 'string') input.engine = args.engine;
 
   const db = getDb();
   const engagement = db.createEngagement({ org, name: `audit ${new URL(url).host} ${new Date().toISOString()}`, target_url: url });

@@ -1,0 +1,13 @@
+# Without this, a node drain or cluster upgrade is free to evict every audit-worker pod at once.
+# minAvailable: 1 keeps at least one pod serving (and finishing in-flight audits) through a
+# voluntary disruption; it does nothing for an involuntary one (a node dying outright).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: audit-worker
+  namespace: ai-site-auditor
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: audit-worker

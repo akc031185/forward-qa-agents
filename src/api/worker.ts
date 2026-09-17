@@ -13,7 +13,19 @@ import type { AgentDefinition } from '../core/agent.js';
 import { startRun, finishRun } from '../core/runner.js';
 import { isBearerAuthorized } from '../core/auth.js';
 import { buildCallbackPayload, deliverCallback } from '../core/callback.js';
+import { Gate } from '../core/concurrency.js';
 import { aiSiteAuditor, type Input as AuditInput, type Output as AuditOutput } from '../agents/ai-site-auditor/index.js';
+
+/**
+ * One gate per worker process, sized from `AUDIT_WORKER_CONCURRENCY` (config.workerConcurrency).
+ * Every submission still answers 202 immediately (below); this only delays when the browser for
+ * that audit actually launches, so a burst of submissions queues in memory instead of each one
+ * launching its own Chromium and OOM-killing the container. Exported so tests can build a worker
+ * with a specific limit without going through the environment.
+ */
+export function createAuditGate(): Gate {
+  return new Gate(config.workerConcurrency);
+}
 
 const SubmitBody = z.object({
   url: z.string().url(),
@@ -21,6 +33,9 @@ const SubmitBody = z.object({
   org_slug: z.string().min(1).regex(/^[a-z0-9][a-z0-9-_]*$/i, 'org_slug must be a slug (letters, digits, - and _)').optional(),
   max_pages: z.number().int().min(1).max(50).optional(),
   timeout_ms: z.number().int().min(1000).max(120_000).optional(),
+  // Chromium unless the caller asks for a WebKit (Safari/iOS proxy) or Firefox pass instead —
+  // see the `engine` comment on the agent's own inputSchema in ai-site-auditor/index.ts.
+  engine: z.enum(['chromium', 'firefox', 'webkit']).optional(),
 });
 
 /** A slug good enough to satisfy the agent's `org_slug` schema when the caller does not send one. */
@@ -43,6 +58,7 @@ export function registerWorkerRoutes(
   app: FastifyInstance,
   db: Db,
   agent: AgentDefinition<AuditInput, AuditOutput> = aiSiteAuditor,
+  gate: Gate = createAuditGate(),
 ): void {
   app.addHook('onRequest', async (req, reply) => {
     if (!req.url.startsWith('/worker/')) return;
@@ -61,6 +77,7 @@ export function registerWorkerRoutes(
     const rawInput: Record<string, unknown> = { target_url: body.url, org_slug: orgSlug };
     if (body.max_pages !== undefined) rawInput.max_pages = body.max_pages;
     if (body.timeout_ms !== undefined) rawInput.timeout_ms = body.timeout_ms;
+    if (body.engine !== undefined) rawInput.engine = body.engine;
 
     let started: ReturnType<typeof startRun<AuditInput, AuditOutput>>;
     try {
@@ -76,7 +93,7 @@ export function registerWorkerRoutes(
     // with its own retry/backoff, so a network hiccup on their end cannot leave them waiting
     // forever with no signal.
     const log = (m: string) => app.log.error(m);
-    void finishRun(db, agent, run, input, workspaceDir).then(
+    void gate.run(() => finishRun(db, agent, run, input, workspaceDir)).then(
       ({ output }) => {
         const reportHtml = readReportHtml(output, (m) => app.log.warn(m));
         return deliverCallback(body.callback_url, config.workerToken, buildCallbackPayload(run.id, 'succeeded', output, reportHtml), { log });
@@ -95,4 +112,10 @@ export function registerWorkerRoutes(
     const output = JSON.parse(run.output_json) as AuditOutput;
     return { ...base, scores: output.scores, grades: output.grades, findings_by_severity: output.findings_by_severity };
   });
+
+  // Cheap operational visibility into the in-process concurrency gate: how many audits this
+  // worker is actually running their browser for right now versus how many are waiting their
+  // turn. Not part of the public worker contract in docs/DEPLOYING-THE-WORKER.md; useful for an
+  // operator deciding whether AUDIT_WORKER_CONCURRENCY or the replica count needs raising.
+  app.get('/worker/queue', async () => ({ active: gate.activeCount, queued: gate.queuedCount, limit: gate.limit }));
 }

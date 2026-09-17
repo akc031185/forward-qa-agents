@@ -1,0 +1,49 @@
+# Scales on memory first, CPU second. docs/DEPLOYING-THE-WORKER.md is explicit that a crawl is
+# I/O- and render-bound rather than CPU-bound, so CPU alone is a weak signal here — a worker can be
+# fully booked (both AUDIT_WORKER_CONCURRENCY slots busy, requests queueing behind /worker/queue)
+# without ever troubling the CPU limit. Memory tracks "how many browsers are alive" far more
+# honestly. The better long-run signal is actual queue depth (GET /worker/queue's `queued` field)
+# via a custom-metrics adapter (Prometheus + prometheus-adapter, or KEDA) — deliberately not set up
+# here; see docs/ANALYZER-ARCHITECTURE.md ("Orchestration") for why that is a later rung, not the
+# default, and requires only pointing a ScaledObject/HPA custom metric at that endpoint once you do.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: audit-worker
+  namespace: ai-site-auditor
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: audit-worker
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      # A crawl can legitimately run a couple of minutes; scaling down aggressively right after a
+      # burst risks killing a pod mid-audit even with the Deployment's own graceful-termination
+      # window. Wait a few minutes of sustained low usage before removing a replica.
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60

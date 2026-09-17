@@ -9,6 +9,11 @@ import {
   spacingOffScale, violetBlueGradients,
 } from './design.js';
 import { findPolicies, formProblems, looksCommercial, trackingThirdParty, unhelpful404 } from './essentials.js';
+import {
+  breaksBetweenBreakpoints, clippedText, disappearedContent, findViewport, MIN_TAP_PX,
+  NARROWEST_WIDTH, OVERSIZED_RATIO_HIGH, oversizedImages, overflowingWidths, overlappingTapTargets,
+  smallTapTargets, TOUCH_WIDTH, WIDEST_WIDTH,
+} from './responsive.js';
 import type { Area, CheckResult, PageAudit, Severity, SiteFacts } from './types.js';
 
 export const SOURCES = {
@@ -484,6 +489,85 @@ function design(f: SiteFacts): CheckResult[] {
   return out;
 }
 
+// ─────────────────────────────────────────── Responsive: does the layout survive a real viewport
+/**
+ * Unlike design, these are real functional defects with a fixed severity per rule (scored the
+ * same severity-weighted way as ai-visibility/search/build/readiness), not accumulated tells:
+ * a page either scrolls sideways on a phone or it does not, and that is worth more than one more
+ * gradient. Measured on the first `RESPONSIVE_MAX_PAGES` pages only — see collect.ts.
+ */
+function responsive(f: SiteFacts): CheckResult[] {
+  const out: CheckResult[] = [];
+  const pages = live(f).filter(p => p.responsive?.length);
+  if (!pages.length) {
+    if (live(f).length) out.push(r('responsive.not-measured', 'responsive', 'medium', 'Responsiveness could not be measured',
+      'The page rendered but resizing it to a phone and tablet viewport did not produce readable measurements, so none of these checks ran. This area is not a pass.',
+      'Re-run; if it repeats, the page may be replacing its own document after load.'));
+    return out;
+  }
+  const TAP = 'https://developer.apple.com/design/human-interface-guidelines/layout#Platform-considerations';
+
+  const overflow = pages.map(p => ({ p, hits: overflowingWidths(p.responsive!) })).filter(x => x.hits.length);
+  if (overflow.length) {
+    const widths = [...new Set(overflow.flatMap(x => x.hits.map(h => h.width)))].sort((a, b) => a - b);
+    out.push(r('responsive.horizontal-overflow', 'responsive', 'high',
+      `Horizontal scroll at ${widths.join(', ')}px on ${overflow.length} page${overflow.length === 1 ? '' : 's'}`,
+      'The page is wider than the viewport, so a visitor must scroll sideways to read it. On a phone this reads as a broken page, not a design choice.',
+      'Find the element forcing the extra width — a fixed pixel width, an un-wrapped table, or a row that will not wrap — and let it shrink to 100% instead.',
+      { pages: paths(overflow.map(x => x.p)), evidence: overflow.map(x => ({ path: x.p.path, widths: x.hits })) }));
+  }
+
+  const between = pages.map(p => ({ p, widths: breaksBetweenBreakpoints(p.responsive!) })).filter(x => x.widths.length);
+  if (between.length) out.push(r('responsive.breaks-between-breakpoints', 'responsive', 'medium',
+    `Layout only overflows between the widths that are normally checked (${[...new Set(between.flatMap(x => x.widths))].join(', ')}px) on ${between.length} page${between.length === 1 ? '' : 's'}`,
+    'Clean at 360/390/768/1280/1440 but broken in between means the design was verified only at those exact numbers — a `@media` rule with a gap in it — not across the range a real window can actually be.',
+    'Check (or make fluid) the whole range between breakpoints, not just the named ones.',
+    { pages: paths(between.map(x => x.p)), evidence: between.map(x => ({ path: x.p.path, widths: x.widths })) }));
+
+  const small = pages.map(p => { const raw = findViewport(p.responsive!, TOUCH_WIDTH); return raw ? { p, hits: smallTapTargets(raw) } : undefined; }).filter((x): x is { p: PageAudit; hits: ReturnType<typeof smallTapTargets> } => !!x && x.hits.length > 0);
+  if (small.length) out.push(r('responsive.small-tap-targets', 'responsive', 'medium',
+    `${small.reduce((n, x) => n + x.hits.length, 0)} tap target${small.reduce((n, x) => n + x.hits.length, 0) === 1 ? '' : 's'} under ${MIN_TAP_PX}px on ${small.length} page${small.length === 1 ? '' : 's'}`,
+    'Apple and Google both set 44 CSS px as the comfortable minimum touch target; smaller than that, a thumb misses and taps the wrong thing.',
+    'Increase padding, or min-width/min-height, to at least 44px — the visible icon inside can stay small.',
+    { pages: paths(small.map(x => x.p)), evidence: small.flatMap(x => x.hits.slice(0, 6)), source: TAP }));
+
+  const overlap = pages.map(p => { const raw = findViewport(p.responsive!, TOUCH_WIDTH); return raw ? { p, hits: overlappingTapTargets(raw) } : undefined; }).filter((x): x is { p: PageAudit; hits: ReturnType<typeof overlappingTapTargets> } => !!x && x.hits.length > 0);
+  if (overlap.length) out.push(r('responsive.overlapping-tap-targets', 'responsive', 'high',
+    `${overlap.reduce((n, x) => n + x.hits.length, 0)} pair(s) of overlapping tap targets on ${overlap.length} page${overlap.length === 1 ? '' : 's'}`,
+    'Two controls occupying the same space on a phone screen mean a visitor cannot reliably choose between them.',
+    'Give overlapping controls their own space, or stack them instead of layering them.',
+    { pages: paths(overlap.map(x => x.p)), evidence: overlap.flatMap(x => x.hits.slice(0, 6)) }));
+
+  const clipped = pages.map(p => ({ p, hits: (p.responsive ?? []).flatMap(clippedText) })).filter(x => x.hits.length);
+  if (clipped.length) out.push(r('responsive.clipped-text', 'responsive', 'medium',
+    `Text cut off with no ellipsis on ${clipped.length} page${clipped.length === 1 ? '' : 's'}`,
+    'Content is silently missing rather than truncated with an indication — a visitor has no way to know there was more.',
+    'Let the box grow, wrap the text, or add text-overflow: ellipsis so a visitor can tell it was cut.',
+    { pages: paths(clipped.map(x => x.p)), evidence: clipped.flatMap(x => x.hits.slice(0, 6)) }));
+
+  const gone = pages.map(p => {
+    const wide = findViewport(p.responsive!, WIDEST_WIDTH); const narrow = findViewport(p.responsive!, NARROWEST_WIDTH);
+    return wide && narrow ? { p, hits: disappearedContent(wide, narrow) } : undefined;
+  }).filter((x): x is { p: PageAudit; hits: ReturnType<typeof disappearedContent> } => !!x && x.hits.length > 0);
+  if (gone.length) out.push(r('responsive.disappearing-content', 'responsive', 'high',
+    `${gone.reduce((n, x) => n + x.hits.length, 0)} link(s) reachable at ${WIDEST_WIDTH}px missing at ${NARROWEST_WIDTH}px on ${gone.length} page${gone.length === 1 ? '' : 's'}`,
+    'Content outside the navigation that a visitor can reach on a laptop is simply gone on a phone, with nothing in its place.',
+    'Keep the content reachable at every width, even if it moves into a different layout.',
+    { pages: paths(gone.map(x => x.p)), evidence: gone.flatMap(x => x.hits.slice(0, 6)) }));
+
+  const oversized = pages.map(p => { const raw = findViewport(p.responsive!, NARROWEST_WIDTH); return raw ? { p, hits: oversizedImages(raw) } : undefined; }).filter((x): x is { p: PageAudit; hits: ReturnType<typeof oversizedImages> } => !!x && x.hits.length > 0);
+  if (oversized.length) {
+    const worst = Math.max(...oversized.flatMap(x => x.hits.map(h => h.ratio)));
+    out.push(r('responsive.oversized-images', 'responsive', worst >= OVERSIZED_RATIO_HIGH ? 'medium' : 'low',
+      `Image(s) served at up to ${worst}× their displayed size on ${oversized.length} page${oversized.length === 1 ? '' : 's'} (measured at ${NARROWEST_WIDTH}px)`,
+      'A large source image scaled down by CSS still costs its full download weight; on mobile data that is pure waste for no visual benefit.',
+      'Serve a size close to the rendered width — srcset/sizes, or a build-time resize — instead of one large asset for every viewport.',
+      { pages: paths(oversized.map(x => x.p)), evidence: oversized.flatMap(x => x.hits.slice(0, 6)) }));
+  }
+
+  return out;
+}
+
 // ─────────────────────────────────────────── Readiness: what a site needs before it is launched
 /**
  * The pre-launch and pre-sale list: policy pages, consent, working forms, spam protection,
@@ -636,6 +720,7 @@ function integrity(f: SiteFacts): CheckResult[] {
     out.push(r('audit.nothing-audited-search', 'search', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));
     out.push(r('audit.nothing-audited-build', 'build', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));
     out.push(r('audit.nothing-audited-design', 'design', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));
+    out.push(r('audit.nothing-audited-responsive', 'responsive', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));
     out.push(r('audit.nothing-audited-readiness', 'readiness', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));
     return out;
   }
@@ -654,7 +739,7 @@ function integrity(f: SiteFacts): CheckResult[] {
 }
 
 export function evaluate(f: SiteFacts): CheckResult[] {
-  const all = [...integrity(f), ...aiVisibility(f), ...search(f), ...build(f), ...design(f), ...readiness(f)];
+  const all = [...integrity(f), ...aiVisibility(f), ...search(f), ...build(f), ...design(f), ...responsive(f), ...readiness(f)];
   const order: Severity[] = ['critical', 'high', 'medium', 'low', 'info'];
   return all.sort((a, b) => order.indexOf(a.severity) - order.indexOf(b.severity));
 }
@@ -671,7 +756,7 @@ const NOT_MEASURED = new Set(['design.not-measured', 'audit.nothing-audited-desi
 
 /** 0–100 per area: 100 minus the weight of each failed check, floored at 0. */
 export function scores(results: CheckResult[]): Record<Area, number> {
-  const s: Record<Area, number> = { 'ai-visibility': 100, search: 100, build: 100, design: 100, readiness: 100 };
+  const s: Record<Area, number> = { 'ai-visibility': 100, search: 100, build: 100, design: 100, responsive: 100, readiness: 100 };
   for (const x of results) if (x.area !== 'design') s[x.area] = Math.max(0, s[x.area] - WEIGHTS[x.severity]);
   const design = results.filter(x => x.area === 'design');
   s.design = design.some(x => NOT_MEASURED.has(x.id))

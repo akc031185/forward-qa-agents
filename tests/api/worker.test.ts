@@ -20,6 +20,7 @@ const FastifyMod = await import('fastify');
 const zodMod = await import('zod');
 const { Db } = await import('../../src/core/db.js');
 const { registerWorkerRoutes } = await import('../../src/api/worker.js');
+const { Gate } = await import('../../src/core/concurrency.js');
 
 const Fastify = FastifyMod.default;
 const { z } = zodMod;
@@ -176,6 +177,46 @@ test('a failing audit still reaches a terminal state and the callback carries st
   assert.match(String(finalPoll.json().error), /audit blew up/);
 
   await new Promise<void>((r) => receiver.server.close(() => r()));
+  db.close();
+});
+
+test('concurrency gate: a submission beyond the limit queues instead of launching immediately, and GET /worker/queue reports it', async () => {
+  const db = new Db(':memory:');
+  const app = Fastify({ logger: false });
+  const gate = new Gate(1);
+  // A controllable agent: the first run blocks on `release` until the test lets it go, so the
+  // second submission is guaranteed to still be waiting on the gate when we inspect it.
+  let release!: () => void;
+  const held = new Promise<void>(r => { release = r; });
+  let starts = 0;
+  const controllable: AgentDefinition<FakeInput, FakeOutput> = {
+    name: 'ai-site-auditor', plate: 46, oneLiner: 'blocks until released',
+    inputSchema: z.object({ target_url: z.string().url(), org_slug: z.string() }) as unknown as import('zod').ZodType<FakeInput>,
+    async run(): Promise<FakeOutput> {
+      starts++;
+      if (starts === 1) await held;
+      return { pages_audited: 1, scores: {}, grades: {}, findings_by_severity: {}, report_html: '', report_md: '', summary: 'ok' };
+    },
+  };
+  registerWorkerRoutes(app, db, controllable as unknown as AgentDefinition<AuditInput, AuditOutput>, gate);
+
+  const submit = (cb: string) => app.inject({ method: 'POST', url: '/worker/audits', headers: { authorization: `Bearer ${TOKEN}` }, payload: { url: 'https://site.example.test/', callback_url: cb } });
+  const s1 = await submit('https://caller.example.test/hook-1');
+  assert.equal(s1.statusCode, 202);
+  const s2 = await submit('https://caller.example.test/hook-2');
+  assert.equal(s2.statusCode, 202, 'the worker still answers 202 immediately even though it will queue');
+
+  // give the gated microtasks a turn to run
+  await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+  const queue = (await app.inject({ method: 'GET', url: '/worker/queue', headers: { authorization: `Bearer ${TOKEN}` } })).json();
+  assert.deepEqual(queue, { active: 1, queued: 1, limit: 1 }, 'one audit holds the only slot, the other is waiting its turn');
+  assert.equal(starts, 1, 'the second audit has not actually started yet');
+
+  release();
+  await new Promise(r => setTimeout(r, 20));
+  const queueAfter = (await app.inject({ method: 'GET', url: '/worker/queue', headers: { authorization: `Bearer ${TOKEN}` } })).json();
+  assert.equal(queueAfter.queued, 0);
+  assert.equal(starts, 2, 'releasing the first slot lets the second audit start');
   db.close();
 });
 

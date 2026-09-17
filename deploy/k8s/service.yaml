@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: audit-worker
+  namespace: ai-site-auditor
+spec:
+  selector:
+    app: audit-worker
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  type: ClusterIP

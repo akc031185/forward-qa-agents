@@ -8,6 +8,8 @@ import { wordsInHtml } from '../../src/agents/ai-site-auditor/collect.js';
 import type { PageAudit, PageView, SiteFacts } from '../../src/agents/ai-site-auditor/types.js';
 import type { DesignRaw } from '../../src/agents/ai-site-auditor/design.js';
 import type { EssentialsRaw } from '../../src/agents/ai-site-auditor/essentials.js';
+import { VIEWPORTS } from '../../src/agents/ai-site-auditor/responsive.js';
+import type { ResponsiveRaw } from '../../src/agents/ai-site-auditor/responsive.js';
 
 test('robots: most specific group wins, longest rule wins, allow wins ties, wildcards', () => {
   const r = parseRobots(`# comment
@@ -86,12 +88,14 @@ export const cleanEssentials: EssentialsRaw = {
   focusSuppressed: 0, clickableNonButtons: 0,
   contact: { email: true, phone: true, address: true, company: true },
 };
-const page = (path: string, raw: Partial<PageView>, rendered: Partial<PageView>, design: DesignRaw = cleanDesign, essentials: EssentialsRaw = cleanEssentials): PageAudit => ({
+/** A rendered page always carries a responsive capture; this is the shape that trips no responsive check. */
+export const cleanResponsive: ResponsiveRaw[] = VIEWPORTS.map(vp => ({ width: vp.width, scrollWidth: vp.width, tapTargets: [], clipped: [], links: [], images: [] }));
+const page = (path: string, raw: Partial<PageView>, rendered: Partial<PageView>, design: DesignRaw = cleanDesign, essentials: EssentialsRaw = cleanEssentials, responsive: ResponsiveRaw[] = cleanResponsive): PageAudit => ({
   url: `https://acme.example.test${path}`, path, status: 200, raw: view(raw), rendered: view(rendered), loadMs: 100,
-  consoleErrors: [], failedRequests: [], mixedContent: [], scripts: [], jsBytes: 200_000, design, essentials,
+  consoleErrors: [], failedRequests: [], mixedContent: [], scripts: [], jsBytes: 200_000, design, essentials, responsive,
 });
 const facts = (pages: PageAudit[], over: Partial<SiteFacts> = {}): SiteFacts => ({
-  origin: 'https://acme.example.test', startUrl: 'https://acme.example.test/', https: true,
+  origin: 'https://acme.example.test', startUrl: 'https://acme.example.test/', https: true, engine: 'chromium',
   robots: { status: 200, text: 'User-agent: *\nAllow: /', parsed: parseRobots('User-agent: *\nAllow: /\nSitemap: https://acme.example.test/sitemap.xml') },
   sitemaps: [{ url: 'https://acme.example.test/sitemap.xml', status: 200, kind: 'urlset', urls: pages.length, sampleBroken: [] }],
   llmsTxt: { status: 200, ok: true, h1: 'Acme', links: 3, problems: [] },
@@ -104,7 +108,7 @@ test('rules: a well-built site produces no findings and straight A grades', () =
   const f = facts([page('/', {}, {}), page('/about', { title: 'About Acme', canonical: 'https://acme.example.test/about', metaDescription: 'About.' }, { title: 'About Acme', canonical: 'https://acme.example.test/about', metaDescription: 'About.' })]);
   const results = evaluate(f);
   assert.deepEqual(results.map(r => r.id), []);
-  assert.deepEqual(scores(results), { 'ai-visibility': 100, search: 100, build: 100, design: 100, readiness: 100 });
+  assert.deepEqual(scores(results), { 'ai-visibility': 100, search: 100, build: 100, design: 100, responsive: 100, readiness: 100 });
 });
 
 test('rules: the SPA shell pattern is caught once per root cause, with the right severities', () => {
@@ -147,16 +151,43 @@ test('regressions from validation: a failed render or an empty audit never reads
 
   const r2 = evaluate(facts([{ ...page('/', {}, {}), status: 0, raw: undefined, rendered: undefined, error: 'ECONNREFUSED' }]));
   const s2 = scores(r2);
-  assert.deepEqual([s2['ai-visibility'] < 100, s2.search < 100, s2.build < 100, s2.design < 100, s2.readiness < 100], [true, true, true, true, true], 'nothing audited drags every area down');
-  assert.deepEqual(r2.filter(r => r.id.startsWith('audit.')).map(r => r.severity), ['critical', 'critical', 'critical', 'critical', 'critical'], 'one critical per area');
+  assert.deepEqual([s2['ai-visibility'] < 100, s2.search < 100, s2.build < 100, s2.design < 100, s2.responsive < 100, s2.readiness < 100], [true, true, true, true, true, true], 'nothing audited drags every area down');
+  assert.deepEqual(r2.filter(r => r.id.startsWith('audit.')).map(r => r.severity), ['critical', 'critical', 'critical', 'critical', 'critical', 'critical'], 'one critical per area');
   assert.equal(s2.design, 0, 'design cannot pass on a page that never rendered');
 
   // rendered, but the style measurement itself failed: still not a pass
-  const r3 = evaluate(facts([{ ...page('/', {}, {}), design: undefined, essentials: undefined }]));
+  const r3 = evaluate(facts([{ ...page('/', {}, {}), design: undefined, essentials: undefined, responsive: undefined }]));
   assert.ok(r3.some(x => x.id === 'design.not-measured'), 'an unmeasured design area is reported');
   assert.equal(scores(r3).design, 0, 'and scores zero rather than a silent 100');
   assert.ok(r3.some(x => x.id === 'readiness.not-measured'), 'the same for launch readiness');
   assert.ok(scores(r3).readiness < 100);
+  assert.ok(r3.some(x => x.id === 'responsive.not-measured'), 'and for responsiveness');
+  assert.ok(scores(r3).responsive < 100);
+});
+
+test('responsiveness: overflow, tiny and overlapping tap targets, clipped text, vanished content and heavy images all surface with the right severity', () => {
+  const bad: ResponsiveRaw[] = cleanResponsive.map(v => {
+    if (v.width === 360) return { ...v, scrollWidth: 620, clipped: [{ sel: 'p.bio', ellipsis: false, sample: 'Our founder previously led', overflowPx: 30 }], images: [{ src: '/hero.jpg', naturalWidth: 3000, naturalHeight: 1500, renderWidth: 300, renderHeight: 150 }] };
+    if (v.width === 390) return { ...v, tapTargets: [{ sel: 'button.icon', x: 10, y: 10, w: 24, h: 24 }, { sel: 'a.overlap-1', x: 100, y: 100, w: 60, h: 60 }, { sel: 'a.overlap-2', x: 120, y: 110, w: 60, h: 60 }] };
+    if (v.width === 1440) return { ...v, links: [{ href: '/case-studies', text: 'Case studies', region: 'main' }] };
+    return v;
+  });
+  const f = facts([page('/', {}, {}, cleanDesign, cleanEssentials, bad)]);
+  const results = evaluate(f);
+  const byId = Object.fromEntries(results.map(r => [r.id, r]));
+  assert.equal(byId['responsive.horizontal-overflow']?.severity, 'high');
+  assert.deepEqual(byId['responsive.horizontal-overflow']?.pages, ['/']);
+  assert.equal(byId['responsive.small-tap-targets']?.severity, 'medium');
+  assert.equal(byId['responsive.overlapping-tap-targets']?.severity, 'high');
+  assert.equal(byId['responsive.clipped-text']?.severity, 'medium');
+  assert.equal(byId['responsive.disappearing-content']?.severity, 'high');
+  assert.equal(byId['responsive.oversized-images']?.severity, 'medium', '10x is well past the "medium" band');
+  assert.ok(!byId['responsive.not-measured'], 'a page that was measured never also reads as unmeasured');
+  assert.ok(scores(results).responsive < 60, `expected a poor responsive score, got ${scores(results).responsive}`);
+
+  // a clean capture at every viewport trips nothing
+  const good = evaluate(facts([page('/', {}, {})]));
+  assert.ok(!good.some(r => r.area === 'responsive'), 'the default clean fixture passes every responsive check');
 });
 
 test('regressions from validation: small app shells, form labels, staging canonicals, off-host sitemaps', () => {

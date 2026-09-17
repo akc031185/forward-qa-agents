@@ -1,0 +1,13 @@
+# kubectl apply -k deploy/k8s
+# (after copying secret.example.yaml to secret.yaml and filling in a real token — secret.yaml is
+# deliberately not listed below; add it once it exists and is real)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ai-site-auditor
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+  - hpa.yaml
+  - pdb.yaml

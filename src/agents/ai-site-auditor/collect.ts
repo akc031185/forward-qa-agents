@@ -1,7 +1,7 @@
 // Collection: everything the rules need, gathered once. Site-level facts come from plain HTTP
 // fetches; each page is then seen twice in Chromium — once with JavaScript off, fed the exact raw
 // HTML a non-rendering crawler receives, and once normally.
-import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
+import { chromium, firefox, webkit, type Browser, type BrowserContext, type BrowserType, type Page } from 'playwright';
 import { randomUUID } from 'node:crypto';
 import { config } from '../../core/config.js';
 import { AI_BOTS, UA_PROBE_BOTS } from './bots.js';
@@ -11,7 +11,20 @@ import { DESIGN_SCRIPT } from './design.js';
 import type { DesignRaw } from './design.js';
 import { ESSENTIALS_SCRIPT } from './essentials.js';
 import type { EssentialsRaw } from './essentials.js';
-import type { BotProbe, FetchResult, PageAudit, PageView, SiteFacts } from './types.js';
+import { RESPONSIVE_MAX_PAGES, RESPONSIVE_SCRIPT, VIEWPORTS } from './responsive.js';
+import type { ResponsiveRaw } from './responsive.js';
+import type { BotProbe, BrowserEngine, FetchResult, PageAudit, PageView, SiteFacts } from './types.js';
+
+/**
+ * Playwright ships Chromium, Firefox and WebKit in the same base image, so any of the three is
+ * one line to launch. Every audit still runs on one engine at a time: see
+ * docs/ANALYZER-ARCHITECTURE.md ("Multi-browser") for why running all three by default was
+ * rejected (it triples wall-clock and browser memory for a signal that matters on only a few of
+ * the 87+ checks). `chromium` is the default; a caller who wants the WebKit/Safari-specific
+ * rendering signal for layout and responsiveness — or a from-completeness Firefox pass — asks for
+ * it explicitly by re-running with a different `engine`.
+ */
+const ENGINES: Record<BrowserEngine, BrowserType> = { chromium, firefox, webkit };
 
 export const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 ai-site-auditor/1.0';
 const MAX_BODY = 3 * 1024 * 1024;
@@ -23,6 +36,8 @@ export interface CollectOptions {
   maxPages: number;
   timeoutMs: number;
   headless: boolean;
+  /** Which Playwright browser drives the whole crawl. Default chromium; see the comment on ENGINES above. */
+  engine?: BrowserEngine;
   log?: (m: string) => void;
 }
 
@@ -112,9 +127,23 @@ async function extract(page: Page): Promise<PageView> {
   return await page.evaluate(`(${EXTRACT_SCRIPT})()`) as PageView;
 }
 
+/**
+ * A hostile page can open a JS `alert`/`confirm`/`prompt` from an inline `<script>` before
+ * `domcontentloaded` even fires. Playwright already auto-dismisses an unhandled dialog rather than
+ * hanging (verified: tests/ai-site-auditor/hostile-page.test.ts passes with or without this
+ * listener) — but that is an implicit default of one engine's implementation, not a documented
+ * cross-engine contract, and this repo now drives three (see the `engine` option below). Handling
+ * it explicitly means the crawl's behaviour here does not quietly depend on Chromium's, Firefox's
+ * and WebKit's defaults continuing to agree.
+ */
+function autoDismissDialogs(page: Page): void {
+  page.on('dialog', d => { d.dismiss().catch(() => undefined); });
+}
+
 /** The JavaScript-off view of exactly this raw response. */
 async function rawView(ctx: BrowserContext, url: string, raw: FetchResult): Promise<PageView> {
   const page = await ctx.newPage();
+  autoDismissDialogs(page);
   try {
     await page.route(u => u.href === url, route => route.fulfill({ status: raw.status || 200, contentType: raw.headers['content-type'] ?? 'text/html', body: raw.body }));
     await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -124,8 +153,28 @@ async function rawView(ctx: BrowserContext, url: string, raw: FetchResult): Prom
   }
 }
 
-async function renderedView(ctx: BrowserContext, url: string, timeoutMs: number): Promise<Omit<PageAudit, 'url' | 'path' | 'status' | 'raw'>> {
+/**
+ * Resize the already-loaded page to each configured viewport and measure it. A resize is a
+ * reflow, not a navigation, so this is cheap relative to loading the page in the first place.
+ * Best-effort and non-fatal: a page that errors partway through keeps whatever viewports it
+ * already measured, and `rules.ts` treats an empty result the same as "could not be measured".
+ */
+async function measureResponsive(page: Page): Promise<ResponsiveRaw[] | undefined> {
+  const out: ResponsiveRaw[] = [];
+  for (const vp of VIEWPORTS) {
+    try {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      out.push(await page.evaluate(`(${RESPONSIVE_SCRIPT})()`) as ResponsiveRaw);
+    } catch {
+      break;
+    }
+  }
+  return out.length ? out : undefined;
+}
+
+async function renderedView(ctx: BrowserContext, url: string, timeoutMs: number, measureResponsiveness: boolean): Promise<Omit<PageAudit, 'url' | 'path' | 'status' | 'raw'>> {
   const page = await ctx.newPage();
+  autoDismissDialogs(page);
   const consoleErrors: string[] = [];
   const failedRequests: { url: string; status: number }[] = [];
   const mixedContent: string[] = [];
@@ -157,7 +206,10 @@ async function renderedView(ctx: BrowserContext, url: string, timeoutMs: number)
     // A failure here must never lose the page: the area is simply not scored.
     const design = await (page.evaluate(`(${DESIGN_SCRIPT})()`) as Promise<DesignRaw>).catch(() => undefined);
     const essentials = await (page.evaluate(`(${ESSENTIALS_SCRIPT})()`) as Promise<EssentialsRaw>).catch(() => undefined);
-    return { rendered: view, design, essentials, loadMs: Date.now() - t0, loadTimedOut, consoleErrors, failedRequests, mixedContent, scripts: [...scripts], jsBytes };
+    // Last, because it resizes the viewport repeatedly; nothing above this line depends on the
+    // original viewport size, but running it first would be a needless trap for future changes.
+    const responsive = measureResponsiveness ? await measureResponsive(page).catch(() => undefined) : undefined;
+    return { rendered: view, design, essentials, responsive, loadMs: Date.now() - t0, loadTimedOut, consoleErrors, failedRequests, mixedContent, scripts: [...scripts], jsBytes };
   } catch (err) {
     return { loadMs: Date.now() - t0, consoleErrors, failedRequests, mixedContent, scripts: [...scripts], jsBytes, error: err instanceof Error ? err.message.split('\n')[0] : String(err) };
   } finally {
@@ -230,7 +282,10 @@ export async function collect(opts: CollectOptions): Promise<SiteFacts> {
   }
 
   // ── pages, two views each ────────────────────────────────────────────────
-  const browser: Browser = await chromium.launch({ headless: opts.headless, args: config.chromiumNoSandbox ? ['--no-sandbox'] : [] });
+  const engine: BrowserEngine = opts.engine ?? 'chromium';
+  // --no-sandbox is a Chromium flag; Firefox and WebKit reject unknown launch args outright.
+  const launchArgs = engine === 'chromium' && config.chromiumNoSandbox ? ['--no-sandbox'] : [];
+  const browser: Browser = await ENGINES[engine].launch({ headless: opts.headless, args: launchArgs });
   const pages: PageAudit[] = [];
   const skipped: string[] = [];
   const secrets: SiteFacts['secrets'] = [];
@@ -262,7 +317,7 @@ export async function collect(opts: CollectOptions): Promise<SiteFacts> {
       const audit: PageAudit = { url, path: u.pathname + u.search, status: raw.status, contentType: raw.headers['content-type'], loadMs: 0, consoleErrors: [], failedRequests: [], mixedContent: [], scripts: [], jsBytes: 0, error: raw.error };
       if (raw.status && /html/i.test(raw.headers['content-type'] ?? 'text/html')) {
         audit.raw = await rawView(rawCtx, url, raw).catch(() => undefined);
-        Object.assign(audit, await renderedView(renderCtx, url, opts.timeoutMs));
+        Object.assign(audit, await renderedView(renderCtx, url, opts.timeoutMs, pages.length < RESPONSIVE_MAX_PAGES));
       }
       pages.push(audit);
       for (const l of audit.rendered?.links ?? []) enqueue(normaliseUrl(l, url));
@@ -288,7 +343,7 @@ export async function collect(opts: CollectOptions): Promise<SiteFacts> {
 
   const h = home.headers;
   return {
-    origin, startUrl, https: start.protocol === 'https:',
+    origin, startUrl, https: start.protocol === 'https:', engine,
     robots, sitemaps,
     llmsTxt: llms,
     softNotFound: {
