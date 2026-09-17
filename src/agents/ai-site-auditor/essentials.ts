@@ -31,6 +31,7 @@ export interface FormRaw {
   captcha: boolean;
   honeypot: boolean;             // a hidden field used to catch bots
   inlineSubmitHandler: boolean;  // an onsubmit attribute, which proves something handles it
+  passwordField: boolean;        // a sign-in or registration form, judged differently
 }
 
 /**
@@ -98,6 +99,7 @@ export const ESSENTIALS_SCRIPT = String.raw`() => {
       consentCheckbox: visible.some((c) => c.type === 'checkbox'),
       captcha: /recaptcha|hcaptcha|turnstile|friendly-?challenge/i.test(html) || !!document.querySelector('script[src*="recaptcha"],script[src*="hcaptcha"],script[src*="turnstile"]'),
       honeypot: hidden.length > 0,
+      passwordField: visible.some((c) => c.type === 'password'),
       inlineSubmitHandler: f.hasAttribute('onsubmit') || Array.from(f.querySelectorAll('button,input[type="submit"]')).some((b) => b.hasAttribute('onclick')),
     });
   }
@@ -250,7 +252,10 @@ export function formProblems(forms: FormRaw[]): FormProblem[] {
     if (f.novalidate && f.required === 0) out.push({ kind: 'no-validation', detail: `A form with ${f.fields} fields sets novalidate and marks nothing required.` });
     else if (f.required === 0) out.push({ kind: 'no-required', detail: `None of the ${f.fields} fields on a form is required, so an empty submission is accepted.` });
     if (f.labelled < f.fields) out.push({ kind: 'unlabelled', detail: `${f.fields - f.labelled} of ${f.fields} form controls have no label, so a screen reader announces them as unnamed.` });
-    if (!f.captcha && !f.honeypot && f.fields >= 2) out.push({ kind: 'no-spam-protection', detail: `A form with ${f.fields} fields has neither a captcha nor a honeypot field.` });
+    // A sign-in or registration form is not a spam target in the sense this check means. Nobody
+    // puts a honeypot on a login box; the defence there is rate limiting, which is a different
+    // check. Flagging it trains the reader to ignore the finding.
+    if (!f.captcha && !f.honeypot && f.fields >= 2 && !f.passwordField) out.push({ kind: 'no-spam-protection', detail: `A form with ${f.fields} fields has neither a captcha nor a honeypot field.` });
   }
   return out;
 }

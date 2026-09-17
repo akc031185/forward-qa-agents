@@ -61,7 +61,7 @@ test('third parties are classified, and only the tracking ones need consent', ()
 
 const form = (over: Partial<FormRaw> = {}): FormRaw => ({
   action: '/subscribe', method: 'post', fields: 3, required: 3, emailTyped: 1, labelled: 3,
-  novalidate: false, consentCheckbox: false, captcha: true, honeypot: false, inlineSubmitHandler: false, ...over,
+  novalidate: false, consentCheckbox: false, captcha: true, honeypot: false, inlineSubmitHandler: false, passwordField: false, ...over,
 });
 
 test('forms: a missing action is unverifiable, not proof of a defect', () => {
@@ -90,6 +90,8 @@ test('forms: a missing action is unverifiable, not proof of a defect', () => {
     'a honeypot counts as protection');
   assert.ok(!formProblems([form({ captcha: false, honeypot: false, fields: 1 })]).some(p => p.kind === 'no-spam-protection'),
     'a single-field form, such as a search box, is not a spam target worth flagging');
+  assert.ok(!formProblems([form({ captcha: false, honeypot: false, fields: 2, passwordField: true })]).some(p => p.kind === 'no-spam-protection'),
+    'a sign-in form is defended by rate limiting, not a honeypot, so it is not flagged');
 });
 
 test('404: right status but nothing usable on the page', () => {
