@@ -1,5 +1,6 @@
 // Report rendering: a self-contained HTML evaluation page (the deliverable), plus markdown and JSON.
 // Pure functions of the facts and the check results.
+import { brand } from '../../core/config.js';
 import { AI_BOTS } from './bots.js';
 import { isAllowed } from './robots.js';
 import { DESIGN_TELL_COST, grade, scores } from './rules.js';
@@ -190,6 +191,50 @@ export function fixPlan(results: CheckResult[]): PlanItem[] {
     .map((result, i) => ({ rank: i + 1, result, effort: effortOf(result.id) }));
 }
 
+/** "17 September 2026" — a date a client reads, not an ISO timestamp. */
+export function auditDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
+/**
+ * The close of a client-facing report: who it is from, where to go next, and how it was produced.
+ * Every part is optional — with no branding configured this degrades to the plain method note,
+ * which is what the fixtures and the test suite see.
+ */
+export function brandFooter(x: ReportInput): string {
+  const b = brand;
+  const links: string[] = [];
+  if (b.dashboardUrl) links.push(`<a class="btn" href="${esc(b.dashboardUrl)}">Audit another site</a>`);
+  if (b.accountUrl) links.push(`<a class="btn btn--quiet" href="${esc(b.accountUrl)}">Your account</a>`);
+  if (b.billingUrl) links.push(`<a class="btn btn--quiet" href="${esc(b.billingUrl)}">Billing</a>`);
+
+  const method = `Every check in this report is deterministic: the same site audited twice produces
+    the same findings, in the same order. ${x.modelUsed ? 'A locally-run model rephrased the summary only; it decided nothing.' : 'No language model was involved in any finding.'}
+    Any credential found in your published code is shown redacted to its first six characters.
+    Scores start at 100 and lose 40 per critical finding, 18 per high, 8 per medium and 3 per low.
+    Design originality is scored differently, by accumulation: ${DESIGN_TELL_COST} points per tell,
+    because no single tell is a defect on its own.`;
+
+  const sig = b.company
+    ? `<div class="sign">
+        <div class="sign__who"><b>${esc(b.company)}</b>${b.tagline ? `<span class="muted"> · ${esc(b.tagline)}</span>` : ''}</div>
+        ${b.siteUrl || b.contactEmail ? `<div class="small muted">${[
+          b.siteUrl ? `<a href="${esc(b.siteUrl)}">${esc(b.siteUrl.replace(/^https?:\/\//, ''))}</a>` : '',
+          b.contactEmail ? `Questions about this report: <a href="mailto:${esc(b.contactEmail)}">${esc(b.contactEmail)}</a>` : '',
+        ].filter(Boolean).join(' · ')}</div>` : ''}
+      </div>`
+    : '';
+
+  return `<section class="card outro">
+    ${sig}
+    ${links.length ? `<div class="outro__actions">${links.join('')}</div>` : ''}
+    <p class="small muted method">${method}</p>
+    <p class="small muted">Reference <code>${esc(x.runId)}</code> · audited ${esc(auditDate(x.generatedAt))} · ${(x.facts.durationMs / 1000).toFixed(1)} s</p>
+  </section>`;
+}
+
 export function renderReportHtml(x: ReportInput): string {
   const f = x.facts;
   const s = scores(x.results);
@@ -330,7 +375,14 @@ footer{margin-top:28px;color:var(--soft);font-size:.82rem}
 .ev__pairs{display:grid;grid-template-columns:max-content 1fr;gap:3px 14px;margin:0}
 .ev__pairs dt{color:var(--soft);font-size:.82rem}.ev__pairs dd{margin:0;overflow-wrap:anywhere}
 .ev__table{font-size:.83rem}.ev__table th{padding-top:0}
-@media (max-width:560px){.planrow__body{padding-left:14px}.planrow summary{gap:7px}}
+.outro{margin-top:28px}
+.sign__who{font-size:1.05rem}
+.outro__actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px}
+.btn{display:inline-block;padding:9px 18px;border-radius:9px;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;font-size:.9rem}
+.btn--quiet{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn:hover{filter:brightness(1.08)}.btn--quiet:hover{border-color:var(--accent)}
+.method{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+@media (max-width:560px){.planrow__body{padding-left:14px}.planrow summary{gap:7px}.outro__actions .btn{flex:1 1 100%;text-align:center}}
 @media print{body{background:#fff}.card,.tile,.summary,.planrow{break-inside:avoid}
   .planrow details>*{display:block}.planrow summary::after{content:""}
   .apx~.card details{display:none}}
@@ -338,7 +390,7 @@ footer{margin-top:28px;color:var(--soft);font-size:.82rem}
 <body><main class="wrap">
   <div class="eyebrow">AI Site Audit · ${esc(x.orgSlug)}</div>
   <h1>${esc(new URL(f.origin).host)}</h1>
-  <div class="muted small">${esc(x.generatedAt)} · run <code>${esc(x.runId)}</code> · ${f.pages.length} page${f.pages.length === 1 ? '' : 's'} · ${(f.durationMs / 1000).toFixed(1)} s${f.skipped.length ? ` · ${f.skipped.length} more not audited (max_pages)` : ''}</div>
+  <div class="muted small">${esc(auditDate(x.generatedAt))} · ${f.pages.length} page${f.pages.length === 1 ? '' : 's'} audited${f.skipped.length ? `, ${f.skipped.length} more not reached` : ''}</div>
   <div class="summary"><ul class="summary__list">${x.summary.split(/(?<=[.!?])\s+(?=[A-Z])/).map(t => `<li>${esc(t)}</li>`).join('')}</ul>
     <div class="counts">${SEVERITIES.filter(sv => c[sv]).map(sv => `<span class="sev-${sv}" style="background:var(--sc)">${c[sv]} ${sv}</span>`).join('')}</div></div>
   <div class="tiles">${tiles}</div>
@@ -352,7 +404,7 @@ footer{margin-top:28px;color:var(--soft);font-size:.82rem}
   </section>
   <section class="card"><h2>Pages audited</h2><div class="tablewrap"><table><thead><tr><th>Path</th><th>Status</th><th>Words, no JS</th><th>Words, rendered</th><th>Title</th><th>h1</th><th>Desc.</th><th>Canonical</th><th>JS errors</th></tr></thead><tbody>${pageRows}</tbody></table></div></section>
   <section class="card"><h2>Site files and probes</h2><dl>${siteFiles}</dl></section>
-  <footer>Generated by The AI Site Auditor (plate 46). Every check is deterministic; ${x.modelUsed ? 'a local model rephrased the summary only' : 'no model was used'}. Secret values are redacted to their first six characters. Scores: 100 minus 40 per critical, 18 per high, 8 per medium and 3 per low finding in that area. Design originality is scored by accumulation instead: 100 minus ${DESIGN_TELL_COST} per tell, because no single tell is a defect.</footer>
+  ${brandFooter(x)}
 </main></body></html>`;
 }
 

@@ -5,7 +5,7 @@ import {
   classifyThirdParty, findPolicies, formProblems, looksCommercial, trackingThirdParty, unhelpful404,
 } from '../../src/agents/ai-site-auditor/essentials.js';
 import type { FormRaw } from '../../src/agents/ai-site-auditor/essentials.js';
-import { effortOf, evidenceHtml, fixPlan, isEmptyEvidence, labelKey } from '../../src/agents/ai-site-auditor/report.js';
+import { auditDate, effortOf, evidenceHtml, fixPlan, isEmptyEvidence, labelKey } from '../../src/agents/ai-site-auditor/report.js';
 import type { CheckResult } from '../../src/agents/ai-site-auditor/types.js';
 
 const L = (href: string, text = '') => ({ href, text });
@@ -164,4 +164,10 @@ test('evidence: long lists are capped and the remainder is counted, and HTML is 
   assert.match(many, /and 10 more/);
   assert.match(evidenceHtml(['<script>alert(1)</script>']), /&lt;script&gt;/, 'evidence is never injected raw');
   assert.ok(!evidenceHtml(['<script>alert(1)</script>']).includes('<script>alert'));
+});
+
+// ── client-facing chrome ────────────────────────────────────────────────────
+test('audit date: a client reads a date, not an ISO timestamp', () => {
+  assert.equal(auditDate('2026-09-17T08:39:03.133Z'), '17 September 2026');
+  assert.equal(auditDate('not-a-date'), 'not-a-date', 'an unparseable value passes through unchanged');
 });

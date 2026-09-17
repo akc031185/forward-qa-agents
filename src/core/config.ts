@@ -18,3 +18,20 @@ export const config = {
   port: Number(process.env.PORT ?? 8787),
   workspaceDir: path.resolve(process.env.WORKSPACE_DIR ?? './workspace'),
 };
+
+/**
+ * Who a client-facing report is from. Kept in the environment, never in the repo: the house rule
+ * is that no real company, client or product name appears in source, fixtures or docs, and it also
+ * means one checkout can produce reports for more than one brand. Every field is optional; the
+ * report falls back to unbranded text and simply omits any link that is not configured.
+ */
+export const brand = {
+  company: process.env.BRAND_COMPANY ?? '',
+  tagline: process.env.BRAND_TAGLINE ?? '',
+  siteUrl: process.env.BRAND_SITE_URL ?? '',
+  accountUrl: process.env.BRAND_ACCOUNT_URL ?? '',
+  billingUrl: process.env.BRAND_BILLING_URL ?? '',
+  dashboardUrl: process.env.BRAND_DASHBOARD_URL ?? '',
+  contactEmail: process.env.BRAND_CONTACT_EMAIL ?? '',
+};
+export type Brand = typeof brand;
