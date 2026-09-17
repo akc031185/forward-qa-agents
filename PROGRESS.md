@@ -16,14 +16,14 @@ best-effort and their numbers as exact.
 
 | Metric | Value |
 |---|---|
-| Commits on main | 11 (1 today, head `27f552f`) |
-| Pushed to origin | yes, in sync |
+| Commits on main | 21 (11 today, head `5b5154b`) |
+| Pushed to origin | no (ahead 7, behind 0) |
 | Uncommitted files | 0 |
 | Typecheck | pass |
-| Tests | 99 pass, 0 fail (10 suites) |
-| Source lines (src/) | 6023 across 45 files |
-| Test lines (tests/) | 1431 across 16 files |
-| Agent runs in DB | 4 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
+| Tests | 119 pass, 0 fail (11 suites) |
+| Source lines (src/) | 7141 across 47 files |
+| Test lines (tests/) | 1789 across 18 files |
+| Agent runs in DB | 12 (forward-deployed-tester, sdet-architect, ai-site-auditor ×10; all succeeded) |
 
 **Done**
 
@@ -46,23 +46,69 @@ best-effort and their numbers as exact.
   mascot fix that had sat uncommitted since 09-14.
 - Verified live: all eight cross-link targets return 200, and the fetched mastheads on all four
   sites serve the new nav.
+- Made `forward-qa-agents` **public** after a full audit of the working tree and all history:
+  no secrets in any blob, no client or colleague names, fixtures all on reserved test domains,
+  emails all `example.*`. Scrubbed three internal references from this log first (two other
+  internal guides by name, defects found on unrelated personal builds, a hint at a second GitHub
+  account) — commit `72372ac`. History still holds them; accepting that was the user's call.
+  Every deep link from the four public sites now resolves for an anonymous visitor.
+- README: linked the four live guides, repaired the stale table (two were listed as unpublished)
+  and corrected counts left from when there were two agents (`27664e3`).
+- **Plate 46 grew from 51 checks to 87**, from three creator checklists the user supplied
+  (pre-launch, legal, and "20 reasons why your app looks vibecoded"):
+  - `a7f5bf5` **Design originality**, 19 checks — the violet-to-blue gradient, gradient hero text,
+    emoji headings, scaffold fonts, glassmorphism, the three-icon row, badge above the headline,
+    Lucide icons, untouched shadcn, fade-on-scroll, cursor beam, opacity-only hover, off-scale
+    spacing, italic serif accents, buzzword copy, em-dash density, WCAG AA contrast, grain over
+    gradient. Same architecture as the rest: an in-page script measures, pure functions judge.
+  - `4cb36de` **Launch readiness**, 17 checks — policies, consent before tracking, third-party
+    inventory, forms, spam protection, analytics, CTA, contact and legal identity, dead-end 404,
+    focus outline, divs wired to click.
+  - `29f7613` the report now leads with a prioritised fix plan; `1094b33` findings fold into the
+    plan rows and evidence renders as evidence; `b60371d` client-facing header and branded footer.
+- Two false positives found by running against real sites, both fixed before any client saw them:
+  `0b01c59` a form with no `action` is unverifiable, not broken (a React `onSubmit` form is fine),
+  and `5b5154b` `noindex` on `/login` or `/auth/register` is correct practice, not a defect.
+  The second was caught on the user's own site and moved its search score from 32 to 50.
+- Scoring bug caught by an integration test: design tells are mostly info-weight, so a site could
+  trip all nineteen and still score 100. Design is now scored by accumulation, 6 points per tell.
+- Ran the tool on three real sites with the owner's consent: two belonging to a contact who asked
+  for feedback, and the user's own. All three fail launch readiness hardest (no privacy policy,
+  no terms, no analytics, unprotected forms), while building and AI visibility are fine.
 
 **Decided**
 
 - Publish both remaining sites now rather than hold them: four sites, one masthead set, one hub.
 - Nav caps at seven items; anything beyond that goes to the footer. The thesis was the first casualty.
 - Generated pixel values get rounded at the generator, not patched in output.
+- Make the source repo public and accept the five scrubbed lines remaining in history, rather than
+  rewrite history and break the log's own commit citations and two published site references.
+- Design is scored by accumulation, not severity: no single tell is a defect, the pattern is.
+- Seven legal items stay out of the tool — dark patterns, hidden fees, unsupported claims, fake
+  reviews, licensing, age consent, whether collected data is necessary. A deterministic checker
+  cannot rule on them and pretending otherwise would be worse than saying nothing.
+- Report branding lives in the environment (`BRAND_*`), never in source: the house rule keeps real
+  company names out of the repo, and one checkout can then serve more than one brand.
+- Declined to build an Instagram scraper. Meta's Graph API genuinely cannot return text burned into
+  reel frames, so the official API was not an answer — but a scraper is fragile ground for a paid
+  service. The sanctioned route that does work is "download your information", then OCR locally.
 
 **Open / next**
 
-1. **`forward-qa-agents` is a private repo, and all four public sites link into it.** Every
-   "source", "tests", "docs", "Thesis" and "Progress log" link 404s for anyone but the owner
-   (verified unauthenticated). Either make the repo public or drop those links from the sites.
-   Pre-existing, now multiplied across four public sites. User's call.
-2. Add a clear next step (run it, contact, engagement offer) to the FDT and SDET sites; the
-   09-14 comparison showed ours has none.
-3. Plate 44 redesign: ledger schema in `src/core/db.ts` first.
-4. Bump `actions/checkout` and `actions/setup-node` to v5.
+1. **Push: 7 commits are ahead of origin.** Nothing from the auditor work is pushed yet.
+2. **Auditor slice three, still outstanding and approved:** image weight and compression, page load
+   speed, and the 390px mobile pass (horizontal overflow, tap targets). Needs a performance
+   collector; the design and readiness collectors are the pattern to follow.
+3. **investoraiclub.com is its own thread.** Next.js, nine pages, already has `/login`,
+   `/auth/register` and `/forgot-password`, so accounts exist. No billing, no Stripe, no pricing
+   page anywhere. Worst findings: no privacy policy, no terms, no contact details, four forms whose
+   submissions cannot be traced, no analytics, `/booking` shipping 2.3 MB of JavaScript, a canonical
+   on `/how-it-works` pointing at the non-www host, and `/auth/register` with no `<title>`.
+   The user wants the auditor added to that site as a tool with account and billing pages. The repo
+   for it is not on this machine — ask for it before starting.
+4. Add a clear next step (run it, contact, engagement offer) to the FDT and SDET sites.
+5. Plate 44 redesign: ledger schema in `src/core/db.ts` first.
+6. Bump `actions/checkout` and `actions/setup-node` to v5.
 
 ---
 
