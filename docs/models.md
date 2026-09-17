@@ -1,6 +1,6 @@
 # Model policy: open-weight, local, free
 
-Both agents in this repo are **deterministic first**. Every deliverable (crawl, findings,
+All three agents in this repo are **deterministic first**. Every deliverable (crawl, findings,
 generated Playwright + MCP project, migration report) is produced with no model at all.
 A model is used only to *enrich* text (executive summaries, suggestions for leftovers the
 parsers could not convert), and always with a deterministic fallback.

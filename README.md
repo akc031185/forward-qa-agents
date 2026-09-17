@@ -11,8 +11,16 @@ open-weight model (DeepSeek, Kimi, Qwen) running locally. See [docs/models.md](d
 | 46 | **The AI Site Auditor** (`ai-site-auditor`) | Point it at a site built with an AI tool (Lovable, Bolt, v0, Replit, a Vite or CRA export). It compares what AI crawlers receive with what a browser renders, checks robots rules and firewalls per AI bot, search SEO, and builder mistakes including secrets in the JavaScript bundle, then writes a self-contained evaluation page with three scores. |
 
 Each agent is its own folder under `src/agents/`, has its own CLI, its own REST routes, its own
-tests, and its own field-guide plate under `docs/agents/`. Both persist to the same SQLite
+tests, and its own field-guide plate under `docs/agents/`. All three persist to the same SQLite
 database and are exposed through one REST API.
+
+**Live field guides:** [The Forward Deployed Tester](https://akc031185.github.io/forward-deployed-tester/) ·
+[The SDET Architect](https://akc031185.github.io/sdet-architect/) ·
+[The AI Site Auditor](https://akc031185.github.io/ai-site-auditor/) ·
+[The SDET Roadmap](https://akc031185.github.io/sdet-roadmap/) — all generated from this repo, details
+[below](#field-guides-one-site-per-agent-one-source). The thesis behind plate 44 is
+[docs/forward-deployed-tester-thesis.md](docs/forward-deployed-tester-thesis.md); the working log is
+[PROGRESS.md](PROGRESS.md).
 
 ## Quick start
 
@@ -98,10 +106,10 @@ Each agent has a field guide of its own, published from its own repo through Git
 |---|---|---|
 | The Forward Deployed Tester (plate 44) + the engagement process page | https://akc031185.github.io/forward-deployed-tester/ | `akc031185/forward-deployed-tester` |
 | The SDET Architect (plate 45) | https://akc031185.github.io/sdet-architect/ | `akc031185/sdet-architect` |
-| The AI Site Auditor (plate 46) | not yet published (built locally into `../ai-site-auditor`) | — |
-| The SDET Roadmap (agentic AI testing, Selenium → Playwright) | not yet published (built locally into `../sdet-roadmap`) | — |
+| The AI Site Auditor (plate 46) | https://akc031185.github.io/ai-site-auditor/ | `akc031185/ai-site-auditor` |
+| The SDET Roadmap (agentic AI testing, Selenium → Playwright) | https://akc031185.github.io/sdet-roadmap/ | `akc031185/sdet-roadmap` |
 
-Both are **generated from this repo**; the site repos hold output only.
+All four are **generated from this repo**; the site repos hold output only.
 
 ```
 _build/build-catalog.ts        the generator (--site <config dir> --out <site dir>)
