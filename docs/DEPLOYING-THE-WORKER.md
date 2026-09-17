@@ -129,6 +129,23 @@ Chromium is the whole reason this can't run on Vercel, and it is the whole sizin
   contract above to work (the callback carries the full report inline), so an ephemeral disk is
   fine; mount a volume at `/data` only if you want run history to persist.
 
+## Verified end to end
+
+The image in this repo was built and exercised on 17 September 2026 before being documented:
+
+- `docker build` succeeds from `mcr.microsoft.com/playwright:v1.63.0-noble` (3.76 GB image).
+- The container starts and `/health` answers 200 within about five seconds.
+- `/health/browser` returns `{"ok":true,"chromium":true,"launch_ms":256}` — Chromium really does
+  launch as the non-root user with `--no-sandbox`, which is the thing a liveness probe alone would
+  not have caught.
+- `/worker/audits` rejects a missing and a wrong bearer token with 401.
+- A real audit of a live public site returned `202 {id, status:"queued"}` immediately, finished in
+  **7.4 s**, and delivered its callback with the correct `Authorization` header, a `run_id`, all
+  five area scores and grades, findings counts, and a 25 KB self-contained HTML report inlined in
+  the payload. Polling `GET /worker/audits/:id` agreed with the callback.
+
+So the contract in this document is observed behaviour, not intent.
+
 ## Why `--no-sandbox`, and why it's still safe
 
 Chromium's own sandbox needs either a non-root process combined with a container-level seccomp
