@@ -5,12 +5,13 @@
  "static": ["report-sample.png"],
  "nav": [
   { "label": "Contents", "href": "index.html" },
-  { "label": "Progress log", "href": "https://github.com/akc031185/forward-qa-agents/blob/main/PROGRESS.md" },
   { "label": "Forward Deployed Tester", "href": "https://akc031185.github.io/forward-deployed-tester/" },
   { "label": "SDET Architect", "href": "https://akc031185.github.io/sdet-architect/" },
-  { "label": "QA Agents", "href": "https://akc031185.github.io/qa-agents/" }
+  { "label": "SDET Roadmap", "href": "https://akc031185.github.io/sdet-roadmap/" },
+  { "label": "QA Agents", "href": "https://akc031185.github.io/qa-agents/" },
+  { "label": "Progress log", "href": "https://github.com/akc031185/forward-qa-agents/blob/main/PROGRESS.md" }
  ],
- "footer": "The AI Site Auditor · code in [forward-qa-agents](https://github.com/akc031185/forward-qa-agents) · companion guides: [The Forward Deployed Tester](https://akc031185.github.io/forward-deployed-tester/), [The SDET Architect](https://akc031185.github.io/sdet-architect/), [QA Agents](https://akc031185.github.io/qa-agents/).",
+ "footer": "The AI Site Auditor · code in [forward-qa-agents](https://github.com/akc031185/forward-qa-agents) · companion guides: [The Forward Deployed Tester](https://akc031185.github.io/forward-deployed-tester/), [The SDET Architect](https://akc031185.github.io/sdet-architect/), [The SDET Roadmap](https://akc031185.github.io/sdet-roadmap/) and the [QA Agents field guide](https://akc031185.github.io/qa-agents/).",
  "heroH1": "A site that looks finished in a browser can be empty to every AI assistant.",
  "heroLead": [
   "Point the agent at a site built with Lovable, Bolt, v0, Replit or a Vite/CRA export.",

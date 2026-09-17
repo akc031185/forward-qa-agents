@@ -434,7 +434,7 @@ function crewSvg(n: number): string {
   // Each character occupies a ~70px column; trim the viewBox so a short row stays left-aligned.
   const width = 6 + picked.length * 70;
   // Scale the row to its own width: one character must not stretch across the whole hero.
-  return `<svg viewBox="0 0 ${width} 84" style="width:min(${width * 1.4}px,100%)">${picked.join('')}</svg>`;
+  return `<svg viewBox="0 0 ${width} 84" style="width:min(${Math.round(width * 1.4)}px,100%)">${picked.join('')}</svg>`;
 }
 
 // ── Render index (contents) ────────────────────────────────────────────────

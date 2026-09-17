@@ -207,7 +207,7 @@ export const sdetConfidence = svg(760, 400, 'Locator confidence ladder: each Sel
     const y = 14 + i * 27;
     const color = c >= 0.8 ? '#2EC4A0' : c >= 0.6 ? '#FFB020' : '#FF6B6B';
     out += T(290, y + 16, s, { a: 'end', fs: 11.5, fw: 800 });
-    out += `<rect x="${x0}" y="${y + 4}" width="${w}" height="18" rx="9" fill="var(--tint)"/><rect x="${x0}" y="${y + 4}" width="${w * c}" height="18" rx="9" fill="${color}"/>`;
+    out += `<rect x="${x0}" y="${y + 4}" width="${w}" height="18" rx="9" fill="var(--tint)"/><rect x="${x0}" y="${y + 4}" width="${Math.round(w * c * 10) / 10}" height="18" rx="9" fill="${color}"/>`;
     out += `<text x="${x0 + 8}" y="${y + 17}" font-size="10.5" font-weight="700" fill="#fff" font-family="ui-monospace,Menlo,monospace">${e.replace(/</g, '&lt;').replace(/"/g, '&quot;')}</text>`;
     out += T(x0 + w + 12, y + 17, c.toFixed(2), { a: 'start', fs: 11.5, fw: 800, fill: 'var(--ink)' });
   });

@@ -4,11 +4,13 @@
  "repoUrl": "https://github.com/akc031185/forward-qa-agents",
  "nav": [
   { "label": "Contents", "href": "index.html" },
-  { "label": "Progress log", "href": "https://github.com/akc031185/forward-qa-agents/blob/main/PROGRESS.md" },
   { "label": "Forward Deployed Tester", "href": "https://akc031185.github.io/forward-deployed-tester/" },
-  { "label": "QA Agents", "href": "https://akc031185.github.io/qa-agents/" }
+  { "label": "AI Site Auditor", "href": "https://akc031185.github.io/ai-site-auditor/" },
+  { "label": "SDET Roadmap", "href": "https://akc031185.github.io/sdet-roadmap/" },
+  { "label": "QA Agents", "href": "https://akc031185.github.io/qa-agents/" },
+  { "label": "Progress log", "href": "https://github.com/akc031185/forward-qa-agents/blob/main/PROGRESS.md" }
  ],
- "footer": "The SDET Architect · code in [forward-qa-agents](https://github.com/akc031185/forward-qa-agents) · companion guides: [The Forward Deployed Tester](https://akc031185.github.io/forward-deployed-tester/) and the [QA Agents field guide](https://akc031185.github.io/qa-agents/).",
+ "footer": "The SDET Architect · code in [forward-qa-agents](https://github.com/akc031185/forward-qa-agents) · companion guides: [The Forward Deployed Tester](https://akc031185.github.io/forward-deployed-tester/), [The AI Site Auditor](https://akc031185.github.io/ai-site-auditor/), [The SDET Roadmap](https://akc031185.github.io/sdet-roadmap/) and the [QA Agents field guide](https://akc031185.github.io/qa-agents/).",
  "heroH1": "Whatever tests an organisation already has, rebuilt as one Playwright architecture.",
  "heroLead": [
   "Point it at a folder of Selenium in Java, Python, C# or JavaScript, Cucumber features, Postman collections and markdown test plans.",

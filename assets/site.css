@@ -60,8 +60,8 @@ h2.display{font-size:clamp(1.45rem,2.8vw,2rem);}
 .masthead__inner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 16px;padding-top:14px;padding-bottom:14px;}
 .masthead__title{display:flex;align-items:center;gap:10px;min-width:0;font-weight:800;font-size:1rem;letter-spacing:-.01em;}
 .masthead__title b{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;background:#FFB020;color:#fff;font-size:.95rem;transform:rotate(-4deg);}
-.masthead__nav{display:flex;gap:8px;}
-.masthead__nav a{text-decoration:none;font-weight:700;font-size:.9rem;padding:8px 16px;border-radius:var(--r-pill);color:var(--ink-soft);transition:background .18s,color .18s;}
+.masthead__nav{display:flex;flex-wrap:wrap;gap:8px;}
+.masthead__nav a{white-space:nowrap;text-decoration:none;font-weight:700;font-size:.9rem;padding:8px 16px;border-radius:var(--r-pill);color:var(--ink-soft);transition:background .18s,color .18s;}
 .masthead__nav a:hover{background:#FFECD9;color:var(--ink);}
 .masthead__nav a:first-child{background:var(--ink);color:#FFF8EE;}
 
@@ -283,6 +283,7 @@ button.fc-node{cursor:pointer;}
 @media (max-width:560px){
   .masthead__inner{flex-direction:column;align-items:stretch;gap:8px;}
   .masthead__title{align-self:stretch;font-size:.92rem;line-height:1.2;}
+  .masthead__nav{flex-wrap:nowrap;overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
   .masthead__nav a{padding:7px 13px;font-size:.85rem;}
   .hero{padding:48px 0 40px;}
   .stat{min-width:0;flex:1 1 44%;padding:14px 18px 12px;}

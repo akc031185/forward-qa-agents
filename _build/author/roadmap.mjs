@@ -109,8 +109,10 @@ const twoTracks = svg(760, 250, 'Two tracks side by side, six stages each, with 
 const NAV = [
   ['Roadmap', 'index.html'],
   ...TRACKS.map(t => [t.short, t.file]),
+  ['Forward Deployed Tester', 'https://akc031185.github.io/forward-deployed-tester/'],
   ['SDET Architect', 'https://akc031185.github.io/sdet-architect/'],
-  ['FDT', 'https://akc031185.github.io/forward-deployed-tester/'],
+  ['AI Site Auditor', 'https://akc031185.github.io/ai-site-auditor/'],
+  ['QA Agents', 'https://akc031185.github.io/qa-agents/'],
 ];
 const head = (title, extra = '') => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -165,7 +167,7 @@ const mast = (active) => `<header class="masthead"><div class="wrap masthead__in
 </div></header>`;
 const src = (ids) => `<p class="srcs">Sources: ${ids.map(id => `<a href="${SOURCES[id].url}" target="_blank" rel="noopener">${esc(SOURCES[id].label)}</a>`).join(' · ')}</p>`;
 const fig = (heading, s, caption) => `<figure class="fig"><div class="fig__head" style="display:inline-block;font-weight:800;font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;background:var(--tint);color:var(--deep);padding:6px 14px;border-radius:999px;margin-bottom:12px">${esc(heading)}</div>${s}${caption ? `<figcaption>${rich(caption)}</figcaption>` : ''}</figure>`;
-const footer = `<footer class="footer"><div class="wrap">The SDET Roadmap · measurable steps for agentic AI testing and Selenium-to-Playwright migration · generated from <a class="doclink" href="https://github.com/akc031185/forward-qa-agents" target="_blank" rel="noopener">forward-qa-agents</a>. Checklist progress stays in your browser.</div></footer>`;
+const footer = `<footer class="footer"><div class="wrap">The SDET Roadmap · measurable steps for agentic AI testing and Selenium-to-Playwright migration · generated from <a class="doclink" href="https://github.com/akc031185/forward-qa-agents" target="_blank" rel="noopener">forward-qa-agents</a>. Companion guides: <a class="doclink" href="https://akc031185.github.io/forward-deployed-tester/">The Forward Deployed Tester</a>, <a class="doclink" href="https://akc031185.github.io/sdet-architect/">The SDET Architect</a>, <a class="doclink" href="https://akc031185.github.io/ai-site-auditor/">The AI Site Auditor</a> and the <a class="doclink" href="https://akc031185.github.io/qa-agents/">QA Agents field guide</a>. Checklist progress stays in your browser.</div></footer>`;
 
 // ───────────────────────────────────────────── pages
 function indexPage() {

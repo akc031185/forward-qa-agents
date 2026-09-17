@@ -6,12 +6,13 @@
  "nav": [
   { "label": "Contents", "href": "index.html" },
   { "label": "Process", "href": "process.html" },
-  { "label": "Thesis", "href": "https://github.com/akc031185/forward-qa-agents/blob/main/docs/forward-deployed-tester-thesis.md" },
-  { "label": "Progress log", "href": "https://github.com/akc031185/forward-qa-agents/blob/main/PROGRESS.md" },
   { "label": "SDET Architect", "href": "https://akc031185.github.io/sdet-architect/" },
-  { "label": "QA Agents", "href": "https://akc031185.github.io/qa-agents/" }
+  { "label": "AI Site Auditor", "href": "https://akc031185.github.io/ai-site-auditor/" },
+  { "label": "SDET Roadmap", "href": "https://akc031185.github.io/sdet-roadmap/" },
+  { "label": "QA Agents", "href": "https://akc031185.github.io/qa-agents/" },
+  { "label": "Progress log", "href": "https://github.com/akc031185/forward-qa-agents/blob/main/PROGRESS.md" }
  ],
- "footer": "The Forward Deployed Tester · code in [forward-qa-agents](https://github.com/akc031185/forward-qa-agents) · companion guides: [The SDET Architect](https://akc031185.github.io/sdet-architect/) and the [QA Agents field guide](https://akc031185.github.io/qa-agents/).",
+ "footer": "The Forward Deployed Tester · code in [forward-qa-agents](https://github.com/akc031185/forward-qa-agents) · [the thesis behind it](https://github.com/akc031185/forward-qa-agents/blob/main/docs/forward-deployed-tester-thesis.md) · companion guides: [The SDET Architect](https://akc031185.github.io/sdet-architect/), [The AI Site Auditor](https://akc031185.github.io/ai-site-auditor/), [The SDET Roadmap](https://akc031185.github.io/sdet-roadmap/) and the [QA Agents field guide](https://akc031185.github.io/qa-agents/).",
  "heroH1": "Vendors deliver the AI. Somebody has to measure what it actually delivered.",
  "heroLead": [
   "Point the agent at a running web app: it crawls, records what is broken, and provisions a Playwright + Playwright MCP project in one run.",
