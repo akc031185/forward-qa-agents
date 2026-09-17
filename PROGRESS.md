@@ -101,6 +101,31 @@ best-effort and their numbers as exact.
   `envCheck` module that specifically detects the trailing-`\n` class. First run against
   production found a ninth problem: the AWS IAM key no longer exists (`InvalidAccessKeyId`), so
   uploads are down.
+- **The two workstreams the day actually started with, both built and deployed:**
+  - *Replacing GHL.* `/admin/crm` in `ai-tool-dashboard`: a drag-and-drop pipeline board of
+    Problems by status (drops go through the existing status endpoint, so GHL sync and event
+    logging are untouched), a contact list, and a per-contact timeline merging Problems,
+    Proposals, Projects, EmailDrips and Events. Admin-gated via the existing `requireAdmin`.
+    `docs/CRM-VS-GHL.md` records that the only honest remainder is SMS and phone calls —
+    calendars are Calendly and email is Resend, so neither is a GHL dependency.
+    Found while building: the GHL pipeline has four stages and `ghl.ts` maps all four, but
+    `Problem.status` stopped at `complete` in both the Mongoose enum and the status endpoint, so
+    nothing could ever set `closed`. Widened the enum, the endpoint and three page-level unions,
+    and gave `closed` a label and colour — a lead that goes nowhere now has a terminal state.
+  - *The site auditor as a tool on the site.* `/tools/site-audit` (submit + history) and
+    `/tools/site-audit/[id]` (result), a `SiteAudit` model, and `src/lib/auditRunner.ts` — a typed
+    adapter over `AUDIT_WORKER_URL`/`AUDIT_WORKER_TOKEN`, so where Chromium runs stays an open
+    decision. Unset, the feature reports "not configured" rather than erroring. Verified by hand
+    rather than taken on trust: cross-user reads return **404 not 403** (so another user's audit
+    id cannot be confirmed to exist), the worker's report renders in `sandbox=""` with no
+    `allow-same-origin` and never via `dangerouslySetInnerHTML`, and URL validation rejects
+    loopback, every private range, IPv6 forms, obfuscated encodings and `169.254.169.254` — 16
+    tests. Without that last part, "audit any URL" is a tool for probing your own infrastructure.
+  - Navigation wired once by the parent, since both branches were told to leave `Navbar.jsx` alone.
+    49 tests, typecheck and production build green; deployed and live.
+- README corrected: it documented the storage credentials as `AWS_ACCESS_KEY_ID` etc. while the
+  code reads `AWS_S3_ACCESS_KEY_ID` — a plausible route to setting a value where nothing reads it.
+  Every name now verified against actual `process.env` usage, six missing ones added.
 - **Worktree isolation lesson:** `isolation: "worktree"` creates a worktree of *this session's*
   repo, not of the repo the task concerns. All three agents landed in `forward-qa-agents` and one
   correctly refused to improvise. Re-dispatched against hand-made worktrees of the right repo with
@@ -134,7 +159,14 @@ best-effort and their numbers as exact.
    1 opportunity, 1 pipeline, 0 custom fields and 0 calendars (booking is Calendly). There is no
    CRM to migrate. `scripts/ghlInventory.ts` in that repo enumerates it; workflow and form scopes
    are missing from the token if a fuller picture is wanted.
-3. The auditor integration design for that site is still unwritten — the user chose plan-first.
+3. **The site-audit worker is the next real piece of work.** The app side is live but inert until
+   `forward-qa-agents` is deployed somewhere with a browser (Railway/Fly/Render — it already has a
+   Fastify API and 119 tests), and `AUDIT_WORKER_URL`/`AUDIT_WORKER_TOKEN` are set. That is the
+   hosting decision the user deferred; nothing else blocks the feature.
+4. Billing on the audit tool is unimplemented by design, with a marked seam in `SiteAudit.ts` and
+   the POST handler. It is downstream of Stripe being in test mode anyway.
+5. Auditor slice three, still approved and still outstanding: image weight, page load speed, and
+   the 390px mobile pass with overflow and tap-target checks.
 2. **Auditor slice three, still outstanding and approved:** image weight and compression, page load
    speed, and the 390px mobile pass (horizontal overflow, tap targets). Needs a performance
    collector; the design and readiness collectors are the pattern to follow.
