@@ -17,6 +17,24 @@ export const config = {
   dbPath: path.resolve(process.env.DB_PATH ?? './data/forward-qa.db'),
   port: Number(process.env.PORT ?? 8787),
   workspaceDir: path.resolve(process.env.WORKSPACE_DIR ?? './workspace'),
+
+  /**
+   * Shared secret for the standalone worker endpoints (`/worker/*`, see `src/api/worker.ts`).
+   * The calling app authenticates its submit/status requests with this bearer token, and the
+   * worker re-attaches the same token to the callback it POSTs back, so the receiver can trust
+   * the callback came from this worker. Unset by default: the worker endpoints then refuse every
+   * request rather than running open. Never defaulted to a placeholder value on purpose.
+   */
+  workerToken: process.env.AUDIT_WORKER_TOKEN ?? '',
+
+  /**
+   * Chromium's own sandbox needs either a non-root process with a permissive seccomp profile, or
+   * `--no-sandbox`. Most container hosts (Railway/Fly/Render and similar) run images without a
+   * custom seccomp profile, so a non-root container — required by `docs/DEPLOYING-THE-WORKER.md`
+   * — needs `--no-sandbox` to launch at all. Off by default so local dev, CI and every existing
+   * test keep today's behaviour; the worker Dockerfile sets it to 1.
+   */
+  chromiumNoSandbox: process.env.CHROMIUM_NO_SANDBOX === '1',
 };
 
 /**

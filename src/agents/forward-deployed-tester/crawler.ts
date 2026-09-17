@@ -1,6 +1,7 @@
 // Reconnaissance: breadth-first same-origin crawl with Playwright. Everything that runs
 // inside the browser lives in `harvestPage`, which is serialised and executed in the page.
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
+import { config } from '../../core/config.js';
 import type { ElementDescriptor } from './locators.js';
 import { deriveLocator, toPropertyName, uniqueNames } from './locators.js';
 import type { BrokenLink, CrawlOptions, CrawlResult, FailedRequest, HarvestResult, InteractiveElement, PageRecord } from './types.js';
@@ -229,7 +230,7 @@ export async function crawl(opts: CrawlOptions): Promise<CrawlResult> {
   if (!startUrl) throw new Error(`invalid target_url: ${opts.startUrl}`);
   const origin = new URL(startUrl).origin;
 
-  const browser = await chromium.launch({ headless: opts.headless });
+  const browser = await chromium.launch({ headless: opts.headless, args: config.chromiumNoSandbox ? ['--no-sandbox'] : [] });
   const pages: PageRecord[] = [];
   const brokenLinks: BrokenLink[] = [];
   const skipped: string[] = [];

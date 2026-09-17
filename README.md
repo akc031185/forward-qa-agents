@@ -54,6 +54,7 @@ Optional local model (free, offline once pulled):
 | Method | Path | Purpose |
 |--------|------|---------|
 | GET  | `/health` | liveness, active model provider, agent list |
+| GET  | `/health/browser` | deep health: launches and closes a real Chromium instance |
 | GET  | `/agents` | agent catalogue |
 | POST | `/engagements` | `{ org, name, target_url? }` → engagement |
 | GET  | `/engagements`, `/engagements/:id` | list / read |
@@ -64,6 +65,12 @@ Optional local model (free, offline once pulled):
 | GET  | `/agents/sdet-architect/runs/:id/migration` | MIGRATION.md |
 | GET  | `/agents/ai-site-auditor/runs/:id/report` | report.html (the evaluation page) |
 | POST | `/agents/sdet-architect/preview` | `{ language, code }` → converted Playwright spec (no disk, no DB) |
+
+Everything above is synchronous and unauthenticated — meant for the CLIs and local dev. Running
+this repo as a standalone worker behind another app (Chromium doesn't run on Vercel) is a separate,
+bearer-authenticated, asynchronous contract: `POST`/`GET /worker/audits[/:id]`, with a callback on
+completion. See [docs/DEPLOYING-THE-WORKER.md](docs/DEPLOYING-THE-WORKER.md) for the full contract,
+the Dockerfile, environment variables, and per-host notes (Railway/Fly.io/Render).
 
 Example:
 
