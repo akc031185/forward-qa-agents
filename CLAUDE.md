@@ -26,15 +26,20 @@
   (text, code slices, annotations) and `_build/author/diagrams.mjs` (inline SVG), writes
   `_build/sites/{fdt,sdet,audit}/content/*.json`, then builds into the sibling checkouts
   `../forward-deployed-tester`, `../sdet-architect` and `../ai-site-auditor` (GitHub Pages repos,
-  output only; the audit site is not published yet). Prefer `block(file, startRe, endRe)` over
-  line numbers for code slices so plates survive edits.
+  output only; all published). Prefer `block(file, startRe, endRe)` over line numbers for code
+  slices so plates survive edits.
   Edit the two author files, never the JSON, never the HTML; then commit and push each site repo.
 - The SDET Roadmap is a separate site: content in `_build/author/roadmap-data.mjs`, renderer
-  `_build/author/roadmap.mjs`, output `../sdet-roadmap` via `npm run catalog:roadmap`. Every stage
-  needs a goal, at most six steps, a deliverable, and gates of metric · target · how to measure.
+  `_build/author/roadmap.mjs`, output `../sdet-roadmap` via `npm run catalog:roadmap` (published).
+  Every stage needs a goal, at most six steps, a deliverable, and gates of metric · target · how to
+  measure.
   Targets are fixed bars or relative to the learner's own baseline; never a vendor's claimed result.
 - Code blocks in a plate must be the repo's real code (sliced by line range, then annotated), and
   every number must come from a recorded run (`workspace/*/run.log`, the `runs` table) or the test
   output. No invented figures.
 - Prose rule: anything over two lines is a bullet list of at most six items; the generator
   rejects longer lists.
+- All four sites cross-link: each masthead carries the other three plus the QA Agents hub. Adding a
+  fifth site means updating four `nav` lists (three `site.json`, plus `NAV` in `roadmap.mjs`) and
+  the hand-written `_build/sites/fdt/process.html`. Keep the bar to seven items; the rest go to the
+  footer.

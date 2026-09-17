@@ -10,6 +10,62 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-09-17 (Thursday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 11 (1 today, head `27f552f`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 99 pass, 0 fail (10 suites) |
+| Source lines (src/) | 6023 across 45 files |
+| Test lines (tests/) | 1431 across 16 files |
+| Agent runs in DB | 4 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
+
+**Done**
+
+- Read the log, checked all five folders against it: state matched. Put the overnight publish
+  decision to the user, who chose to publish both sites, round the mascot value first, and
+  cross-link all four mastheads.
+- 00:45 Cross-linked every field guide site so a reader landing on one can reach the rest.
+  Each masthead now carries the other three plus the QA Agents hub; footers and READMEs list the
+  same set. The FDT thesis link moved from the nav to the footer to hold the bar at seven items.
+  `assets/site.css`: nav wraps on desktop, scrolls horizontally under 560px, so it never overflows.
+- Rounded two generated pixel values that were leaking float noise into published HTML: the hero
+  mascot (`106.39999999999999px` → `106px`, `_build/build-catalog.ts`) and the confidence-ladder
+  bars (`115.49999999999999` → 0.1px precision, `_build/author/diagrams.mjs`).
+- 01:02 Gates green, committed `27f552f` (9 files, +28/−20) and pushed.
+- **Published two new public GitHub Pages sites**, both built · live · verified:
+  `akc031185/ai-site-auditor` (commit `4733f00`) at https://akc031185.github.io/ai-site-auditor/
+  and `akc031185/sdet-roadmap` (commit `abfbbbb`) at https://akc031185.github.io/sdet-roadmap/.
+  Each got a README pointing back at the generator and the MIT LICENSE from the FDT repo.
+- Pushed the rebuilt FDT (`56297c1`) and SDET Architect (`92710b2`) sites, which carried the
+  mascot fix that had sat uncommitted since 09-14.
+- Verified live: all eight cross-link targets return 200, and the fetched mastheads on all four
+  sites serve the new nav.
+
+**Decided**
+
+- Publish both remaining sites now rather than hold them: four sites, one masthead set, one hub.
+- Nav caps at seven items; anything beyond that goes to the footer. The thesis was the first casualty.
+- Generated pixel values get rounded at the generator, not patched in output.
+
+**Open / next**
+
+1. **`forward-qa-agents` is a private repo, and all four public sites link into it.** Every
+   "source", "tests", "docs", "Thesis" and "Progress log" link 404s for anyone but the owner
+   (verified unauthenticated). Either make the repo public or drop those links from the sites.
+   Pre-existing, now multiplied across four public sites. User's call.
+2. Add a clear next step (run it, contact, engagement offer) to the FDT and SDET sites; the
+   09-14 comparison showed ours has none.
+3. Plate 44 redesign: ledger schema in `src/core/db.ts` first.
+4. Bump `actions/checkout` and `actions/setup-node` to v5.
+
+---
+
 ## 2026-09-14 (Monday)
 
 **Snapshot at end of day**
