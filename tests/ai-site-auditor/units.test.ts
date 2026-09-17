@@ -6,6 +6,7 @@ import { evaluate, grade, scores } from '../../src/agents/ai-site-auditor/rules.
 import { renderReportHtml } from '../../src/agents/ai-site-auditor/report.js';
 import { wordsInHtml } from '../../src/agents/ai-site-auditor/collect.js';
 import type { PageAudit, PageView, SiteFacts } from '../../src/agents/ai-site-auditor/types.js';
+import type { DesignRaw } from '../../src/agents/ai-site-auditor/design.js';
 
 test('robots: most specific group wins, longest rule wins, allow wins ties, wildcards', () => {
   const r = parseRobots(`# comment
@@ -64,9 +65,16 @@ const view = (over: Partial<PageView> = {}): PageView => ({
   h1: ['Acme'], headings: 3, words: 400, textSample: 'Acme makes things', links: [], hashRouteLinks: 0, images: 1, imagesMissingAlt: 0,
   jsonLd: { types: ['Organization'], errors: 0, blocks: 1 }, og: { title: 'Acme', image: '/og.png' }, hreflang: 0, favicon: true, html: '<html></html>', ...over,
 });
-const page = (path: string, raw: Partial<PageView>, rendered: Partial<PageView>): PageAudit => ({
+/** A rendered page always carries style measurements; this is the shape that trips no design tell. */
+export const cleanDesign: DesignRaw = {
+  gradientCss: [], gradientTextCount: 0, headings: ['Acme'], fonts: [['Georgia', 40]], glassCount: 0,
+  coloredBorderCards: 0, iconRows: 0, badgeAboveH1: false, lucideIcons: 0, shadcnMarkers: 0,
+  scrollFadeCount: 0, cursorBeam: false, hoverOpacityRules: 0, spacingPx: [8, 16, 24, 32],
+  serifItalicCount: 0, contrastPairs: [], grainOverlay: false, darkBackground: false,
+};
+const page = (path: string, raw: Partial<PageView>, rendered: Partial<PageView>, design: DesignRaw = cleanDesign): PageAudit => ({
   url: `https://acme.example.test${path}`, path, status: 200, raw: view(raw), rendered: view(rendered), loadMs: 100,
-  consoleErrors: [], failedRequests: [], mixedContent: [], scripts: [], jsBytes: 200_000,
+  consoleErrors: [], failedRequests: [], mixedContent: [], scripts: [], jsBytes: 200_000, design,
 });
 const facts = (pages: PageAudit[], over: Partial<SiteFacts> = {}): SiteFacts => ({
   origin: 'https://acme.example.test', startUrl: 'https://acme.example.test/', https: true,
@@ -82,7 +90,7 @@ test('rules: a well-built site produces no findings and straight A grades', () =
   const f = facts([page('/', {}, {}), page('/about', { title: 'About Acme', canonical: 'https://acme.example.test/about', metaDescription: 'About.' }, { title: 'About Acme', canonical: 'https://acme.example.test/about', metaDescription: 'About.' })]);
   const results = evaluate(f);
   assert.deepEqual(results.map(r => r.id), []);
-  assert.deepEqual(scores(results), { 'ai-visibility': 100, search: 100, build: 100 });
+  assert.deepEqual(scores(results), { 'ai-visibility': 100, search: 100, build: 100, design: 100 });
 });
 
 test('rules: the SPA shell pattern is caught once per root cause, with the right severities', () => {
@@ -125,8 +133,14 @@ test('regressions from validation: a failed render or an empty audit never reads
 
   const r2 = evaluate(facts([{ ...page('/', {}, {}), status: 0, raw: undefined, rendered: undefined, error: 'ECONNREFUSED' }]));
   const s2 = scores(r2);
-  assert.deepEqual([s2['ai-visibility'] < 100, s2.search < 100, s2.build < 100], [true, true, true], 'nothing audited drags every area down');
-  assert.deepEqual(r2.filter(r => r.id.startsWith('audit.')).map(r => r.severity), ['critical', 'critical', 'critical'], 'one critical per area');
+  assert.deepEqual([s2['ai-visibility'] < 100, s2.search < 100, s2.build < 100, s2.design < 100], [true, true, true, true], 'nothing audited drags every area down');
+  assert.deepEqual(r2.filter(r => r.id.startsWith('audit.')).map(r => r.severity), ['critical', 'critical', 'critical', 'critical'], 'one critical per area');
+  assert.equal(s2.design, 0, 'design cannot pass on a page that never rendered');
+
+  // rendered, but the style measurement itself failed: still not a pass
+  const r3 = evaluate(facts([{ ...page('/', {}, {}), design: undefined }]));
+  assert.ok(r3.some(x => x.id === 'design.not-measured'), 'an unmeasured design area is reported');
+  assert.equal(scores(r3).design, 0, 'and scores zero rather than a silent 100');
 });
 
 test('regressions from validation: small app shells, form labels, staging canonicals, off-host sitemaps', () => {

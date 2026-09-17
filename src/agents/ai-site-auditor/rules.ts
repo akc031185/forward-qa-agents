@@ -4,6 +4,10 @@
 import { CITATION_BOTS } from './bots.js';
 import { isAllowed } from './robots.js';
 import { builderSigns, DEFAULT_TITLES, findPlaceholders } from './parse.js';
+import {
+  buzzwordHits, emDashDensity, emojiHeadings, failingContrast, fontTells,
+  spacingOffScale, violetBlueGradients,
+} from './design.js';
 import type { Area, CheckResult, PageAudit, Severity, SiteFacts } from './types.js';
 
 export const SOURCES = {
@@ -334,6 +338,140 @@ export function isStagingHost(origin: string): boolean {
     || /\.(vercel\.app|netlify\.app|pages\.dev|lovable\.app|lovableproject\.com|bolt\.host|replit\.app|github\.io|web\.app|onrender\.com)$/i.test(host);
 }
 
+// ─────────────────────────────────────────── Design: the tells that say nobody touched the scaffold
+/**
+ * Every tell is counted, never judged by a model. A tell on its own is not a defect — plenty of
+ * good sites use Inter — so each check states the count and the page, and severity stays low or
+ * medium. The value is the pattern: a site tripping ten of these looks generated because it is.
+ */
+function design(f: SiteFacts): CheckResult[] {
+  const out: CheckResult[] = [];
+  const pages = live(f).filter(p => p.design);
+  if (!pages.length) {
+    out.push(r('design.not-measured', 'design', 'medium', 'Design could not be measured',
+      'Computed styles and the stylesheet could not be read, so none of the design tells were evaluated. This area is not a pass.',
+      'Re-run once the page renders; a cross-origin stylesheet alone does not cause this.'));
+    return out;
+  }
+  const d = pages[0]!.design!;
+  const D = 'https://www.nngroup.com/articles/visual-design-principles/';
+  const many = (n: number, label: string) => `${n} ${label}${n === 1 ? '' : 's'}`;
+
+  const vb = violetBlueGradients(d.gradientCss);
+  if (vb.length) out.push(r('design.violet-blue-gradient', 'design', 'medium',
+    `${many(vb.length, 'violet-to-blue gradient')} on the page`,
+    'This exact gradient is the default of almost every AI builder, so visitors who have seen other generated sites recognise it instantly.',
+    'Pick a palette from your own brand. If you keep a gradient, move it off the 250–290° violet band.',
+    { evidence: vb.slice(0, 4), source: D }));
+
+  if (d.gradientTextCount) out.push(r('design.gradient-hero-text', 'design', 'low',
+    `Headline text painted with a gradient (${d.gradientTextCount} element${d.gradientTextCount === 1 ? '' : 's'})`,
+    'Gradient-filled headings are a scaffold default and they lower text contrast, which also hurts readability.',
+    'Set a solid colour on headings; keep gradients for backgrounds and accents.', { source: D }));
+
+  const emo = emojiHeadings(d.headings);
+  if (emo.length) out.push(r('design.emoji-headings', 'design', 'low',
+    `${many(emo.length, 'heading')} containing emoji`,
+    'Emoji in headings is a generated-copy signature, and screen readers announce each one by name.',
+    'Remove them, or move them into body copy where they carry meaning.',
+    { evidence: emo, source: D }));
+
+  const tells = fontTells(d.fonts);
+  if (tells.length) out.push(r('design.scaffold-fonts', 'design', 'low',
+    `Default scaffold font${tells.length === 1 ? '' : 's'}: ${tells.map(t => t.family).join(', ')}`,
+    'Inter, Space Grotesk and Instrument Serif are what the generators reach for, so the type alone dates the site.',
+    'Choose a typeface that belongs to your brand; even one deliberate change breaks the resemblance.',
+    { evidence: tells, source: D }));
+
+  if (d.coloredBorderCards >= 3) out.push(r('design.colored-border-cards', 'design', 'info',
+    `${many(d.coloredBorderCards, 'card')} with a saturated coloured border`,
+    'Coloured 1px borders on rounded cards are a default component look.',
+    'Use a neutral border, or separate cards with space and shadow instead.', { source: D }));
+
+  if (d.glassCount >= 2) out.push(r('design.glassmorphism', 'design', 'info',
+    `${many(d.glassCount, 'frosted-glass panel')} (backdrop-filter: blur)`,
+    'Glassmorphism reads as a template choice and costs paint performance on low-end devices.',
+    'Keep it for one deliberate surface, such as a sticky header, not for every card.', { source: D }));
+
+  if (d.iconRows) out.push(r('design.three-icon-row', 'design', 'info',
+    `${many(d.iconRows, 'row')} of exactly three icon-and-heading cells`,
+    'The three-feature row is the single most repeated generated layout.',
+    'Say the three things in your own structure, or show one real screenshot instead.', { source: D }));
+
+  if (d.badgeAboveH1) out.push(r('design.badge-above-headline', 'design', 'info',
+    'A small pill badge sits directly above the headline',
+    'The "✨ Now in beta" pill above an H1 is a scaffold hero convention.',
+    'Delete it, or replace it with something a visitor needs at that moment.', { source: D }));
+
+  if (d.lucideIcons >= 5) out.push(r('design.lucide-icons', 'design', 'info',
+    `${many(d.lucideIcons, 'Lucide icon')}`,
+    'Untouched Lucide is the default icon set of every shadcn scaffold.',
+    'Pick an icon set that matches your brand weight, or commission a few real ones.', { source: D }));
+
+  if (d.shadcnMarkers >= 10) out.push(r('design.untouched-shadcn', 'design', 'low',
+    `${many(d.shadcnMarkers, 'untouched shadcn/ui class')} in the markup`,
+    'shadcn/ui is a good starting point, but shipped unchanged it makes every site look like the same site.',
+    'Change the radius, spacing scale and colour tokens in your theme file; that alone breaks the resemblance.', { source: D }));
+
+  if (d.scrollFadeCount >= 4) out.push(r('design.fade-in-on-scroll', 'design', 'info',
+    `${many(d.scrollFadeCount, 'element')} fading in on scroll`,
+    'Fade-on-scroll applied to everything delays content for no reason and is a template default.',
+    'Keep motion for one or two moments that deserve emphasis, and respect prefers-reduced-motion.', { source: D }));
+
+  if (d.cursorBeam) out.push(r('design.cursor-beam', 'design', 'info',
+    'A cursor-following light effect is wired to a CSS custom property',
+    'The beam that follows the pointer is a recognisable generated flourish and does nothing on touch devices.',
+    'Remove it; it costs a mousemove handler on every frame.', { source: D }));
+
+  if (d.hoverOpacityRules >= 1) out.push(r('design.hover-opacity', 'design', 'info',
+    `${many(d.hoverOpacityRules, 'hover rule')} whose only change is opacity`,
+    'Fading opacity is the laziest hover state: it reads as disabled rather than interactive.',
+    'Change background or border on hover and keep a visible :focus-visible ring.', { source: D }));
+
+  const sp = spacingOffScale(d.spacingPx);
+  if (sp.share >= 0.4 && d.spacingPx.length >= 8) out.push(r('design.inconsistent-spacing', 'design', 'low',
+    `${Math.round(sp.share * 100)}% of spacing values sit off any common scale`,
+    'Arbitrary padding and margin values are what accumulate when each section is generated separately.',
+    'Adopt one scale (4 or 8 px steps) and round every value onto it.',
+    { evidence: { offScale: sp.offScale, used: d.spacingPx.length }, source: D }));
+
+  if (d.serifItalicCount >= 2) out.push(r('design.serif-italic-accents', 'design', 'info',
+    `${many(d.serifItalicCount, 'italic serif accent')}`,
+    'A few italic serif words dropped into a sans headline is a current generated-design cliché.',
+    'Emphasise with weight or colour, or commit to the serif properly.', { source: D }));
+
+  const text = pages.map(p => p.rendered?.textSample ?? '').join(' ');
+  const buzz = buzzwordHits(text);
+  if (buzz.length >= 2) out.push(r('design.buzzword-copy', 'design', 'low',
+    `${many(buzz.length, 'generic marketing phrase')}: ${buzz.slice(0, 5).join(', ')}`,
+    'Copy that could belong to any product tells a visitor nothing and is the clearest sign the words were generated.',
+    'Replace each with something only you could write: a number, a customer, a specific before and after.',
+    { evidence: buzz, source: D }));
+
+  const dash = emDashDensity(text);
+  if (dash.per1000 >= 4 && dash.count >= 3) out.push(r('design.em-dash-density', 'design', 'info',
+    `${dash.count} em dashes in ${dash.words} words (${dash.per1000} per 1,000)`,
+    'Dense em-dash punctuation is one of the most reliable tells of unedited generated copy.',
+    'Keep the ones that earn their place; make the rest full stops or commas.', { source: D }));
+
+  const contrast = pages.flatMap(p => failingContrast(p.design?.contrastPairs ?? []));
+  if (contrast.length) {
+    const worst = contrast.sort((a, b) => a.ratio - b.ratio)[0]!;
+    out.push(r('design.low-contrast-text', 'design', d.darkBackground ? 'medium' : 'low',
+      `${many(contrast.length, 'text sample')} below the WCAG AA contrast minimum${d.darkBackground ? ' (dark theme)' : ''}`,
+      `The worst is ${worst.ratio}:1 where ${worst.need}:1 is required. Low-contrast grey-on-dark is the default of most generated dark themes and is unreadable in daylight.`,
+      'Raise the text colour until every sample reaches 4.5:1, or 3:1 for text at 24px and above.',
+      { evidence: contrast.slice(0, 6), source: 'https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html' }));
+  }
+
+  if (d.grainOverlay) out.push(r('design.grain-over-gradient', 'design', 'info',
+    'A noise or grain texture is layered over a gradient',
+    'Grain over a gradient is a 2025-era generated-design signature.',
+    'Drop the texture, or use it somewhere it carries meaning.', { source: D }));
+
+  return out;
+}
+
 /** Audit integrity: a check that could not run must never read as a pass. */
 function integrity(f: SiteFacts): CheckResult[] {
   const out: CheckResult[] = [];
@@ -343,6 +481,7 @@ function integrity(f: SiteFacts): CheckResult[] {
       'Check the URL, network access and authentication, then run again.', { evidence: f.pages.map(p => ({ path: p.path, status: p.status, error: p.error })) }));
     out.push(r('audit.nothing-audited-search', 'search', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));
     out.push(r('audit.nothing-audited-build', 'build', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));
+    out.push(r('audit.nothing-audited-design', 'design', 'critical', 'No page could be audited', 'See AI visibility.', 'Run again.'));
     return out;
   }
   const failed = f.pages.filter(p => p.raw && !p.rendered);
@@ -360,17 +499,29 @@ function integrity(f: SiteFacts): CheckResult[] {
 }
 
 export function evaluate(f: SiteFacts): CheckResult[] {
-  const all = [...integrity(f), ...aiVisibility(f), ...search(f), ...build(f)];
+  const all = [...integrity(f), ...aiVisibility(f), ...search(f), ...build(f), ...design(f)];
   const order: Severity[] = ['critical', 'high', 'medium', 'low', 'info'];
   return all.sort((a, b) => order.indexOf(a.severity) - order.indexOf(b.severity));
 }
 
 export const WEIGHTS: Record<Severity, number> = { critical: 40, high: 18, medium: 8, low: 3, info: 0 };
+/**
+ * Design is scored by accumulation, not severity. No single tell is a defect — plenty of good
+ * sites use Inter — so each one costs the same and the pattern is what shows: two tells still
+ * grades B, ten grades D, and a page wearing the whole scaffold reaches 0.
+ */
+export const DESIGN_TELL_COST = 6;
+/** Markers that mean the area was not evaluated; they must never read as a pass. */
+const NOT_MEASURED = new Set(['design.not-measured', 'audit.nothing-audited-design']);
 
 /** 0–100 per area: 100 minus the weight of each failed check, floored at 0. */
 export function scores(results: CheckResult[]): Record<Area, number> {
-  const s: Record<Area, number> = { 'ai-visibility': 100, search: 100, build: 100 };
-  for (const x of results) s[x.area] = Math.max(0, s[x.area] - WEIGHTS[x.severity]);
+  const s: Record<Area, number> = { 'ai-visibility': 100, search: 100, build: 100, design: 100 };
+  for (const x of results) if (x.area !== 'design') s[x.area] = Math.max(0, s[x.area] - WEIGHTS[x.severity]);
+  const design = results.filter(x => x.area === 'design');
+  s.design = design.some(x => NOT_MEASURED.has(x.id))
+    ? 0
+    : Math.max(0, 100 - design.length * DESIGN_TELL_COST);
   return s;
 }
 

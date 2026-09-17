@@ -1,5 +1,6 @@
 // Data shapes for The AI Site Auditor. Browser-free, so rules and reports are testable in isolation.
 import type { Robots } from './robots.js';
+import type { DesignRaw } from './design.js';
 
 /** What the in-page extraction script returns, for either view of a page. */
 export interface PageView {
@@ -40,6 +41,7 @@ export interface PageAudit {
   mixedContent: string[];
   scripts: string[];             // same-origin script URLs seen while rendering
   jsBytes: number;
+  design?: DesignRaw;            // computed-style and CSSOM measurements, rendered view only
   error?: string;
 }
 
@@ -74,7 +76,7 @@ export interface SiteFacts {
   durationMs: number;
 }
 
-export type Area = 'ai-visibility' | 'search' | 'build';
+export type Area = 'ai-visibility' | 'search' | 'build' | 'design';
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
 /** One evaluated check. Per-page problems are aggregated into one result listing the pages. */

@@ -6,6 +6,8 @@ import { randomUUID } from 'node:crypto';
 import { AI_BOTS, UA_PROBE_BOTS } from './bots.js';
 import { parseRobots } from './robots.js';
 import { checkLlmsTxt, findSecrets, parseSitemap } from './parse.js';
+import { DESIGN_SCRIPT } from './design.js';
+import type { DesignRaw } from './design.js';
 import type { BotProbe, FetchResult, PageAudit, PageView, SiteFacts } from './types.js';
 
 export const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 ai-site-auditor/1.0';
@@ -148,7 +150,10 @@ async function renderedView(ctx: BrowserContext, url: string, timeoutMs: number)
     await page.waitForLoadState('load', { timeout: Math.min(8000, timeoutMs) }).catch(() => { loadTimedOut = true; });
     await page.waitForLoadState('networkidle', { timeout: Math.min(3000, timeoutMs) }).catch(() => undefined);
     const view = await extract(page);
-    return { rendered: view, loadMs: Date.now() - t0, loadTimedOut, consoleErrors, failedRequests, mixedContent, scripts: [...scripts], jsBytes };
+    // Design tells need computed styles and the CSSOM, so they are measured in the live page.
+    // A failure here must never lose the page: the area is simply not scored.
+    const design = await (page.evaluate(`(${DESIGN_SCRIPT})()`) as Promise<DesignRaw>).catch(() => undefined);
+    return { rendered: view, design, loadMs: Date.now() - t0, loadTimedOut, consoleErrors, failedRequests, mixedContent, scripts: [...scripts], jsBytes };
   } catch (err) {
     return { loadMs: Date.now() - t0, consoleErrors, failedRequests, mixedContent, scripts: [...scripts], jsBytes, error: err instanceof Error ? err.message.split('\n')[0] : String(err) };
   } finally {

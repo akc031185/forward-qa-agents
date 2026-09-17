@@ -74,7 +74,7 @@ async function run(input: Input, ctx: AgentContext): Promise<Output> {
   return {
     pages_audited: facts.pages.length,
     scores: s,
-    grades: { 'ai-visibility': grade(s['ai-visibility']), search: grade(s.search), build: grade(s.build) },
+    grades: { 'ai-visibility': grade(s['ai-visibility']), search: grade(s.search), build: grade(s.build), design: grade(s.design) },
     findings_by_severity: countBySeverity(results),
     report_html: htmlPath,
     report_md: mdPath,

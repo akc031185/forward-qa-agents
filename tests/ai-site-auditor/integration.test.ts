@@ -9,20 +9,27 @@ import type { AddressInfo } from 'node:net';
 import { Db } from '../../src/core/db.js';
 import { aiSiteAuditor } from '../../src/agents/ai-site-auditor/index.js';
 
-import { createSpaSite, createSsrSite, FAKE_KEY } from '../../fixtures/ai-site-auditor/sites.js';
+import { createSpaSite, createSsrSite, createVibecodedSite, FAKE_KEY } from '../../fixtures/ai-site-auditor/sites.js';
 
-let spa: http.Server; let good: http.Server; let spaUrl = ''; let goodUrl = ''; let chromiumOk = true;
+let spa: http.Server; let good: http.Server; let vibe: http.Server;
+let spaUrl = ''; let goodUrl = ''; let vibeUrl = ''; let chromiumOk = true;
 
 before(async () => {
   spa = createSpaSite();
   good = createSsrSite();
+  vibe = createVibecodedSite();
   await new Promise<void>(r => spa.listen(0, '127.0.0.1', r));
   await new Promise<void>(r => good.listen(0, '127.0.0.1', r));
+  await new Promise<void>(r => vibe.listen(0, '127.0.0.1', r));
   spaUrl = `http://127.0.0.1:${(spa.address() as AddressInfo).port}/`;
   goodUrl = `http://127.0.0.1:${(good.address() as AddressInfo).port}/`;
+  vibeUrl = `http://127.0.0.1:${(vibe.address() as AddressInfo).port}/`;
   try { const { chromium } = await import('playwright'); await (await chromium.launch()).close(); } catch { chromiumOk = false; }
 });
-after(async () => { spa.closeAllConnections(); good.closeAllConnections(); await new Promise<void>(r => spa.close(() => r())); await new Promise<void>(r => good.close(() => r())); });
+after(async () => {
+  for (const srv of [spa, good, vibe]) srv.closeAllConnections();
+  for (const srv of [spa, good, vibe]) await new Promise<void>(r => srv.close(() => r()));
+});
 
 async function audit(url: string) {
   const db = new Db(':memory:');
@@ -81,5 +88,44 @@ test('server-rendered site: visible to AI crawlers, training bot blocked by choi
   assert.equal(off?.kind, 'other-host', 'off-host sitemap recorded, not fetched');
   assert.equal(off?.status, 0);
   assert.ok(a.ids.includes('seo.sitemap-other-host'));
+  a.db.close(); fs.rmSync(a.workspaceDir, { recursive: true, force: true });
+});
+
+test('vibecoded site: technically sound, but the design tells are all present', { timeout: 180_000 }, async (t) => {
+  if (!chromiumOk) { t.skip('Chromium is not installed'); return; }
+  const a = await audit(vibeUrl);
+
+  // The point of this fixture: it is server-rendered and indexable, so a poor design grade cannot
+  // be a side effect of the other areas failing.
+  assert.equal(a.output.scores['ai-visibility'], 100, `ai findings: ${a.findings.filter(f => f.category === 'ai-visibility').map(f => f.title).join(' | ')}`);
+  assert.ok(!a.ids.includes('build.scaffold-title'), 'the title is real');
+
+  const expected = [
+    'design.violet-blue-gradient', 'design.gradient-hero-text', 'design.emoji-headings',
+    'design.scaffold-fonts', 'design.colored-border-cards', 'design.glassmorphism',
+    'design.three-icon-row', 'design.badge-above-headline', 'design.lucide-icons',
+    'design.fade-in-on-scroll', 'design.cursor-beam', 'design.hover-opacity',
+    'design.serif-italic-accents', 'design.buzzword-copy', 'design.low-contrast-text',
+    'design.grain-over-gradient',
+  ];
+  const missing = expected.filter(id => !a.ids.includes(id));
+  assert.deepEqual(missing, [], `design tells missed: ${missing.join(', ')}\nfound: ${a.ids.filter(i => i.startsWith('design.')).join(', ')}`);
+  assert.ok(a.output.scores.design < 60, `design score should be poor, got ${a.output.scores.design}`);
+
+  // the report has to show the new area
+  const html = fs.readFileSync(a.output.report_html, 'utf8');
+  assert.match(html, /Design originality/);
+  const report = JSON.parse(fs.readFileSync(path.join(a.workspaceDir, 'report.json'), 'utf8'));
+  assert.ok(typeof report.scores.design === 'number');
+  a.db.close(); fs.rmSync(a.workspaceDir, { recursive: true, force: true });
+});
+
+test('a well-designed server-rendered site trips few design tells', { timeout: 180_000 }, async (t) => {
+  if (!chromiumOk) { t.skip('Chromium is not installed'); return; }
+  const a = await audit(goodUrl);
+  const tells = a.ids.filter(i => i.startsWith('design.'));
+  assert.ok(tells.length <= 2, `plain site should be clean, got: ${tells.join(', ')}`);
+  assert.ok(!tells.includes('design.violet-blue-gradient'));
+  assert.ok(!tells.includes('design.buzzword-copy'));
   a.db.close(); fs.rmSync(a.workspaceDir, { recursive: true, force: true });
 });
