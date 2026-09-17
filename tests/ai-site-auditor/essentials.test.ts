@@ -5,6 +5,8 @@ import {
   classifyThirdParty, findPolicies, formProblems, looksCommercial, trackingThirdParty, unhelpful404,
 } from '../../src/agents/ai-site-auditor/essentials.js';
 import type { FormRaw } from '../../src/agents/ai-site-auditor/essentials.js';
+import { effortOf, fixPlan } from '../../src/agents/ai-site-auditor/report.js';
+import type { CheckResult } from '../../src/agents/ai-site-auditor/types.js';
 
 const L = (href: string, text = '') => ({ href, text });
 
@@ -84,4 +86,39 @@ test('404: right status but nothing usable on the page', () => {
   assert.equal(unhelpful404(404, '404', 60, 9), true, 'a bare title is the tell even with content');
   assert.equal(unhelpful404(404, 'Page not found — Acme', 60, 9), false, 'branded, with links out');
   assert.equal(unhelpful404(200, 'Not found', 4, 0), false, 'a soft 404 is a different finding');
+});
+
+// ── the fix plan ────────────────────────────────────────────────────────────
+const check = (id: string, severity: CheckResult['severity'], area: CheckResult['area'] = 'build'): CheckResult =>
+  ({ id, area, severity, title: id, why: 'w', fix: 'f' });
+
+test('fix plan: severity leads, then the quickest fix, and the order is total', () => {
+  const plan = fixPlan([
+    check('design.emoji-headings', 'low', 'design'),            // low, quick
+    check('build.secret-in-javascript', 'critical'),            // critical, project
+    check('seo.missing-title', 'high', 'search'),               // high, quick
+    check('ai.content-needs-javascript', 'critical', 'ai-visibility'), // critical, project
+    check('readiness.no-privacy-policy', 'high', 'readiness'),  // high, medium
+  ]);
+  assert.deepEqual(plan.map(i => i.result.id), [
+    'ai.content-needs-javascript',   // critical before everything; ai-visibility sorts before build
+    'build.secret-in-javascript',
+    'seo.missing-title',             // high + quick beats high + medium
+    'readiness.no-privacy-policy',
+    'design.emoji-headings',
+  ]);
+  assert.deepEqual(plan.map(i => i.rank), [1, 2, 3, 4, 5], 'ranks are 1-based and contiguous');
+  assert.equal(plan[0]!.effort, 'project');
+  assert.equal(plan[2]!.effort, 'quick');
+});
+
+test('fix plan: same input always gives the same order, and unknown checks default to medium', () => {
+  const input = [check('b.two', 'medium'), check('a.one', 'medium'), check('c.three', 'medium')];
+  const once = fixPlan(input).map(i => i.result.id);
+  const twice = fixPlan([...input].reverse()).map(i => i.result.id);
+  assert.deepEqual(once, twice, 'input order never changes the plan');
+  assert.deepEqual(once, ['a.one', 'b.two', 'c.three'], 'ties break on id');
+  assert.equal(effortOf('something.unlisted'), 'medium');
+  assert.equal(effortOf('build.no-favicon'), 'quick');
+  assert.deepEqual(fixPlan([]), []);
 });

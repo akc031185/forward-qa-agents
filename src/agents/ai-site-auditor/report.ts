@@ -65,6 +65,80 @@ function botMatrix(f: SiteFacts): { token: string; vendor: string; purpose: stri
   });
 }
 
+// ── the fix plan ────────────────────────────────────────────────────────────
+export type Effort = 'quick' | 'medium' | 'project';
+export const EFFORT_LABEL: Record<Effort, string> = {
+  quick: 'under an hour', medium: 'half a day', project: 'a day or more',
+};
+
+/**
+ * How much work each fix is. Fixed per check, never guessed at run time, so two audits of the
+ * same site always order their plan the same way. Anything unlisted is treated as `medium`.
+ */
+export const EFFORT: Record<string, Effort> = {
+  // content and markup: edit a template
+  'seo.missing-title': 'quick', 'seo.missing-description': 'quick', 'seo.long-title': 'quick',
+  'seo.duplicate-titles': 'quick', 'seo.duplicate-descriptions': 'quick', 'seo.missing-h1': 'quick',
+  'seo.multiple-h1': 'quick', 'seo.missing-lang': 'quick', 'seo.missing-viewport': 'quick',
+  'seo.missing-canonical': 'quick', 'seo.canonical-to-home': 'quick', 'seo.canonical-other-host': 'quick',
+  'seo.missing-open-graph': 'quick', 'seo.images-missing-alt': 'quick', 'seo.noindex': 'quick',
+  'seo.no-robots-txt': 'quick', 'seo.robots-blocks-everything': 'quick', 'ai.robots-blocks-citation-bots': 'quick',
+  'ai.nosnippet': 'quick', 'ai.no-llms-txt': 'quick', 'ai.llms-txt-malformed': 'quick',
+  'build.no-favicon': 'quick', 'build.scaffold-title': 'quick', 'build.placeholder-content': 'quick',
+  'build.builder-fingerprints': 'quick', 'build.source-maps-public': 'quick',
+  'readiness.no-analytics': 'quick', 'readiness.unhelpful-404': 'quick',
+  'readiness.focus-outline-removed': 'quick', 'readiness.no-contact-details': 'quick',
+  'readiness.no-business-identity': 'quick', 'readiness.competing-calls-to-action': 'quick',
+  'design.emoji-headings': 'quick', 'design.badge-above-headline': 'quick', 'design.grain-over-gradient': 'quick',
+  'design.em-dash-density': 'quick', 'design.cursor-beam': 'quick', 'design.gradient-hero-text': 'quick',
+  'design.hover-opacity': 'quick', 'design.serif-italic-accents': 'quick', 'design.fade-in-on-scroll': 'quick',
+
+  // needs a decision, a document, or a pass over the design
+  'seo.no-sitemap': 'medium', 'seo.sitemap-broken-urls': 'medium', 'seo.sitemap-other-host': 'medium',
+  'ai.no-structured-data': 'medium', 'ai.structured-data-invalid': 'medium',
+  'build.security-headers': 'medium', 'build.console-errors': 'medium', 'build.failed-requests': 'medium',
+  'build.mixed-content': 'medium', 'build.env-file-public': 'medium',
+  'readiness.no-privacy-policy': 'medium', 'readiness.no-terms': 'medium', 'readiness.no-cookie-policy': 'medium',
+  'readiness.no-refund-policy': 'medium', 'readiness.no-data-deletion': 'medium',
+  'readiness.no-consent-banner': 'medium', 'readiness.form-no-validation': 'medium',
+  'readiness.form-unlabelled': 'medium', 'readiness.no-spam-protection': 'medium',
+  'readiness.no-call-to-action': 'medium', 'readiness.clickable-non-buttons': 'medium',
+  'design.violet-blue-gradient': 'medium', 'design.scaffold-fonts': 'medium', 'design.low-contrast-text': 'medium',
+  'design.buzzword-copy': 'medium', 'design.colored-border-cards': 'medium', 'design.glassmorphism': 'medium',
+  'design.three-icon-row': 'medium', 'design.lucide-icons': 'medium',
+
+  // architectural
+  'ai.content-needs-javascript': 'project', 'ai.title-set-by-javascript': 'project',
+  'ai.h1-set-by-javascript': 'project', 'ai.description-set-by-javascript': 'project',
+  'ai.structured-data-by-javascript': 'project', 'seo.hash-routes': 'project', 'seo.soft-404': 'project',
+  'build.secret-in-javascript': 'project', 'build.public-browser-keys': 'project',
+  'build.heavy-javascript': 'project', 'readiness.form-goes-nowhere': 'project',
+  'readiness.many-third-parties': 'project', 'design.untouched-shadcn': 'project',
+  'design.inconsistent-spacing': 'project',
+};
+export function effortOf(id: string): Effort { return EFFORT[id] ?? 'medium'; }
+
+export interface PlanItem { rank: number; result: CheckResult; effort: Effort }
+
+const SEV_RANK: Record<Severity, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+const EFFORT_RANK: Record<Effort, number> = { quick: 0, medium: 1, project: 2 };
+
+/**
+ * What to do first. Severity leads, because a leaked key outranks a gradient. Within one
+ * severity the quickest fix comes first, so the list starts with things that can be done today.
+ * Ordering is total and deterministic: the same findings always produce the same plan.
+ */
+export function fixPlan(results: CheckResult[]): PlanItem[] {
+  return [...results]
+    .filter(r => r.severity !== 'info' || !r.id.startsWith('audit.'))
+    .sort((a, b) =>
+      SEV_RANK[a.severity] - SEV_RANK[b.severity]
+      || EFFORT_RANK[effortOf(a.id)] - EFFORT_RANK[effortOf(b.id)]
+      || AREAS.indexOf(a.area) - AREAS.indexOf(b.area)
+      || a.id.localeCompare(b.id))
+    .map((result, i) => ({ rank: i + 1, result, effort: effortOf(result.id) }));
+}
+
 export function renderReportHtml(x: ReportInput): string {
   const f = x.facts;
   const s = scores(x.results);
@@ -104,19 +178,30 @@ export function renderReportHtml(x: ReportInput): string {
   const botRows = matrix.map(m => `<tr><td><b>${esc(m.token)}</b><div class="muted small">${esc(m.vendor)}</div></td><td><span class="pill p-${m.purpose}">${esc(m.purpose)}</span></td>
     <td class="${m.robotsAllowed === false ? 'bad' : 'ok'}">${esc(m.robots)}</td><td class="${m.probeBlocked ? 'bad' : ''}">${m.probe ? esc(m.probe) : '<span class="muted">not probed</span>'}</td><td class="muted small">${esc(m.note)}</td></tr>`).join('');
 
-  const findings = areas.map(a => {
-    const rs = x.results.filter(r => r.area === a);
-    if (!rs.length) return `<section class="card"><h2>${AREA_LABEL[a]}</h2><p class="pass">No problems found.</p></section>`;
-    return `<section class="card"><h2>${AREA_LABEL[a]} <span class="muted small">· ${rs.length} finding${rs.length === 1 ? '' : 's'}</span></h2>
-      ${rs.map(r => `<article class="finding sev-${r.severity}">
-        <header><span class="sev">${r.severity}</span><h3>${esc(r.title)}</h3></header>
+  const plan = fixPlan(x.results);
+  const quickWins = plan.filter(i => i.effort === 'quick').length;
+
+  const planTable = !plan.length ? '' : `<section class="card" id="plan">
+    <h2>What to fix, in order</h2>
+    <p class="muted">Most serious first; within the same severity, the quickest fix first. ${quickWins ? `${quickWins} of these ${quickWins === 1 ? 'is' : 'are'} under an hour each.` : ''}</p>
+    <div class="tablewrap"><table><thead><tr><th>#</th><th>Issue</th><th>Severity</th><th>Effort</th><th>Area</th></tr></thead><tbody>
+    ${plan.map(i => `<tr><td class="num">${i.rank}</td><td><a href="#fix-${i.rank}">${esc(i.result.title)}</a></td>
+      <td><span class="sev sev-${i.result.severity}" style="background:var(--sc)">${i.result.severity}</span></td>
+      <td class="muted small">${EFFORT_LABEL[i.effort]}</td><td class="muted small">${AREA_LABEL[i.result.area]}</td></tr>`).join('')}
+    </tbody></table></div></section>`;
+
+  const findings = !plan.length
+    ? `<section class="card"><h2>Findings</h2><p class="pass">No problems found.</p></section>`
+    : `<section class="card"><h2>The findings in full</h2>
+      ${plan.map(i => { const r = i.result; return `<article class="finding sev-${r.severity}" id="fix-${i.rank}">
+        <header><span class="rank">${i.rank}</span><span class="sev">${r.severity}</span><h3>${esc(r.title)}</h3></header>
+        <p class="tags"><span class="tag">${AREA_LABEL[r.area]}</span><span class="tag">${EFFORT_LABEL[i.effort]}</span></p>
         <p><b>Why it matters.</b> ${esc(r.why)}</p>
         <p><b>Fix.</b> ${esc(r.fix)}</p>
         ${r.pages?.length ? `<p class="small"><b>Pages:</b> ${r.pages.slice(0, 12).map(p => `<code>${esc(p)}</code>`).join(' ')}${r.pages.length > 12 ? ` and ${r.pages.length - 12} more` : ''}</p>` : ''}
         ${r.source ? `<p class="small"><a href="${esc(r.source)}" target="_blank" rel="noopener">Source</a> · <code>${esc(r.id)}</code></p>` : `<p class="small"><code>${esc(r.id)}</code></p>`}
         ${r.evidence !== undefined ? `<details><summary>Evidence</summary><pre>${esc(JSON.stringify(r.evidence, null, 2).slice(0, 4000))}</pre></details>` : ''}
-      </article>`).join('')}</section>`;
-  }).join('');
+      </article>`; }).join('')}</section>`;
 
   const pageRows = f.pages.map(p => `<tr><td><code>${esc(p.path)}</code></td><td class="${p.status >= 400 || !p.status ? 'bad' : ''}">${p.status || esc(p.error)}</td>
     <td class="num ${p.rendered && p.rendered.words >= 50 && (p.raw?.words ?? 0) < p.rendered.words * 0.3 ? 'bad' : ''}">${p.raw?.words ?? '–'}</td><td class="num">${p.rendered?.words ?? '–'}</td>
@@ -167,6 +252,11 @@ details summary{cursor:pointer;font-size:.85rem;color:var(--soft)}pre{white-spac
 .pass{color:var(--ok);font-weight:700}.counts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.counts span{font-size:.8rem;font-weight:700;padding:3px 10px;border-radius:999px;color:#fff}
 footer{margin-top:28px;color:var(--soft);font-size:.82rem}
 @media (max-width:640px){.compare{grid-template-columns:1fr}}
+.rank{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;border-radius:999px;background:var(--sc);color:#fff;font-weight:800;font-size:.8rem}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 0}.tag{font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:999px;background:color-mix(in srgb,var(--line) 70%,transparent);color:var(--soft)}
+.apx{margin:34px 0 0;padding-top:18px;border-top:2px solid var(--line);font-size:1.05rem;color:var(--soft)}
+#plan td a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}#plan td a:hover{border-color:var(--accent)}
+#plan .sev{color:#fff}
 @media print{body{background:#fff}.card,.tile,.summary{break-inside:avoid}details{display:none}}
 </style></head>
 <body><main class="wrap">
@@ -176,13 +266,15 @@ footer{margin-top:28px;color:var(--soft);font-size:.82rem}
   <div class="summary"><ul class="summary__list">${x.summary.split(/(?<=[.!?])\s+(?=[A-Z])/).map(t => `<li>${esc(t)}</li>`).join('')}</ul>
     <div class="counts">${SEVERITIES.filter(sv => c[sv]).map(sv => `<span class="sev-${sv}" style="background:var(--sc)">${c[sv]} ${sv}</span>`).join('')}</div></div>
   <div class="tiles">${tiles}</div>
+  ${planTable}
+  ${findings}
+  <h2 class="apx">What was measured</h2>
   ${compare}
   <section class="card"><h2>AI crawler access</h2>
     <p class="muted">robots.txt decision for the home page, and what came back when the home page was requested with each crawler's real user agent. Search and user-fetch agents decide whether you are cited; training agents only decide whether your content trains future models.</p>
     <div class="tablewrap"><table><thead><tr><th>Agent</th><th>Purpose</th><th>robots.txt</th><th>Request as this agent</th><th>Notes</th></tr></thead><tbody>${botRows}</tbody></table></div>
     <p class="small muted">Some hosts prerender only for verified crawler IP addresses; a user-agent request from outside cannot see that. If the raw HTML above is empty but the host advertises crawler prerendering, confirm with the vendor's own URL inspection tool.</p>
   </section>
-  ${findings}
   <section class="card"><h2>Pages audited</h2><div class="tablewrap"><table><thead><tr><th>Path</th><th>Status</th><th>Words, no JS</th><th>Words, rendered</th><th>Title</th><th>h1</th><th>Desc.</th><th>Canonical</th><th>JS errors</th></tr></thead><tbody>${pageRows}</tbody></table></div></section>
   <section class="card"><h2>Site files and probes</h2><dl>${siteFiles}</dl></section>
   <footer>Generated by The AI Site Auditor (plate 46). Every check is deterministic; ${x.modelUsed ? 'a local model rephrased the summary only' : 'no model was used'}. Secret values are redacted to their first six characters. Scores: 100 minus 40 per critical, 18 per high, 8 per medium and 3 per low finding in that area. Design originality is scored by accumulation instead: 100 minus ${DESIGN_TELL_COST} per tell, because no single tell is a defect.</footer>
@@ -203,14 +295,22 @@ export function renderReportMarkdown(x: ReportInput): string {
     L.push('## Home page: AI crawler vs browser', '', '| | No JavaScript | Rendered |', '| --- | --- | --- |');
     L.push(`| Title | ${h.raw?.title ?? ''} | ${h.rendered.title} |`, `| h1 | ${h.raw?.h1[0] ?? ''} | ${h.rendered.h1[0] ?? ''} |`, `| Words | ${h.raw?.words ?? 0} | ${h.rendered.words} |`, '');
   }
-  L.push('## Findings', '');
-  for (const r of x.results) {
-    L.push(`### [${r.severity}] ${r.title}`, '', `- Area: ${AREA_LABEL[r.area]} · \`${r.id}\``, `- Why: ${r.why}`, `- Fix: ${r.fix}`);
+  const plan = fixPlan(x.results);
+  if (plan.length) {
+    L.push('## What to fix, in order', '');
+    L.push('| # | Issue | Severity | Effort | Area |', '| ---: | --- | :-: | --- | --- |');
+    for (const i of plan) L.push(`| ${i.rank} | ${i.result.title} | ${i.result.severity} | ${EFFORT_LABEL[i.effort]} | ${AREA_LABEL[i.result.area]} |`);
+    L.push('');
+  }
+  L.push('## The findings in full', '');
+  for (const i of plan) {
+    const r = i.result;
+    L.push(`### ${i.rank}. [${r.severity}] ${r.title}`, '', `- Area: ${AREA_LABEL[r.area]} · effort: ${EFFORT_LABEL[i.effort]} · \`${r.id}\``, `- Why: ${r.why}`, `- Fix: ${r.fix}`);
     if (r.pages?.length) L.push(`- Pages: ${r.pages.map(p => `\`${p}\``).join(', ')}`);
     if (r.source) L.push(`- Source: ${r.source}`);
     L.push('');
   }
-  if (!x.results.length) L.push('No problems found.', '');
+  if (!plan.length) L.push('No problems found.', '');
   return L.join('\n');
 }
 
