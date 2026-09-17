@@ -76,6 +76,36 @@ best-effort and their numbers as exact.
   for feedback, and the user's own. All three fail launch readiness hardest (no privacy policy,
   no terms, no analytics, unprotected forms), while building and AI visibility are fine.
 
+- **Afternoon, a second repo: `ai-tool-dashboard` (investoraiclub.com).** The user asked for the
+  auditor's findings fixed there and for the tool to be offered on that site. Found and fixed, in
+  order of severity:
+  - Every `<title>` on 11 pages rendered as `About | <!-- -->InvestorAI Club` to crawlers.
+    `<title>Text | {EXPR}</title>` gives React two children and its SSR writes a `<!-- -->`
+    separator; comments are not parsed inside `<title>` (RCDATA), so that is the literal string
+    Google and every AI crawler received. Eleven titles across ten files.
+  - **Deployments had failed since February.** `vercel.json` declared an hourly cron and the
+    account had moved Pro -> Hobby, which permits daily at most, so Vercel rejected every push
+    before building. The site was serving February's code. Moved the hourly email drip to a
+    GitHub Actions workflow calling the same route with the same `CRON_SECRET` bearer header,
+    keeping a daily Vercel call as a backstop. First successful deploy in 209 days.
+  - **Eight production environment variables carried a literal `\n`** from one bad paste. That
+    silently broke: the Stripe webhook secret (paid proposals never marked paid), the Stripe
+    publishable key, all four S3 variables, `ADMIN_EMAILS` (locking the owner out of admin), the
+    Calendly URL, the GHL token and location/pipeline ids, and the GHL chat widget's location id.
+    Nine integrations, no error anywhere: these all fail silently by design. The GHL token was
+    never expired — stripped of the escape it returned 200 immediately.
+  - Also added: privacy and terms pages, security headers (no `next.config.js` existed), llms.txt,
+    og:image, canonical host fix, published support address.
+- Three parallel subagents in git worktrees added analytics (Plausible, env-gated), honeypot and
+  time-trap spam protection on the three public forms, and `/api/health/integrations` with an
+  `envCheck` module that specifically detects the trailing-`\n` class. First run against
+  production found a ninth problem: the AWS IAM key no longer exists (`InvalidAccessKeyId`), so
+  uploads are down.
+- **Worktree isolation lesson:** `isolation: "worktree"` creates a worktree of *this session's*
+  repo, not of the repo the task concerns. All three agents landed in `forward-qa-agents` and one
+  correctly refused to improvise. Re-dispatched against hand-made worktrees of the right repo with
+  `node_modules` symlinked.
+
 **Decided**
 
 - Publish both remaining sites now rather than hold them: four sites, one masthead set, one hub.
@@ -95,7 +125,16 @@ best-effort and their numbers as exact.
 
 **Open / next**
 
-1. **Push: 7 commits are ahead of origin.** Nothing from the auditor work is pushed yet.
+1. **Handed back to the user on investoraiclub.com:** Stripe is in *test* mode so no card can be
+   charged (the webhook secret is per-mode, so the live endpoint's secret is needed, not the test
+   one repaired today); the AWS IAM key must be reissued before uploads work; and
+   `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` switches analytics on. The health endpoint returns 503 while any
+   of these fail, so it is worth pointing an uptime monitor at it.
+2. The GHL replacement question is now much smaller than estimated: the account holds 1 contact,
+   1 opportunity, 1 pipeline, 0 custom fields and 0 calendars (booking is Calendly). There is no
+   CRM to migrate. `scripts/ghlInventory.ts` in that repo enumerates it; workflow and form scopes
+   are missing from the token if a fuller picture is wanted.
+3. The auditor integration design for that site is still unwritten — the user chose plan-first.
 2. **Auditor slice three, still outstanding and approved:** image weight and compression, page load
    speed, and the 390px mobile pass (horizontal overflow, tap targets). Needs a performance
    collector; the design and readiness collectors are the pattern to follow.
