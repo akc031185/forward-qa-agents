@@ -7,6 +7,7 @@ import {
 import type { FormRaw } from '../../src/agents/ai-site-auditor/essentials.js';
 import { auditDate, effortOf, evidenceHtml, fixPlan, isEmptyEvidence, labelKey } from '../../src/agents/ai-site-auditor/report.js';
 import type { CheckResult } from '../../src/agents/ai-site-auditor/types.js';
+import { isPrivatePath } from '../../src/agents/ai-site-auditor/rules.js';
 
 const L = (href: string, text = '') => ({ href, text });
 
@@ -170,4 +171,13 @@ test('evidence: long lists are capped and the remainder is counted, and HTML is 
 test('audit date: a client reads a date, not an ISO timestamp', () => {
   assert.equal(auditDate('2026-09-17T08:39:03.133Z'), '17 September 2026');
   assert.equal(auditDate('not-a-date'), 'not-a-date', 'an unparseable value passes through unchanged');
+});
+
+test('noindex on a private path is correct practice, not a finding', () => {
+  for (const p of ['/login', '/auth/register', '/forgot-password', '/account/settings', '/dashboard', '/checkout']) {
+    assert.equal(isPrivatePath(p), true, `${p} should count as private`);
+  }
+  for (const p of ['/', '/about', '/how-it-works', '/case-studies', '/blog/logins-explained', '/accountants']) {
+    assert.equal(isPrivatePath(p), false, `${p} is a public page and must still be checked`);
+  }
 });

@@ -177,7 +177,10 @@ function search(f: SiteFacts): CheckResult[] {
   if (f.https && f.httpRedirect && !(f.httpRedirect.status >= 300 && f.httpRedirect.status < 400 && /^https:/.test(f.httpRedirect.location ?? ''))) out.push(r('seo.http-not-redirected', 'search', 'medium',
     'http:// does not redirect to https://', 'Two copies of every page, one insecure.', 'Redirect all http requests to https with a 301.', { evidence: f.httpRedirect }));
 
-  const noindex = pages.filter(p => /\bnoindex\b/i.test(p.raw?.robotsMeta ?? '') || /\bnoindex\b/i.test(p.rendered?.robotsMeta ?? ''));
+  const allNoindex = pages.filter(p => /\bnoindex\b/i.test(p.raw?.robotsMeta ?? '') || /\bnoindex\b/i.test(p.rendered?.robotsMeta ?? ''));
+  // noindex on a sign-in, registration or account page is correct and deliberate: those pages are
+  // not meant to rank. Only pages a visitor is supposed to find are worth reporting.
+  const noindex = allNoindex.filter(p => !isPrivatePath(p.path));
   if (noindex.length) out.push(r('seo.noindex', 'search', noindex.includes(h!) ? 'critical' : 'high',
     `noindex on ${noindex.length} page${noindex.length === 1 ? '' : 's'}`,
     'The page will be dropped from search and cannot appear in AI Overviews. Preview deployments often ship with it on.',
@@ -331,6 +334,14 @@ function normalisePath(u: string): string {
 }
 function safeOrigin(u: string): string | undefined { try { return new URL(u).origin; } catch { return undefined; } }
 function safeHost(u: string): string { try { return new URL(u).host; } catch { return u; } }
+/**
+ * Paths that are meant to be private. noindex here is correct practice, not a defect, so the
+ * search checks leave them alone rather than telling an owner to expose their login page.
+ */
+export function isPrivatePath(path: string): boolean {
+  return /(^|\/)(?:login|signin|sign-in|log-in|register|signup|sign-up|auth|account|dashboard|admin|checkout|cart|billing|forgot-password|reset-password|verify|logout|onboarding|profile|settings)(?:\/|$|\?)/i.test(path);
+}
+
 /** Local, private-network and builder preview hosts, where production canonicals and sitemaps are expected. */
 export function isStagingHost(origin: string): boolean {
   const host = safeHost(origin).replace(/:\d+$/, '');
