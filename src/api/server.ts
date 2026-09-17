@@ -7,6 +7,7 @@ import type { AgentDefinition } from '../core/agent.js';
 import { forwardDeployedTester } from '../agents/forward-deployed-tester/index.js';
 import { sdetArchitect } from '../agents/sdet-architect/index.js';
 import { aiSiteAuditor } from '../agents/ai-site-auditor/index.js';
+import { registerWorkerRoutes } from './worker.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const AGENTS: Record<AgentName, AgentDefinition<any, any>> = {
@@ -20,6 +21,27 @@ export function buildApp() {
   const db = getDb();
 
   app.get('/health', async () => ({ ok: true, llm: config.llmProvider, agents: Object.keys(AGENTS) }));
+
+  /**
+   * Deep health check for a host that can only tell a container is "up" by probing it: launches
+   * and closes a real Chromium instance. A worker whose browser cannot start (missing system
+   * libraries, wrong base image, out of memory) is useless even though the Fastify process is
+   * fine, so this is the endpoint `docs/DEPLOYING-THE-WORKER.md` tells the host to probe, not
+   * `/health` above. No auth: a load balancer's health probe does not carry the worker token, and
+   * the response reveals nothing but a boolean and a timing number.
+   */
+  app.get('/health/browser', async (_req, reply) => {
+    const startedAt = Date.now();
+    try {
+      const { chromium } = await import('playwright');
+      const browser = await chromium.launch({ headless: true, args: config.chromiumNoSandbox ? ['--no-sandbox'] : [] });
+      await browser.close();
+      return { ok: true, chromium: true, launch_ms: Date.now() - startedAt };
+    } catch (err) {
+      reply.code(503);
+      return { ok: false, chromium: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
 
   app.get('/agents', async () => Object.values(AGENTS).map(a => ({ name: a.name, plate: a.plate, oneLiner: a.oneLiner })));
 
@@ -58,6 +80,7 @@ export function buildApp() {
   app.get<{ Params: { id: string } }>('/runs/:id/artifacts', async (req) => db.listArtifacts(req.params.id));
 
   for (const a of Object.values(AGENTS)) a.registerRoutes?.(app);
+  registerWorkerRoutes(app, db);
   return app;
 }
 

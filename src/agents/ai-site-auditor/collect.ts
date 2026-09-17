@@ -3,6 +3,7 @@
 // HTML a non-rendering crawler receives, and once normally.
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
 import { randomUUID } from 'node:crypto';
+import { config } from '../../core/config.js';
 import { AI_BOTS, UA_PROBE_BOTS } from './bots.js';
 import { parseRobots } from './robots.js';
 import { checkLlmsTxt, findSecrets, parseSitemap } from './parse.js';
@@ -229,7 +230,7 @@ export async function collect(opts: CollectOptions): Promise<SiteFacts> {
   }
 
   // ── pages, two views each ────────────────────────────────────────────────
-  const browser: Browser = await chromium.launch({ headless: opts.headless });
+  const browser: Browser = await chromium.launch({ headless: opts.headless, args: config.chromiumNoSandbox ? ['--no-sandbox'] : [] });
   const pages: PageAudit[] = [];
   const skipped: string[] = [];
   const secrets: SiteFacts['secrets'] = [];

@@ -1,0 +1,16 @@
+node_modules
+dist
+data
+workspace
+.git
+.env
+*.log
+.DS_Store
+test-results
+playwright-report
+_build
+docs
+PROGRESS.md
+README.md
+fixtures
+tests
