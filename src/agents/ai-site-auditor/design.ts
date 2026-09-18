@@ -27,7 +27,7 @@ export interface DesignRaw {
   darkBackground: boolean;        // the page paints a dark ground
 }
 
-export interface ContrastPair { fg: string; bg: string; size: number; bold: boolean; sample: string }
+export interface ContrastPair { fg: string; bg: string; size: number; bold: boolean; sample: string; sel?: string }
 
 /**
  * Runs in the rendered page. Plain JavaScript source so no transpiler helpers leak in.
@@ -83,7 +83,19 @@ export const DESIGN_SCRIPT = String.raw`() => {
       if (out.contrastPairs.length < 60) {
         const size = parseFloat(cs.fontSize) || 16;
         const w = parseInt(cs.fontWeight, 10) || 400;
-        out.contrastPairs.push({ fg: cs.color, bg: bgOf(el), size: size, bold: w >= 700, sample: norm(el.textContent).slice(0, 60) });
+        {
+          var txt = norm(el.textContent);
+          // An emoji glyph paints in its own colours and ignores the CSS color property, so
+          // measuring color against the background says nothing about whether it is legible.
+          // Text that is nothing but emoji and punctuation is skipped rather than reported.
+          var hasLetters = /[A-Za-z0-9\u00C0-\u024F\u0400-\u04FF\u0590-\u05FF\u0600-\u06FF\u4E00-\u9FFF]/.test(txt);
+          if (hasLetters) {
+            var sel = el.tagName.toLowerCase();
+            if (el.id) sel += '#' + el.id;
+            else if (typeof el.className === 'string' && el.className.trim()) sel += '.' + el.className.trim().split(/\s+/).slice(0, 3).join('.');
+            out.contrastPairs.push({ fg: cs.color, bg: bgOf(el), size: size, bold: w >= 700, sample: txt.slice(0, 60), sel: sel });
+          }
+        }
       }
     }
 
@@ -210,13 +222,13 @@ export function aaThreshold(size: number, bold: boolean): number {
 }
 
 /** Text that fails AA against its own background. */
-export function failingContrast(pairs: ContrastPair[]): { sample: string; ratio: number; need: number }[] {
-  const out: { sample: string; ratio: number; need: number }[] = [];
+export function failingContrast(pairs: ContrastPair[]): { sample: string; sel?: string; ratio: number; need: number }[] {
+  const out: { sample: string; sel?: string; ratio: number; need: number }[] = [];
   for (const p of pairs) {
     const ratio = contrastRatio(p.fg, p.bg);
     if (ratio === undefined) continue;
     const need = aaThreshold(p.size, p.bold);
-    if (ratio < need) out.push({ sample: p.sample, ratio, need });
+    if (ratio < need) out.push({ sample: p.sample, sel: p.sel, ratio, need });
   }
   return out.sort((a, b) => a.ratio - b.ratio).slice(0, 10);
 }
