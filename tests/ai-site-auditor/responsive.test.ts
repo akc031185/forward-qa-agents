@@ -91,3 +91,21 @@ test('findViewport looks up by exact width', () => {
   assert.equal(findViewport(raws, 768)!.width, 768);
   assert.equal(findViewport(raws, 999), undefined);
 });
+
+test('overlapping tap targets: composition is not collision', () => {
+  const at = (sel: string, x: number, y: number, w: number, h: number) => ({ sel, x, y, w, h });
+  // a reveal button sitting wholly inside its input, which is how every password field works
+  const contained = overlappingTapTargets({
+    ...clean(390),
+    tapTargets: [at('#password', 0, 0, 300, 48), at('button.reveal', 250, 8, 40, 32)],
+  });
+  assert.deepEqual(contained, [], 'a control inside another control is one target');
+
+  // two buttons genuinely clipping each other: a thumb aiming at one can land on the other
+  const collided = overlappingTapTargets({
+    ...clean(390),
+    tapTargets: [at('button.a', 0, 0, 120, 44), at('button.b', 100, 20, 120, 44)],
+  });
+  assert.equal(collided.length, 1, 'a partial overlap is still reported');
+  assert.equal(collided[0]!.width, 390);
+});

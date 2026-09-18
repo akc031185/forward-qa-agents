@@ -87,6 +87,9 @@ export const RESPONSIVE_SCRIPT = String.raw`() => {
     if (!isVisible(el)) continue;
     let cs; try { cs = getComputedStyle(el); } catch (e) { continue; }
     if (el.tagName.toLowerCase() === 'a' && cs.display === 'inline') continue;
+    // An interactive element inside another interactive element is one tap target, not two.
+    // The <Link><button> pattern is everywhere in React apps and the pair is not a collision.
+    if (el.parentElement && el.parentElement.closest('a[href],button,[role="button"]')) continue;
     let r; try { r = el.getBoundingClientRect(); } catch (e) { continue; }
     if (!onscreen(r)) continue;
     tapTargets.push({ sel: selOf(el), x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) });
@@ -188,6 +191,13 @@ function rectsOverlap(a: TapTargetRaw, b: TapTargetRaw): boolean {
   return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
 }
 
+/** One box entirely inside the other. */
+export function contains(outer: TapTargetRaw, inner: TapTargetRaw): boolean {
+  return inner.x >= outer.x && inner.y >= outer.y
+    && inner.x + inner.w <= outer.x + outer.w
+    && inner.y + inner.h <= outer.y + outer.h;
+}
+
 export interface OverlapHit { a: string; b: string; width: number }
 
 /** Two tap targets whose boxes genuinely intersect: a thumb aiming at one can land on both. */
@@ -196,7 +206,13 @@ export function overlappingTapTargets(raw: ResponsiveRaw): OverlapHit[] {
   const t = raw.tapTargets;
   for (let i = 0; i < t.length && out.length < 20; i++) {
     for (let j = i + 1; j < t.length && out.length < 20; j++) {
-      if (rectsOverlap(t[i]!, t[j]!)) out.push({ a: t[i]!.sel, b: t[j]!.sel, width: raw.width });
+      const a = t[i]!, b = t[j]!;
+      if (!rectsOverlap(a, b)) continue;
+      // A control sitting wholly inside another — the reveal button in a password field, a
+      // clear button in a search box — is deliberate composition, not two targets competing for
+      // the same thumb. Only a partial overlap is a genuine collision.
+      if (contains(a, b) || contains(b, a)) continue;
+      out.push({ a: a.sel, b: b.sel, width: raw.width });
     }
   }
   return out;
