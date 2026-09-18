@@ -1,0 +1,27 @@
+# Railway deploy config for the standalone AI Site Auditor worker.
+# See docs/DEPLOYING-THE-WORKER.md — nothing here is host-specific except the file name; the
+# same two decisions are made by hand on Fly.io (fly.toml) or Render (dashboard).
+#
+# Config-as-code on purpose: these values override whatever the dashboard says for the current
+# deployment, so the two settings that decide whether this service works at all live in the repo
+# and survive a service being recreated, rather than depending on someone finding them in a UI.
+
+[build]
+# Railway's default builder is Railpack, which would autodetect a plain Node app and build it
+# without Chromium — the deploy would succeed and every audit would fail. The whole point of this
+# service is the browser in the Dockerfile's base image, so pin the builder explicitly.
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# /health only proves the Node process is up. /health/browser actually launches and closes
+# Chromium, which is the failure this service is prone to (a missing system library, an OOM
+# ceiling, CHROMIUM_NO_SANDBOX overridden to 0). Probing the shallow one would let Railway route
+# traffic to a container that cannot crawl anything.
+healthcheckPath = "/health/browser"
+healthcheckTimeout = 300
+
+# Chromium OOM-killing the process mid-crawl is the realistic crash here, and it is transient —
+# the next audit against a lighter page succeeds. Restart rather than leave the service down.
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
