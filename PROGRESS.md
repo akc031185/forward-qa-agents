@@ -10,6 +10,107 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-09-18 (Friday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 34 (2 today, head `da77a1b`) |
+| Pushed to origin | no (ahead 1, behind 0) |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 160 pass, 0 fail (10 suites) |
+| Source lines (src/) | 7978 across 52 files |
+| Test lines (tests/) | 2580 across 26 files |
+| Agent runs in DB | 0 — not measurable today, see note |
+
+> Numbers measured in a fresh clone at `/tmp/fqa`, not the working copy: macOS withdrew this
+> session's access to `~/Documents` mid-session (`ls` → `Operation not permitted`), so the repo
+> was unreachable from the tools all day. Commits, typecheck, tests and line counts are exact and
+> were run against `da77a1b`. "Agent runs in DB" reads 0 only because a clone has no local SQLite
+> file; the real count is whatever the working copy holds. "Uncommitted files: 0" likewise
+> describes the clone — **the working copy was never inspected today and may hold changes.**
+
+**Done**
+
+- **The AI Site Auditor worker is deployed and serving real traffic.** Railway Hobby ($5/mo),
+  built from this repo's `Dockerfile` on GitHub, at
+  `https://forward-qa-agents-production.up.railway.app`. Verified live, in this order: `/health`
+  200 · `/health/browser` `{"ok":true,"chromium":true,"launch_ms":143}` · unauthenticated
+  `POST /worker/audits` → 401 · `/worker/queue` `{"active":0,"queued":0,"limit":2}` · a real
+  audit of a public site **succeeded in 885 ms** with all six areas scored. Chromium really does
+  launch as the non-root `pwuser` with `--no-sandbox`, which the shallow probe would not show.
+- 02:53 `14ecfa7` `railway.toml`: builder pinned to `DOCKERFILE`, healthcheck on
+  `/health/browser`. The builder pin was the load-bearing half — Railway's default is now
+  Railpack, which would autodetect a plain Node app and build it **without Chromium**: a green
+  deploy where every audit fails. In the repo rather than the dashboard so it survives the
+  service being recreated.
+- Caught Railway's "Suggested Variables" staging eight values scraped from `.env.example`, which
+  is written for local dev. `CHROMIUM_NO_SANDBOX=0` would have overridden the Dockerfile's `1`
+  and stopped Chromium launching at all; `DB_PATH` and `WORKSPACE_DIR` pointed outside `/data`.
+  Replaced with the three that belong on a host. The file's own comment says "the Dockerfile does
+  this for you" — the scanner took the value and dropped the sentence.
+- **Wired to investoraiclub.com** (Vercel `ai-tool-dashboard-pdo1`): `AUDIT_WORKER_URL` and
+  `AUDIT_WORKER_TOKEN` set on production and preview.
+- **Three naming layers were mismatched between worker and dashboard, and every one failed
+  silently.** Found only by a real round trip; both repos' suites passed throughout.
+  - The route path 404'd — the only honest error in the stack.
+  - Field names: `run_id` / `report_html` / `findings_by_severity` against camelCase. Fixing the
+    path alone would have been *worse*: the POST succeeds, the run id reads `undefined`, and the
+    callback is dropped key by key, saving an audit as `succeeded` with no scores and no report.
+  - Area names: `ai-visibility` / `build` / `design` / `readiness` against the schema's
+    `aiVisibility` / `buildQuality` / `designOriginality` / `launchReadiness`. Mongoose strips
+    undeclared keys, so **two scores of six** were stored — `search` and `responsive`, the two
+    that happen to be spelled the same on both sides. It rendered as a partly-filled report.
+  - Fixed in `ai-tool-dashboard` `cbca1b6` (03:24) and `b67f41a` (03:27): all translation in one
+    function, `normalizeWorkerPayload()`. The worker's documented contract stands; the adapter
+    adapts. Dashboard tests **97 → 109**, asserting literal URLs and body keys — the previous
+    suite asserted no request shape at all, which is why a wholly wrong contract passed.
+  - Verified after: a submission through `POST /api/audits/public` returns all six areas.
+- 23:16 `da77a1b` **restored the typecheck gate on this repo.** `b9f9814` added `passwordField`
+  to `FormRaw` and missed `cleanEssentials` in the unit fixtures; `tsc` has failed on main since,
+  with `585acca`, `5ee92d0` and today's `14ecfa7` landing on top of it. Now clean, 160 pass.
+- Deleted a duplicate Vercel project (`ai-tool-dashboard`, same repo and branch as the live one).
+  It was a publicly reachable second copy of the site at `ai-tool-dashboard-six.vercel.app`
+  holding `MONGODB_URI` and `OPENAI_API_KEY` and nothing else — the same code against the
+  **production database** with two of its thirty-odd variables. Every push had been deploying
+  twice.
+
+**Decided**
+
+- The dashboard adapts to the worker, not the reverse. The worker's contract is documented and
+  verified against real runs, it has no other coupling to that app, and `auditRunner.ts` already
+  claimed to be where transport details live.
+- `normalizeWorkerPayload()` accepts both spellings of every field. Rejecting an unambiguous
+  one costs a lost report; accepting it costs nothing.
+- An unrecognised scored area passes through rather than being dropped: a seventh area should
+  fail loudly at the schema, not vanish in a mapping function.
+- Kubernetes is not needed at this scale and was not used. One container, `AUDIT_WORKER_CONCURRENCY=2`.
+  The ladder in `docs/ANALYZER-ARCHITECTURE.md` stands: one container → compose → Kubernetes.
+- Railway is interchangeable here. Nothing in the image or the docs favours it over Fly or Render.
+
+**Open / next**
+
+1. **This log's working copy is unverified.** `~/Documents` was unreadable to the session all
+   day; everything above came from clones. First job next session: confirm the working copies of
+   `forward-qa-agents` and `ai-tool-dashboard` are clean and match `da77a1b` / `b67f41a`, and
+   `git pull` both — neither has today's commits locally.
+2. `ai-tool-dashboard`'s `npm test` can never pass: it is bare `jest`, so it collects
+   `playwright/tests/*.spec.ts` and six suites fail to resolve. 109 tests pass, but the command
+   exits non-zero, so nothing can gate on it. One `testPathIgnorePatterns` line.
+3. The hero URL field on investoraiclub.com now works end to end. Still unexercised by a human:
+   the email-gated unlock, and the report email itself.
+4. Stripe is still in test mode — `details_submitted: false`. Needs legal entity, EIN, US bank
+   account, then live keys and a **live-mode** webhook secret. Blocks the paid tier entirely.
+5. Rotate the GHL private-integration token that was pasted into a chat window.
+6. `NEXT_PUBLIC_CF_BEACON_TOKEN` unset; the four `AWS_S3_*` vars are dead since storage moved to
+   Vercel Blob and can be deleted.
+7. Worker cost unobserved: no real month of Railway billing yet. The $5 plan's included usage
+   should cover launch volume; check before advertising.
+
+---
+
 ## 2026-09-17 (Thursday)
 
 **Snapshot at end of day**
