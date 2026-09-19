@@ -10,6 +10,90 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-09-19 (Saturday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 36 (1 today, head `799b963`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 163 pass, 0 fail (10 suites) |
+| Source lines (src/) | 8042 across 52 files |
+| Test lines (tests/) | 2633 across 27 files |
+| Agent runs in DB | 25 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
+
+**Done**
+
+- **`~/Documents` is readable again** (Full Disk Access granted before this session). Both repos
+  pulled to yesterday's heads and verified in the real working tree, not a clone: `45f7b56` here,
+  `b67f41a` in the dashboard, both clean, 160 pass / 109 pass.
+- **Walked the public funnel as a visitor, end to end, for the first time.** That is the whole
+  reason the day found anything: three defects, all invisible to both test suites.
+  1. **The findings never reached the customer.** The worker's callback carried
+     `findings_by_severity` and no findings, so every unlocked public report read
+     *"No findings to show — this site is in good shape"* under a C and a D, and the payoff email
+     said *"the worker has not reported any findings for this run yet"* — to someone who had just
+     handed over their email for exactly that list. A five-page site of ours produced 15 findings
+     locally (2 high, 4 medium, 8 low, 1 info) and delivered 0. Same shape as the 18 Sep area-name
+     bug: success, not an error, and each suite mocked the other.
+  2. **A bare domain was rejected.** The field's placeholder says `yoursite.com`; `validateAuditUrl`
+     handed the input straight to `new URL()`, which needs a scheme. Top of funnel, for anyone who
+     types what the placeholder shows. The rate limit was also checked *before* validation, so a
+     typo spent one of three tries per hour.
+  3. **Resend failures were invisible.** `sendAuditReportEmail` returns `{success:false}` and never
+     throws; neither caller looked at the result.
+- 17:23 dashboard `c3f5048`, 17:25 worker `799b963`. Deployed dashboard first on purpose: the old
+  schema rejects `info` findings, so the reverse order would have failed every callback and hung
+  audits on "Running".
+- **Verified live after deploy** (audit `6aaf0dd1fe0c581b707ea5db`, submitted as a bare domain):
+  15 findings stored with points and effort, the report page leads with the headline and the
+  before → after, and the email arrived in seconds from `noreply@investoraiclub.com`.
+- **The email was redesigned** around what a grade does not say. It leads with the worst finding's
+  consequence ("Search engines are being told to index only your home page."), then
+  *"Three fixes, each under an hour, take Search from C 60 to A 94"*, then the three fastest wins
+  with what each is worth, then areas split into hurting / worth a look / solid. Mocked up on a
+  canvas and approved before any of it was built.
+- Worker: `wireFindings()` (fix-plan order, `points`, `pages`), a `HEADLINE` line per high and
+  critical check, the contract in `docs/DEPLOYING-THE-WORKER.md`, and `many()` no longer writes
+  "classs". Tests 160 → 163; the dashboard's 109 → 124.
+
+**Decided**
+
+- **`points` travels with each finding, so the consequence is arithmetic, not a projection.** Each
+  area is 100 minus a fixed cost per finding, so the app can say what a fix is worth without
+  re-implementing the scoring or guessing. When the points do not reproduce the stored score, the
+  before → after line is dropped rather than shown wrong.
+- **An audit graded below A with no findings is not sent.** It means the findings were lost on the
+  way, not that there are none. It is held and logged, and the page says so instead of
+  "good shape". Silence beats a confident empty report.
+- **Headlines are a fixed table in the worker, one per high/critical check**, each restating only
+  what that check's own `why` establishes — like `EFFORT`, and for the same reason: two audits of
+  one site must read the same. Anything unlisted falls back to the finding's title.
+- **The worker's contract grew; the dashboard adapts, as decided on 18 Sep.** `findings` is the
+  list, `findings_by_severity` only counts it, and the doc now says so.
+
+**Open / next**
+
+1. The dashboard's `npm test` is bare `jest`, so it collects `playwright/tests/*.spec.ts` and six
+   suites fail to resolve. 124 tests pass but the command exits non-zero, so nothing can gate on
+   it. One `testPathIgnorePatterns` line.
+2. **No contract test spans the two repos.** Three naming defects in two days, each caught only by
+   a real round trip. The cheapest guard: a live smoke check that fails when a below-A audit comes
+   back with zero findings.
+3. Stripe is in test mode, `details_submitted: false` — needs a legal entity, EIN and US bank
+   account, then live keys *and* a live-mode webhook secret. Blocks the paid tier.
+4. Rotate the GoHighLevel private-integration token that was pasted into a chat window.
+5. `NEXT_PUBLIC_CF_BEACON_TOKEN` unset; the four `AWS_S3_*` vars are dead (storage moved to Vercel
+   Blob) and can be deleted.
+6. Railway cost still unobserved — no full month of billing yet.
+7. Funnel steps 4–5 (scheduled re-audits, audit-to-audit diff, then charging for it) are designed
+   in `docs/ANALYZER-FUNNEL.md` and not built.
+
+---
+
 ## 2026-09-18 (Friday)
 
 **Snapshot at end of day**
