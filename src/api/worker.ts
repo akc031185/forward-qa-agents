@@ -110,7 +110,7 @@ export function registerWorkerRoutes(
     const base = { id: run.id, status: run.status, error: run.error, started_at: run.started_at, finished_at: run.finished_at };
     if (run.status !== 'succeeded' || !run.output_json) return base;
     const output = JSON.parse(run.output_json) as AuditOutput;
-    return { ...base, scores: output.scores, grades: output.grades, findings_by_severity: output.findings_by_severity };
+    return { ...base, scores: output.scores, grades: output.grades, findings_by_severity: output.findings_by_severity, findings: output.findings ?? [] };
   });
 
   // Cheap operational visibility into the in-process concurrency gate: how many audits this

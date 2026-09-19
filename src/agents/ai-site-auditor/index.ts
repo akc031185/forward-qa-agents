@@ -11,7 +11,8 @@ import { getDb } from '../../core/db.js';
 import { maybeLlm } from '../../core/llm.js';
 import { collect } from './collect.js';
 import { evaluate, grade, scores } from './rules.js';
-import { buildReportJson, countBySeverity, deterministicSummary, renderReportHtml, renderReportMarkdown } from './report.js';
+import { buildReportJson, countBySeverity, deterministicSummary, renderReportHtml, renderReportMarkdown, wireFindings } from './report.js';
+import type { WireFinding } from './report.js';
 import type { Area, Severity } from './types.js';
 
 export const inputSchema = z.object({
@@ -36,6 +37,8 @@ export interface Output {
   scores: Record<Area, number>;
   grades: Record<Area, string>;
   findings_by_severity: Record<Severity, number>;
+  /** Every finding in fix-plan order, for a calling app to render without parsing report_html. */
+  findings: WireFinding[];
   report_html: string;
   report_md: string;
   summary: string;
@@ -84,6 +87,7 @@ async function run(input: Input, ctx: AgentContext): Promise<Output> {
     scores: s,
     grades: { 'ai-visibility': grade(s['ai-visibility']), search: grade(s.search), build: grade(s.build), design: grade(s.design), responsive: grade(s.responsive), readiness: grade(s.readiness) },
     findings_by_severity: countBySeverity(results),
+    findings: wireFindings(results),
     report_html: htmlPath,
     report_md: mdPath,
     summary,

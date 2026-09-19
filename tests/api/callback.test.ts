@@ -8,6 +8,11 @@ const OUTPUT: AuditOutput = {
   scores: { 'ai-visibility': 80, search: 70, build: 90, design: 60, responsive: 85, readiness: 75 },
   grades: { 'ai-visibility': 'B', search: 'C', build: 'A', design: 'D', responsive: 'B', readiness: 'C' },
   findings_by_severity: { critical: 0, high: 1, medium: 2, low: 3, info: 4 },
+  findings: [{
+    id: 'seo.canonical-to-home', area: 'search', severity: 'high', title: '4 pages declare the home page as canonical',
+    why: 'They will index only the home page.', fix: 'Set the canonical per route.', effort: 'quick',
+    effort_label: 'under an hour', points: 18, headline: 'Search engines are being told to index only your home page.', pages: ['/a'],
+  }],
   report_html: '/workspace/r1/report.html',
   report_md: '/workspace/r1/report.md',
   summary: 'fine',
@@ -21,6 +26,7 @@ test('buildCallbackPayload: succeeded carries scores, grades, findings and the i
     scores: OUTPUT.scores,
     grades: OUTPUT.grades,
     findings_by_severity: OUTPUT.findings_by_severity,
+    findings: OUTPUT.findings,
     report_html: '<html>report</html>',
   });
 });

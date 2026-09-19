@@ -18,7 +18,7 @@ there is no "open" mode.
 | Method | Path | Purpose |
 |--------|------|---------|
 | POST | `/worker/audits` | `{ url, callback_url, org_slug?, max_pages?, timeout_ms? }` → `202 { id, status: "queued" }` immediately; the audit runs in the background |
-| GET | `/worker/audits/:id` | current state: `{ id, status, error, started_at, finished_at, scores?, grades?, findings_by_severity? }` |
+| GET | `/worker/audits/:id` | current state: `{ id, status, error, started_at, finished_at, scores?, grades?, findings_by_severity?, findings? }` |
 | GET | `/health` | liveness only — process is up, no Chromium check |
 | GET | `/health/browser` | **the one to probe** — actually launches and closes Chromium; `503` if it can't |
 
@@ -37,6 +37,17 @@ default 4 attempts, capped exponential backoff). The body:
   "scores": { "ai-visibility": 80, "search": 70, "build": 90, "design": 60, "readiness": 75 },
   "grades": { "ai-visibility": "B", "search": "C", "build": "A", "design": "D", "readiness": "C" },
   "findings_by_severity": { "critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4 },
+  "findings": [                       // every finding, in fix-plan order (worst, then quickest, first)
+    {
+      "id": "seo.canonical-to-home", "area": "search", "severity": "high",
+      "title": "4 pages declare the home page as canonical",
+      "why": "…", "fix": "…",
+      "effort": "quick", "effort_label": "under an hour",
+      "points": 18,                   // exactly what this finding took off its area's score
+      "headline": "Search engines are being told to index only your home page.",  // high/critical only
+      "pages": ["/journal", "/legal"]  // when the check names pages
+    }
+  ],
   "report_html": "<!doctype html>…"   // the full self-contained report, inlined, not a path
 }
 // failed
@@ -46,6 +57,11 @@ default 4 attempts, capped exponential backoff). The body:
 Your receiving endpoint should be idempotent on `run_id` (the worker's own retries, or a future
 redelivery, can call it more than once) and should return a 2xx quickly — it is not the place to
 do slow work.
+
+`findings` is the list; `findings_by_severity` only counts it. A caller that stores the counts and
+drops the list can show grades but never say what to fix — that shipped once, on 19 September
+2026, and rendered as "no findings — this site is in good shape" under a D. Per area,
+`100 - sum(points)` equals the score, floored at 0.
 
 The generic routes (`/agents/:name/runs`, `/engagements`, `/runs/:id`, …) are still there and still
 unauthenticated, run synchronously, and are meant for the CLIs / local dev, not the hosted worker.

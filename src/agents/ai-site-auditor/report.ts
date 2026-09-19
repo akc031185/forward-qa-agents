@@ -3,7 +3,7 @@
 import { brand } from '../../core/config.js';
 import { AI_BOTS } from './bots.js';
 import { isAllowed } from './robots.js';
-import { DESIGN_TELL_COST, grade, scores } from './rules.js';
+import { DESIGN_TELL_COST, WEIGHTS, grade, scores } from './rules.js';
 import type { Area, CheckResult, SiteFacts, Severity } from './types.js';
 
 export interface ReportInput {
@@ -123,6 +123,62 @@ export const EFFORT: Record<string, Effort> = {
   'responsive.breaks-between-breakpoints': 'project',
 };
 export function effortOf(id: string): Effort { return EFFORT[id] ?? 'medium'; }
+
+/**
+ * What a high or critical finding means for the site owner, in one plain sentence — the line a
+ * report email leads with. Fixed per check like EFFORT, and each one restates only what that
+ * check's own `why` establishes. A check with no entry falls back to its title.
+ */
+export const HEADLINE: Record<string, string> = {
+  'ai.title-set-by-javascript': 'AI answers label every page of your site the same way.',
+  'ai.robots-blocks-citation-bots': 'Your robots.txt keeps your site out of ChatGPT, Claude and Perplexity answers.',
+  'ai.bot-user-agent-blocked': 'Your server turns AI crawlers away before they can read your site.',
+  'ai.nosnippet': 'Some of your pages are barred from Google’s AI Overviews.',
+  'seo.robots-blocks-everything': 'Google is blocked from crawling your site at all.',
+  'seo.missing-title': 'Some pages have no title, and the title is the link people click in search results.',
+  'seo.canonical-to-home': 'Search engines are being told to index only your home page.',
+  'seo.hash-routes': 'To search engines, every page of your site is the same URL.',
+  'build.secret-in-javascript': 'A secret key is readable by anyone who opens your site.',
+  'build.env-file-public': 'Your environment file, secrets included, can be downloaded by anyone.',
+  'build.scaffold-title': 'Crawlers see your template’s default title, not your site’s name.',
+  'build.render-failed': 'Some of your pages failed to load in a browser.',
+  'responsive.horizontal-overflow': 'On a phone, visitors have to scroll sideways to read your pages.',
+  'responsive.overlapping-tap-targets': 'On a phone, some of your buttons sit on top of each other.',
+  'responsive.disappearing-content': 'Content visitors can reach on a laptop is gone on a phone.',
+  'readiness.no-privacy-policy': 'Your site has no privacy policy, which payment providers and ad platforms require.',
+  'readiness.form-submit-unverified': 'We could not confirm that your forms actually deliver submissions.',
+};
+
+/**
+ * One finding as it travels to a calling app (the worker callback and GET /worker/audits/:id).
+ * `points` is exactly what this finding took off its area's score — the same arithmetic as
+ * `scores()` — so a caller can say "fixing these takes Search from 60 to 94" without
+ * re-implementing, or guessing at, the scoring.
+ */
+export interface WireFinding {
+  id: string;
+  area: Area;
+  severity: Severity;
+  title: string;
+  why: string;
+  fix: string;
+  effort: Effort;
+  effort_label: string;
+  points: number;
+  headline?: string;
+  pages?: string[];
+}
+
+/** The findings in fix-plan order, shaped for the wire. */
+export function wireFindings(results: CheckResult[]): WireFinding[] {
+  return fixPlan(results).map(({ result: r, effort }) => ({
+    id: r.id, area: r.area, severity: r.severity, title: r.title, why: r.why, fix: r.fix,
+    effort, effort_label: EFFORT_LABEL[effort],
+    points: r.area === 'design' ? DESIGN_TELL_COST : WEIGHTS[r.severity],
+    ...(HEADLINE[r.id] ? { headline: HEADLINE[r.id] } : {}),
+    ...(r.pages?.length ? { pages: r.pages } : {}),
+  }));
+}
 
 /** Nothing worth showing: undefined, null, an empty string, an empty list or an empty object. */
 export function isEmptyEvidence(v: unknown): boolean {

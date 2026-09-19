@@ -3,6 +3,7 @@
 // retry policy and payload shaping are unit-testable without a real network call.
 import type { Area, Severity } from '../agents/ai-site-auditor/types.js';
 import type { Output as AuditOutput } from '../agents/ai-site-auditor/index.js';
+import type { WireFinding } from '../agents/ai-site-auditor/report.js';
 
 export type RunTerminalStatus = 'succeeded' | 'failed';
 
@@ -13,6 +14,8 @@ export interface CallbackPayload {
   scores?: Record<Area, number>;
   grades?: Record<Area, string>;
   findings_by_severity?: Record<Severity, number>;
+  /** The findings themselves. Counts alone let a caller show a grade but never say what to fix. */
+  findings?: WireFinding[];
   report_html?: string;
   error?: string;
 }
@@ -35,6 +38,7 @@ export function buildCallbackPayload(
       scores: output.scores,
       grades: output.grades,
       findings_by_severity: output.findings_by_severity,
+      findings: output.findings ?? [],
       report_html: reportHtml ?? '',
     };
   }

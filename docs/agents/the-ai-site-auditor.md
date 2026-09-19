@@ -54,7 +54,7 @@ Judgement calls encoded in the rules, with sources:
 | `timeout_ms` | 1000..120000 | 15000 | Per request and navigation |
 | `headless` | boolean | true | |
 
-**Output:** `{ pages_audited, scores, grades, findings_by_severity, report_html, report_md, summary }`.
+**Output:** `{ pages_audited, scores, grades, findings_by_severity, findings, report_html, report_md, summary }`.
 `GET /agents/ai-site-auditor/runs/:id/report` serves `report.html`.
 
 Source: `src/agents/ai-site-auditor/` — `bots.ts` (crawler list), `robots.ts` (RFC 9309 matcher), `parse.ts` (sitemap, llms.txt, secrets, placeholders), `collect.ts` (probes and two-view browser pass), `rules.ts` (checks and scores), `report.ts`, `index.ts`, `cli.ts`.

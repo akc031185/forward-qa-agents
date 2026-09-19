@@ -372,7 +372,7 @@ function design(f: SiteFacts): CheckResult[] {
   }
   const d = pages[0]!.design!;
   const D = 'https://www.nngroup.com/articles/visual-design-principles/';
-  const many = (n: number, label: string) => `${n} ${label}${n === 1 ? '' : 's'}`;
+  const many = (n: number, label: string) => `${n} ${label}${n === 1 ? '' : /(s|x|ch|sh)$/.test(label) ? 'es' : 's'}`;
 
   const vb = violetBlueGradients(d.gradientCss);
   if (vb.length) out.push(r('design.violet-blue-gradient', 'design', 'medium',
