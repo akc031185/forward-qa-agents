@@ -25,8 +25,8 @@ best-effort and their numbers as exact.
 | Test lines (tests/) | 2633 across 27 files |
 | Agent runs in DB | 28 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
 
-> Today's code is in the sibling repo `ai-tool-dashboard` (head `0af3a5c`, typecheck clean,
-> 152 tests pass). This repo's numbers are unchanged.
+> Today's code is in the sibling repo `ai-tool-dashboard` (head `4428298`, typecheck clean,
+> 154 tests pass). This repo's numbers are unchanged.
 
 **Done**
 
@@ -39,6 +39,10 @@ best-effort and their numbers as exact.
   any public report link gets the findings marked as a preview, with the email gate hidden so it
   cannot be unlocked with the admin's own address by mistake. `findingsUnlocked` stays false and
   nothing is emailed. Checked live after deploy: anonymous requests still get no findings.
+- 04:08 `4428298` **the admin audit page crashed on every public audit.** It checked ownership
+  with `audit.userId.toString()`, and free-funnel audits have no `userId`, so it returned a 500
+  that the page showed as "Audit not found". It also recognised admins by role only, ignoring
+  `ADMIN_EMAILS`. Fixed, with a test that fails on the old code.
 
 **Decided**
 
