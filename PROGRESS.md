@@ -25,8 +25,8 @@ best-effort and their numbers as exact.
 | Test lines (tests/) | 2633 across 27 files |
 | Agent runs in DB | 28 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
 
-> Today's code is in the sibling repo `ai-tool-dashboard` (head `4428298`, typecheck clean,
-> 154 tests pass). This repo's numbers are unchanged.
+> Today's code is in the sibling repo `ai-tool-dashboard` (head `6c1593c`, typecheck clean,
+> 150 tests pass). This repo's numbers are unchanged.
 
 **Done**
 
@@ -43,17 +43,19 @@ best-effort and their numbers as exact.
   with `audit.userId.toString()`, and free-funnel audits have no `userId`, so it returned a 500
   that the page showed as "Audit not found". It also recognised admins by role only, ignoring
   `ADMIN_EMAILS`. Fixed, with a test that fails on the old code.
+- `6c1593c` **took the admin preview back off the customer pages** (reverts `0af3a5c`). Once the
+  admin page could read public audits, the customer links no longer needed to show admins
+  anything extra.
 
 **Decided**
 
-- Admin preview is a response flag, not an unlock. Preview responses are `private, no-store`,
-  and the key check runs before the admin check, so being an admin does not open a site under
-  the wrong user key.
+- Admins review a report on the admin page (`/tools/site-audit/<id>`). The customer's link
+  shows exactly what the customer sees, with no special case for admins.
 
 **Open / next**
 
 1. Run the contact migration in production (dry run first). Until then the pilot's keyed links
-   404, even for an admin.
+   404.
 2. Review both pilot reports as admin, then send them.
 3. `ai-tool-dashboard` has two uncommitted files this session did not touch
    (`_tests_/lib/ops-automations.test.ts`, `docs/AUTOMATIONS.md`). Find out whose they are
