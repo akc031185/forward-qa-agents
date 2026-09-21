@@ -16,7 +16,7 @@ best-effort and their numbers as exact.
 
 | Metric | Value |
 |---|---|
-| Commits on main | 39 (0 today, head `ff827b9`) |
+| Commits on main | 46 (7 today, head `6109676`) |
 | Pushed to origin | yes, in sync |
 | Uncommitted files | 0 |
 | Typecheck | pass |
@@ -25,7 +25,7 @@ best-effort and their numbers as exact.
 | Test lines (tests/) | 2633 across 27 files |
 | Agent runs in DB | 28 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
 
-> Today's code is in the sibling repo `ai-tool-dashboard` (head `a228d17`, typecheck clean,
+> Today's code is in the sibling repo `ai-tool-dashboard` (head `72a16a8`, typecheck clean,
 > 213 tests pass). This repo's numbers are unchanged.
 
 **Done**
@@ -66,9 +66,8 @@ best-effort and their numbers as exact.
   2 days. "Log follow-up" (a note is required) clears the chase reasons.
 - **End-to-end test on askdbl.com**: fresh audit, report emailed to a test address, opened in
   incognito windows and tabs. Production recorded 5 views and exactly one "Opened the report"
-  timeline line; Gmail's link scanning was not counted. Found while checking: production app
-  data lives in the MongoDB database `test` (the production URI names no database), not in
-  `ai_tool_dashboard` as `.env.local` suggests.
+  timeline line; Gmail's link scanning was not counted. Production app data is in the database
+  `test` (already noted in the dashboard README); `.env.local` points at `ai_tool_dashboard`.
 - `a228d17` **report links expire after 7 days**, DocuSign style. The address stays stable; the
   keys alone no longer open it. Access: admin, the browser that ran the audit, the account it is
   saved to, or an emailed pass (`?t=`, hashed at rest, swapped for a cookie, dropped from the
@@ -84,6 +83,10 @@ best-effort and their numbers as exact.
 - 21:32 **both pilot reports sent** through the unlock route the admin page uses. No send
   failures logged; two 7-day link passes issued. The pilot's contact now has workspace, email
   and name.
+- `72a16a8` **docs brought up to date** in `ai-tool-dashboard`: README (pricing, access, next
+  steps, views, follow-ups, today's architecture decisions), a new `docs/STRIPE-GO-LIVE.md`
+  checklist, the funnel doc's 21 Sep update, and the runbook's contact-migration section with
+  the production numbers.
 
 **Decided**
 
@@ -116,18 +119,18 @@ best-effort and their numbers as exact.
    (what would have made this worth paying for).
 2. **Build "Audit a site for a customer"** (admin form: URL, email, optional name, hold for
    review on by default, Approve & send). Also an optional name field on the send box.
-3. **Switch Stripe to live mode** before the pilot can actually pay for a re-audit or a fix.
+3. **Next session starts with Stripe going live**, following `docs/STRIPE-GO-LIVE.md` in the
+   dashboard repo: live keys and a live `checkout.session.completed` webhook in Production only,
+   then one real $99 re-audit of an own site, refunded.
 4. Follow-up thresholds (`FOLLOW_UP_RULES` in `src/lib/ops/followUps.ts`) are first guesses;
    revisit after the first few pilots. The queue does not yet send anything by itself; it is a
    list for a human, and the automation engine is where sending would go.
-5. Production app data is in the MongoDB database `test`. Harmless today; worth naming the
-   database explicitly in the production URI on purpose, with a planned move, not in passing.
-6. Known gap: someone who clears cookies gets a new contact and a new free audit of the same site.
+5. Known gap: someone who clears cookies gets a new contact and a new free audit of the same site.
    Accepted for now; charging per host globally would also charge strangers auditing a site.
-7. `ai-tool-dashboard` has two uncommitted files this session did not touch
+6. `ai-tool-dashboard` has two uncommitted files this session did not touch
    (`_tests_/lib/ops-automations.test.ts`, `docs/AUTOMATIONS.md`). Find out whose they are
    before committing anything else there.
-8. Carried over: automation run viewer, delays, blob retention, bare `jest` picking up
+7. Carried over: automation run viewer, delays, blob retention, bare `jest` picking up
    Playwright specs, GoHighLevel export, 990challenge.com renews 5 Oct.
 
 ---
