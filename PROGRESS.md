@@ -25,6 +25,24 @@ best-effort and their numbers as exact.
 | Test lines (tests/) | 2633 across 27 files |
 | Agent runs in DB | 28 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
 
+### Picking this up
+
+Nothing is half-written; two things are waiting on a human, both quick.
+
+1. **Run the contact migration in production.** Needs an admin session, so it runs from the
+   browser on the live site, not from here:
+   `await (await fetch('/api/admin/ops/migrate-contacts?dryRun=1',{method:'POST'})).json()`
+   Check the numbers, then the same call without `?dryRun=1`. Idempotent; deletes nothing.
+   Afterwards: create the pilot access code (`POST /api/admin/ops/access-codes`) and the first
+   automation rule (`POST /api/admin/ops/automations`, shape in `docs/AUTOMATIONS.md`).
+2. **Two pilot audit reports are done and unsent.** The findings have been read and are sound;
+   sending means unlocking each audit with the pilot's email, which triggers the report email.
+   Waiting on the go-ahead, not on code.
+
+Then the first real gap: the automation engine records every rule run and nothing displays them.
+Its claim — that someone can answer "why did that email go out?" — is unproven until a page
+answers it. Build that before any new feature.
+
 > All of today's work is in the sibling repo `ai-tool-dashboard` (investoraiclub.com), so this
 > repo's own numbers are unchanged from yesterday. Head there is `478e11f`; typecheck clean,
 > 147 tests pass (from 128 this morning).
