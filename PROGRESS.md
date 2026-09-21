@@ -10,6 +10,97 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-09-20 (Sunday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 37 (0 today, head `31da996`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 163 pass, 0 fail (10 suites) |
+| Source lines (src/) | 8042 across 52 files |
+| Test lines (tests/) | 2633 across 27 files |
+| Agent runs in DB | 28 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
+
+> All of today's work is in the sibling repo `ai-tool-dashboard` (investoraiclub.com), so this
+> repo's own numbers are unchanged from yesterday. Head there is `478e11f`; typecheck clean,
+> 147 tests pass (from 128 this morning).
+
+**Done**
+
+- **The ops platform became the plan of record** (`docs/OPS-PLATFORM.md`, 02:41 `abe4ff5`).
+  The earlier documents measured the GoHighLevel migration against what that account holds —
+  one contact, one opportunity, no calendars — and concluded it was nearly done. Wrong measure:
+  what is being replaced is the job the product does, from a stranger on a site to an invoiced
+  client. The rule the whole thing is built by: **own the record, rent the channel.** Contacts,
+  conversations, deals and money live in our database because they must outlive any vendor;
+  sending an email or a text is a commodity with regulatory overhead, so Resend, Twilio and
+  Stripe do that behind an interface we define. Also written down: the five things we refuse to
+  build, and that A2P registration needs a US entity and weeks of lead time — before the move.
+- 00:13 `3c258ad` **reports moved to `/free-site-audit/<userKey>/<siteKey>`.** One stable address
+  per person per site: re-auditing updates it rather than minting a new link, so an emailed link
+  keeps working and the runs accumulate as history. 72 bits of randomness, no email address or
+  hostname in the URL.
+- 00:17 `b3aa40b` the keyed URL immediately exposed a gap: a second audit asked the same person
+  for their email again. The address belongs to the person, not to one report.
+- 04:49 `73fda4c` **one contact spine, in an `ops` database of its own.** A person is a Contact;
+  a login is an attribute of one, because most contacts never register. Until now every
+  anonymous audit lead sat in the database invisible to the CRM.
+- 20:58 `cd9f359` **every ops record belongs to a workspace.** The one decision that gets more
+  expensive with every row, taken while the row count is tiny: tenant scoping applied in one
+  seam rather than remembered at each call site.
+- 21:06 `478e11f` **six parallel threads, one afternoon**: lead intake (one endpoint, one key per
+  site), the automation engine (trigger/conditions/actions, with a run record for every rule that
+  matched *and* every one that did not), report HTML moved to Blob storage, rate limiting moved
+  out of process memory, reconciliation for the fail-open dual write, per-database and
+  per-contact exports, and an apps registry so adding a tool to the hub is data rather than code.
+- **Ran the auditor against two real sites for the first pilot tenant.** Both succeeded; the
+  findings are substantive for a site raising money (no privacy policy linked, forms that accept
+  empty submissions, unknown URLs returning 200). Nothing has been sent to them: a report with
+  our name on it gets read by us first.
+
+**Decided**
+
+- **The CRM is a product to build toward, not only internal tooling** — AI-native automation over
+  an owned data model, sold well under GoHighLevel, to businesses that do not need telephony.
+  Bounded, with a kill criterion: no paying tenant by end of January and it folds back into
+  internal tooling, which is worth having anyway. Dropping telephony from v1 is the positioning,
+  not a gap: it is what allows the price, and it removes A2P registration entirely.
+- **`ops` is a separate database in the same cluster, and it must be self-sufficient.** Mongo
+  cannot `$lookup` across databases, so anything the CRM displays is written there; the artifact
+  stays in the app that produced it and is linked to. A test holds the rule honest — the contact
+  list renders when the app database fails. Writing that test is what exposed the first version
+  returning a 500 instead.
+- **Applications read people *from* the CRM; the CRM never joins into theirs.** Via an API with a
+  per-site key, except the app that hosts the CRM, which calls the same functions in-process.
+- **Shared collections with a workspace filter, not a database per tenant** — with tenant
+  resolution behind one function, so that decision can be revisited without touching call sites.
+- **Site keys are stored hashed.** A site key is a long-lived write credential living on someone
+  else's website; "shown once" is only true when there is no read path back.
+- Access codes record *why* something is free, with an expiry and a redemption trail, rather
+  than being a favour someone remembers granting.
+
+**Open / next**
+
+1. Run the contact migration against production (`POST /api/admin/ops/migrate-contacts`), then
+   create the pilot's access code and the first automation rule. Needs an admin session.
+2. Send the two pilot audit reports once the findings have been read and approved.
+3. The automation engine's run records exist and nothing displays them. Its whole claim — that
+   someone can answer "why did that email go out?" — is unproven until a page answers it.
+4. Delays are the next real feature: they are what turn rules into sequences, and the first thing
+   here needing infrastructure rather than code.
+5. Blob-stored reports are never deleted. The document-size ceiling has been traded for a
+   billing one until retention lands.
+6. `npm test` in the dashboard is still bare `jest`, so it collects the Playwright specs and
+   exits non-zero. One `testPathIgnorePatterns` line.
+7. Stripe still in test mode; GoHighLevel export still not taken; 990challenge.com auto-renews
+   on 5 Oct with a CANCEL decision against it.
+
+---
+
 ## 2026-09-19 (Saturday)
 
 **Snapshot at end of day**
