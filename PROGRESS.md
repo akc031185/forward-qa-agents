@@ -76,9 +76,21 @@ best-effort and their numbers as exact.
   the address on file (3/hour). Every way into a report makes the same check, including unlock,
   so an old link cannot send the findings to a new address. Expired visits feed Follow-ups.
   Admins now send reports from the audit page ("Send this report to its owner"). Verified live.
+- 21:31 **contact migration run in production**, from an admin browser session: dry run first,
+  then the real run with identical numbers. 7 users found, 6 CRM contacts created for them, 1
+  linked to an existing contact, 1 legacy contact copied, 5 records stamped with the workspace
+  (the pilot's contact plus 4 timeline events), 3 audit counters set. The pilot's two report
+  links then answered 200.
+- 21:32 **both pilot reports sent** through the unlock route the admin page uses. No send
+  failures logged; two 7-day link passes issued. The pilot's contact now has workspace, email
+  and name.
 
 **Decided**
 
+- **The report email is not routed through the automation engine.** It already sends on
+  completion when an address is on file, with its own guards (once only, held when empty, the
+  expiring link). The gap is audits started for a customer; the answer is an admin "audit a site
+  for a customer" form with a hold-for-review default, not a second send path.
 - **Report links last 7 days; the expired page shows the site name only.** A resend goes only to
   the address on file.
 - **Follow-ups are derived, never stored as flags.** A reason exists because of events and clears
@@ -99,10 +111,11 @@ best-effort and their numbers as exact.
 
 **Open / next**
 
-1. Run the contact migration in production (dry run first). Until then the pilot's keyed links
-   404.
-2. Pilot reports are reviewed and approved. After the migration: send each from its admin audit
-   page ("Send this report to its owner"), then check the "What next" panel on his link.
+1. **Pilot:** reports sent 21:32. Watch `/admin/crm/follow-ups`; he appears if the reports are
+   not opened in 2 days, or are read and then nothing happens for 3. Ask him the one question
+   (what would have made this worth paying for).
+2. **Build "Audit a site for a customer"** (admin form: URL, email, optional name, hold for
+   review on by default, Approve & send). Also an optional name field on the send box.
 3. **Switch Stripe to live mode** before the pilot can actually pay for a re-audit or a fix.
 4. Follow-up thresholds (`FOLLOW_UP_RULES` in `src/lib/ops/followUps.ts`) are first guesses;
    revisit after the first few pilots. The queue does not yet send anything by itself; it is a
