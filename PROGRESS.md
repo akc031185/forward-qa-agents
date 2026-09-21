@@ -25,8 +25,8 @@ best-effort and their numbers as exact.
 | Test lines (tests/) | 2633 across 27 files |
 | Agent runs in DB | 28 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
 
-> Today's code is in the sibling repo `ai-tool-dashboard` (head `b2f789b`, typecheck clean,
-> 165 tests pass). This repo's numbers are unchanged.
+> Today's code is in the sibling repo `ai-tool-dashboard` (head `32dc84f`, typecheck clean,
+> 194 tests pass). This repo's numbers are unchanged.
 
 **Done**
 
@@ -52,9 +52,26 @@ best-effort and their numbers as exact.
   it), or *fix it yourself* and pay $99 to re-run the audit through Stripe Checkout, with the
   webhook starting the run. Deployed; the parts reachable without a login respond correctly.
   The Stripe checkout itself is unexercised until the migration makes the pilot's report resolve.
+- `8ada8e9` **checks on views, staleness and money.** The report page reports a view once it has
+  loaded in a browser, and again on returning to a tab after 30 minutes away. Link scanners and
+  admins are not counted. The page re-reads on focus; actions send the run they show, and the
+  server refuses (409, reload) on a newer run, a run in flight, or a checkout already paid. At
+  most one open checkout per site (`PendingCheckout`), and sessions expire after 31 minutes.
+  The admin audit page shows sent / opened / how often.
+- `32dc84f` **follow-up queue, and the contact page bug.** Every interaction was already stored
+  per contact, but no page displayed it. The contact list linked to a page that looked contacts
+  up as user accounts, so every contact without an account read "Contact not found". Fixed, and
+  `/admin/crm/follow-ups` works out who needs contacting from the timeline: quote owed (on us),
+  abandoned checkout, came back without acting, read and went quiet 3 days, sent and never opened
+  2 days. "Log follow-up" (a note is required) clears the chase reasons.
 
 **Decided**
 
+- **Follow-ups are derived, never stored as flags.** A reason exists because of events and clears
+  because of events (the customer acts, or a follow-up is logged). A quote we owe clears only when
+  a proposal goes out, never by logging a call.
+- **The server never trusts what a long-open page believes.** Each action names the run it is
+  about; anything newer or in flight is refused with a reload instruction.
 - **Audit pricing: the first audit of a site is free, every later run is $99 per site**, on both
   the public and signed-in paths. A run after a failed one is free (covers a paid run the worker
   could not start). The signed-in path counts public audits of contacts attached to the account,
@@ -73,12 +90,15 @@ best-effort and their numbers as exact.
 2. Pilot reports are reviewed and approved. After the migration: check the "What next" panel
    renders on his report links, then send (unlock with his email).
 3. **Switch Stripe to live mode** before the pilot can actually pay for a re-audit or a fix.
-4. Known gap: someone who clears cookies gets a new contact and a new free audit of the same site.
+4. Follow-up thresholds (`FOLLOW_UP_RULES` in `src/lib/ops/followUps.ts`) are first guesses;
+   revisit after the first few pilots. The queue does not yet send anything by itself; it is a
+   list for a human, and the automation engine is where sending would go.
+5. Known gap: someone who clears cookies gets a new contact and a new free audit of the same site.
    Accepted for now; charging per host globally would also charge strangers auditing a site.
-5. `ai-tool-dashboard` has two uncommitted files this session did not touch
+6. `ai-tool-dashboard` has two uncommitted files this session did not touch
    (`_tests_/lib/ops-automations.test.ts`, `docs/AUTOMATIONS.md`). Find out whose they are
    before committing anything else there.
-6. Carried over: automation run viewer, delays, blob retention, bare `jest` picking up
+7. Carried over: automation run viewer, delays, blob retention, bare `jest` picking up
    Playwright specs, GoHighLevel export, 990challenge.com renews 5 Oct.
 
 ---
