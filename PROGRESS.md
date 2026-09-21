@@ -10,6 +10,55 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-09-21 (Monday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 39 (0 today, head `ff827b9`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 163 pass, 0 fail (10 suites) |
+| Source lines (src/) | 8042 across 52 files |
+| Test lines (tests/) | 2633 across 27 files |
+| Agent runs in DB | 28 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
+
+> Today's code is in the sibling repo `ai-tool-dashboard` (head `0af3a5c`, typecheck clean,
+> 152 tests pass). This repo's numbers are unchanged.
+
+**Done**
+
+- **Found why the pilot's report links 404.** Both pilot audits were created at 20:59:02 on the
+  20th, 14 seconds after `cd9f359` (workspace scoping) was committed and before it deployed, so
+  the pilot's contact has no `workspaceId`. The deployed lookup filters by workspace and misses
+  it. The pending contact migration backfills exactly this (`migrateContacts.ts`), so the fix is
+  to run the migration rather than write new code.
+- 03:35 `0af3a5c` **admins can read any report before it is sent.** A signed-in admin opening
+  any public report link gets the findings marked as a preview, with the email gate hidden so it
+  cannot be unlocked with the admin's own address by mistake. `findingsUnlocked` stays false and
+  nothing is emailed. Checked live after deploy: anonymous requests still get no findings.
+
+**Decided**
+
+- Admin preview is a response flag, not an unlock. Preview responses are `private, no-store`,
+  and the key check runs before the admin check, so being an admin does not open a site under
+  the wrong user key.
+
+**Open / next**
+
+1. Run the contact migration in production (dry run first). Until then the pilot's keyed links
+   404, even for an admin.
+2. Review both pilot reports as admin, then send them.
+3. `ai-tool-dashboard` has two uncommitted files this session did not touch
+   (`_tests_/lib/ops-automations.test.ts`, `docs/AUTOMATIONS.md`). Find out whose they are
+   before committing anything else there.
+4. Carried over: automation run viewer, delays, blob retention, bare `jest` picking up
+   Playwright specs, Stripe test mode, GoHighLevel export, 990challenge.com renews 5 Oct.
+
+---
+
 ## 2026-09-20 (Sunday)
 
 **Snapshot at end of day**
