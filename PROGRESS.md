@@ -25,8 +25,8 @@ best-effort and their numbers as exact.
 | Test lines (tests/) | 2633 across 27 files |
 | Agent runs in DB | 28 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
 
-> Today's code is in the sibling repo `ai-tool-dashboard` (head `6c1593c`, typecheck clean,
-> 150 tests pass). This repo's numbers are unchanged.
+> Today's code is in the sibling repo `ai-tool-dashboard` (head `b2f789b`, typecheck clean,
+> 165 tests pass). This repo's numbers are unchanged.
 
 **Done**
 
@@ -46,9 +46,23 @@ best-effort and their numbers as exact.
 - `6c1593c` **took the admin preview back off the customer pages** (reverts `0af3a5c`). Once the
   admin page could read public audits, the customer links no longer needed to show admins
   anything extra.
+- `b2f789b` **two ways forward from a report.** Under the findings: *have us fix these* (log in
+  or sign up, save the report to the account, open a customer request listing every finding;
+  admins get an email linking to a new proposal, and the existing proposal flow quotes and bills
+  it), or *fix it yourself* and pay $99 to re-run the audit through Stripe Checkout, with the
+  webhook starting the run. Deployed; the parts reachable without a login respond correctly.
+  The Stripe checkout itself is unexercised until the migration makes the pilot's report resolve.
 
 **Decided**
 
+- **Audit pricing: the first audit of a site is free, every later run is $99 per site**, on both
+  the public and signed-in paths. A run after a failed one is free (covers a paid run the worker
+  could not start). The signed-in path counts public audits of contacts attached to the account,
+  so signing up is not a second free run. Admins are never charged.
+- **The fix path goes through the proposal system**, not a price list: a fix request becomes a
+  customer request (Problem), which is what proposals quote against and Stripe bills.
+- **Reports attach to an account by the link's user key, never by matching email.** Sign-up does
+  not verify email addresses, so matching would hand anyone's reports to whoever registers as them.
 - Admins review a report on the admin page (`/tools/site-audit/<id>`). The customer's link
   shows exactly what the customer sees, with no special case for admins.
 
@@ -56,12 +70,16 @@ best-effort and their numbers as exact.
 
 1. Run the contact migration in production (dry run first). Until then the pilot's keyed links
    404.
-2. Review both pilot reports as admin, then send them.
-3. `ai-tool-dashboard` has two uncommitted files this session did not touch
+2. Pilot reports are reviewed and approved. After the migration: check the "What next" panel
+   renders on his report links, then send (unlock with his email).
+3. **Switch Stripe to live mode** before the pilot can actually pay for a re-audit or a fix.
+4. Known gap: someone who clears cookies gets a new contact and a new free audit of the same site.
+   Accepted for now; charging per host globally would also charge strangers auditing a site.
+5. `ai-tool-dashboard` has two uncommitted files this session did not touch
    (`_tests_/lib/ops-automations.test.ts`, `docs/AUTOMATIONS.md`). Find out whose they are
    before committing anything else there.
-4. Carried over: automation run viewer, delays, blob retention, bare `jest` picking up
-   Playwright specs, Stripe test mode, GoHighLevel export, 990challenge.com renews 5 Oct.
+6. Carried over: automation run viewer, delays, blob retention, bare `jest` picking up
+   Playwright specs, GoHighLevel export, 990challenge.com renews 5 Oct.
 
 ---
 
