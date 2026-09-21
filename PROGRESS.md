@@ -25,8 +25,8 @@ best-effort and their numbers as exact.
 | Test lines (tests/) | 2633 across 27 files |
 | Agent runs in DB | 28 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
 
-> Today's code is in the sibling repo `ai-tool-dashboard` (head `32dc84f`, typecheck clean,
-> 194 tests pass). This repo's numbers are unchanged.
+> Today's code is in the sibling repo `ai-tool-dashboard` (head `a228d17`, typecheck clean,
+> 213 tests pass). This repo's numbers are unchanged.
 
 **Done**
 
@@ -64,9 +64,23 @@ best-effort and their numbers as exact.
   `/admin/crm/follow-ups` works out who needs contacting from the timeline: quote owed (on us),
   abandoned checkout, came back without acting, read and went quiet 3 days, sent and never opened
   2 days. "Log follow-up" (a note is required) clears the chase reasons.
+- **End-to-end test on askdbl.com**: fresh audit, report emailed to a test address, opened in
+  incognito windows and tabs. Production recorded 5 views and exactly one "Opened the report"
+  timeline line; Gmail's link scanning was not counted. Found while checking: production app
+  data lives in the MongoDB database `test` (the production URI names no database), not in
+  `ai_tool_dashboard` as `.env.local` suggests.
+- `a228d17` **report links expire after 7 days**, DocuSign style. The address stays stable; the
+  keys alone no longer open it. Access: admin, the browser that ran the audit, the account it is
+  saved to, or an emailed pass (`?t=`, hashed at rest, swapped for a cookie, dropped from the
+  address bar). Expired visitors see the site name and "Email me a new link", which goes only to
+  the address on file (3/hour). Every way into a report makes the same check, including unlock,
+  so an old link cannot send the findings to a new address. Expired visits feed Follow-ups.
+  Admins now send reports from the audit page ("Send this report to its owner"). Verified live.
 
 **Decided**
 
+- **Report links last 7 days; the expired page shows the site name only.** A resend goes only to
+  the address on file.
 - **Follow-ups are derived, never stored as flags.** A reason exists because of events and clears
   because of events (the customer acts, or a follow-up is logged). A quote we owe clears only when
   a proposal goes out, never by logging a call.
@@ -87,18 +101,20 @@ best-effort and their numbers as exact.
 
 1. Run the contact migration in production (dry run first). Until then the pilot's keyed links
    404.
-2. Pilot reports are reviewed and approved. After the migration: check the "What next" panel
-   renders on his report links, then send (unlock with his email).
+2. Pilot reports are reviewed and approved. After the migration: send each from its admin audit
+   page ("Send this report to its owner"), then check the "What next" panel on his link.
 3. **Switch Stripe to live mode** before the pilot can actually pay for a re-audit or a fix.
 4. Follow-up thresholds (`FOLLOW_UP_RULES` in `src/lib/ops/followUps.ts`) are first guesses;
    revisit after the first few pilots. The queue does not yet send anything by itself; it is a
    list for a human, and the automation engine is where sending would go.
-5. Known gap: someone who clears cookies gets a new contact and a new free audit of the same site.
+5. Production app data is in the MongoDB database `test`. Harmless today; worth naming the
+   database explicitly in the production URI on purpose, with a planned move, not in passing.
+6. Known gap: someone who clears cookies gets a new contact and a new free audit of the same site.
    Accepted for now; charging per host globally would also charge strangers auditing a site.
-6. `ai-tool-dashboard` has two uncommitted files this session did not touch
+7. `ai-tool-dashboard` has two uncommitted files this session did not touch
    (`_tests_/lib/ops-automations.test.ts`, `docs/AUTOMATIONS.md`). Find out whose they are
    before committing anything else there.
-7. Carried over: automation run viewer, delays, blob retention, bare `jest` picking up
+8. Carried over: automation run viewer, delays, blob retention, bare `jest` picking up
    Playwright specs, GoHighLevel export, 990challenge.com renews 5 Oct.
 
 ---
