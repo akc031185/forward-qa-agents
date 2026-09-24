@@ -74,6 +74,10 @@ best-effort and their numbers as exact.
    - a rate limit on `/leads`;
    - member invites.
 6. **Deferred:** the real $99 re-audit and refund; move Atlas Free to Flex once funded.
+   **Rotate the `crm_app` Atlas password** before real data or the ops migration goes in: it
+   appeared in a screenshot on 24 Sep, and the owner chose to keep it for now. The cluster allows
+   0.0.0.0/0, so the password is the only barrier. Update Vercel `CRM_MONGODB_URI` and
+   `.env.local` after rotating.
 7. **Entity: DECIDED A, repurpose Hyde View** as the AI-agency LLC (ledger `l_514b52d5`,
    in progress; `l_241f4c21` "new LLC" cancelled as superseded). Next: the clean-up in step 1 with
    the bookkeeper/CPA, then pick the new name, then Articles of Amendment. Twilio A2P waits for the
