@@ -1,6 +1,6 @@
 # forward-qa-agents
 
-Three standalone QA agents that an organisation can drop into its own environment. No paid model,
+Four standalone agents that an organisation can drop into its own environment. No paid model,
 no SaaS dependency: everything runs deterministically, and any model enrichment comes from an
 open-weight model (DeepSeek, Kimi, Qwen) running locally. See [docs/models.md](docs/models.md).
 
@@ -9,9 +9,10 @@ open-weight model (DeepSeek, Kimi, Qwen) running locally. See [docs/models.md](d
 | 44 | **The Forward Deployed Tester** (`forward-deployed-tester`) | Point it at a running web app. It crawls it, records findings (broken links, console errors, a11y gaps, slow pages), and provisions a complete Playwright + Playwright MCP test project with page objects, smoke specs, fixtures, CI workflow, and a report. Testing infrastructure delivered the way a forward-deployed engineer delivers software. |
 | 45 | **The SDET Architect** (`sdet-architect`) | Point it at an existing test estate (Selenium in Java / Python / C# / JS, Cucumber, Postman). It inventories every artifact, extracts tests, locators, and assertions, standardises locators into robust Playwright forms, and generates one standardised Playwright + MCP architecture with a migration report listing every leftover. |
 | 46 | **The AI Site Auditor** (`ai-site-auditor`) | Point it at a site built with an AI tool (Lovable, Bolt, v0, Replit, a Vite or CRA export). It compares what AI crawlers receive with what a browser renders, checks robots rules and firewalls per AI bot, search SEO, and builder mistakes including secrets in the JavaScript bundle, then writes a self-contained evaluation page with three scores. |
+| 47 | **The Architecture Dossier** (`architecture-dossier`) | Point it at a git repository. From the committed HEAD only, it records the stack and versions, routes and API surface, data models, integrations and webhooks (and which verify signatures), auth and security signals, environment variable names, jobs, deploy, tests, docs and git history, merges the owner's stated facts (domains, hosting, costs, accounts, handover), and writes a private, buyer-grade dossier page plus `dossier.json`. A second command builds a portfolio index over several dossiers. |
 
 Each agent is its own folder under `src/agents/`, has its own CLI, its own REST routes, its own
-tests, and its own field-guide plate under `docs/agents/`. All three persist to the same SQLite
+tests, and (plates 44 to 46) its own field-guide plate under `docs/agents/`. All four persist to the same SQLite
 database and are exposed through one REST API.
 
 **Live field guides:** [The Forward Deployed Tester](https://akc031185.github.io/forward-deployed-tester/) ·
@@ -39,6 +40,10 @@ npm run agent:sdet -- --src ./fixtures/sdet-architect --org acme --base-url http
 npm run fixture:audit-sites                                   # SPA on :4801, server-rendered on :4802
 npm run agent:audit -- --url http://127.0.0.1:4801/ --org acme  # then open workspace/<run_id>/report.html
 
+# Architecture Dossier for any git repo (committed HEAD only; synthetic fixture and facts included)
+npm run agent:dossier -- --repo ../some-app --out dossiers/some-app --facts some-app.facts.json
+npm run agent:dossier:index -- --in dossiers --out dossiers --portfolio portfolio.json
+
 # REST API
 npm start                                # http://localhost:8787
 ```
@@ -64,6 +69,7 @@ Optional local model (free, offline once pulled):
 | GET  | `/agents/forward-deployed-tester/runs/:id/report` | report.md |
 | GET  | `/agents/sdet-architect/runs/:id/migration` | MIGRATION.md |
 | GET  | `/agents/ai-site-auditor/runs/:id/report` | report.html (the evaluation page) |
+| GET  | `/agents/architecture-dossier/runs/:id/dossier` | index.html (the dossier page) |
 | POST | `/agents/sdet-architect/preview` | `{ language, code }` → converted Playwright spec (no disk, no DB) |
 
 Everything above is synchronous and unauthenticated — meant for the CLIs and local dev. Running
@@ -98,12 +104,32 @@ src/api/         Fastify REST server
 src/agents/forward-deployed-tester/
 src/agents/sdet-architect/
 src/agents/ai-site-auditor/
+src/agents/architecture-dossier/
 docs/agents/     field-guide plates (the-forward-deployed-tester.md, the-sdet-architect.md, the-ai-site-auditor.md)
 docs/models.md   model policy and tested local models
 fixtures/        fabricated legacy test estate and fabricated sites used by tests and demos
 tests/           node:test suites, one folder per agent
 .claude/agents/  Claude Code subagent definitions for driving each agent
 ```
+
+## The Architecture Dossier (plate 47)
+
+The record a buyer's due diligence asks for, generated from the code rather than written from memory.
+
+- **Input:** a git repository (or a subdirectory of one). It is snapshotted with `git archive` at HEAD into a
+  temporary directory; the working tree is never read, so work in progress elsewhere cannot leak in.
+- **Measured vs stated:** everything read from the commit or git history is labelled *measured*. An optional,
+  hand-written facts file (zod-validated; see `fixtures/architecture-dossier/facts.json`) adds domains,
+  hosting, owning entity, monthly costs, accounts to transfer, known gaps, handover steps and cross-app
+  contracts, all labelled *stated*.
+- **Secrets:** `.env`, `.env.*`, `*.pem`, key and credential files are deleted from the snapshot unread and only
+  named (a committed one is a high-severity gap). `.env.example` is read for names. Values are never recorded,
+  and a facts file containing anything shaped like a credential is refused.
+- **Output:** `index.html` (static, no scripts, light and dark, phone-width safe, print-friendly, `noindex`) and
+  `dossier.json` (schema in `src/agents/architecture-dossier/schema.ts`). `agent:dossier:index` turns a folder
+  of dossiers plus a stated `portfolio.json` into one portfolio page (`index.html`, plus `portfolio.summary.json`)
+  with a diagram of how the apps connect; the stated input is never overwritten.
+- **Private by default:** the files stay where `--out` puts them. Nothing is uploaded or published.
 
 ## Field guides (one site per agent, one source)
 
@@ -160,3 +186,7 @@ MIT licensed.
 - The Forward Deployed Tester crawls same-origin links only and does not submit forms.
 - The AI Site Auditor cannot observe prerendering served only to verified crawler IP addresses, and its
   secret scan matches known key shapes rather than every credential.
+- The Architecture Dossier reads source statically. Route, auth, tenant and rate-limit signals are per handler
+  file (a Fastify file with one guarded route marks all its routes as guarded), Fastify `register` prefixes
+  are not applied, framework detection covers Next.js, Fastify, Express, Hono and Koa, and data models cover
+  Mongoose, SQL `CREATE TABLE` and Prisma. Test cases are counted, not run, unless a saved run is supplied.

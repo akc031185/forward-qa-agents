@@ -7,6 +7,7 @@ import type { AgentDefinition } from '../core/agent.js';
 import { forwardDeployedTester } from '../agents/forward-deployed-tester/index.js';
 import { sdetArchitect } from '../agents/sdet-architect/index.js';
 import { aiSiteAuditor } from '../agents/ai-site-auditor/index.js';
+import { architectureDossier } from '../agents/architecture-dossier/index.js';
 import { registerWorkerRoutes } from './worker.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -14,6 +15,7 @@ const AGENTS: Record<AgentName, AgentDefinition<any, any>> = {
   'forward-deployed-tester': forwardDeployedTester,
   'sdet-architect': sdetArchitect,
   'ai-site-auditor': aiSiteAuditor,
+  'architecture-dossier': architectureDossier,
 };
 
 export function buildApp() {

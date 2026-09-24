@@ -1,0 +1,8 @@
+[2m RUN [22m v1.6.0
+
+ ✓ tests/contacts.test.ts (3 tests | 1 skipped)
+ ✓ tests/webhooks.test.ts (3 tests)
+
+ Test Files  2 passed (2)
+      Tests  5 passed | 1 skipped (6)
+   Start at  10:00:00

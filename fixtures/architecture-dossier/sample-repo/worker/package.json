@@ -1,0 +1,13 @@
+{
+  "name": "harbor-worker",
+  "version": "0.3.0",
+  "private": true,
+  "scripts": {
+    "start": "node dist/server.js",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "fastify": "^4.27.0",
+    "better-sqlite3": "^11.0.0"
+  }
+}

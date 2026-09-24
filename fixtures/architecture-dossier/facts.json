@@ -1,0 +1,12 @@
+{
+  "app": { "name": "Harbor Ledger", "one_liner": "A fabricated contact ledger for small teams, used to test the dossier.", "status": "Live, 3 paying workspaces (fixture)", "urls": ["https://app.harbor-ledger.test"] },
+  "owner": { "entity": "Fixture Holdings LLC (fabricated)", "jurisdiction": "Nowhere, fixture", "contact_role": "Founder" },
+  "domains": [{ "domain": "harbor-ledger.test", "registrar": "Example Registrar", "dns": "Registrar DNS", "purpose": "App and marketing", "renews": "2027-01" }],
+  "hosting": [{ "provider": "Vercel", "project": "harbor-ledger", "plan": "Pro" }, { "provider": "Railway", "project": "harbor-worker", "plan": "Hobby" }],
+  "costs": [{ "item": "Vercel Pro", "vendor": "Vercel", "monthly_usd": 20 }, { "item": "Database cluster", "vendor": "MongoDB Atlas", "monthly_usd": 9 }, { "item": "Worker", "vendor": "Railway", "monthly_usd": 5.5 }],
+  "accounts": [{ "vendor": "Stripe", "purpose": "Subscriptions", "held_by": "Owning entity", "transferable": "unknown", "transfer_notes": "Account transfer needs vendor support" }],
+  "known_gaps": [{ "title": "No staging environment", "severity": "medium", "detail": "Changes go straight to production. <script>alert('stated')</script>" }],
+  "handover": [{ "step": "Transfer the domain", "owner": "Seller", "done": false }, { "step": "Rotate every secret after handover", "owner": "Buyer", "done": false }, { "step": "Invite buyer to the source repository", "done": true }],
+  "contracts": [{ "with_app": "Harbor Worker", "direction": "calls", "mechanism": "HTTPS POST /jobs", "auth": "Bearer token (WORKER_TOKEN)" }],
+  "notes": ["Everything in this file is fabricated for tests."]
+}

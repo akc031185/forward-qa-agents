@@ -1,0 +1,7 @@
+{
+  "title": "Fixture portfolio",
+  "owner": "Fixture Holdings LLC (fabricated)",
+  "apps": [{ "id": "harbor", "role": "Customer-facing app" }, { "id": "harbor-copy", "role": "Second copy for the index test" }],
+  "links": [{ "from": "harbor", "to": "harbor-copy", "label": "posts jobs", "mechanism": "HTTPS", "auth": "Bearer token" }, { "from": "harbor", "to": "missing-app", "label": "reads reports" }],
+  "notes": ["Fabricated for tests."]
+}

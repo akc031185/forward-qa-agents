@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { config } from './config.js';
 
 /** Every agent in the repo. The runs.agent CHECK constraint is generated from this list. */
-export const AGENT_NAMES = ['forward-deployed-tester', 'sdet-architect', 'ai-site-auditor'] as const;
+export const AGENT_NAMES = ['forward-deployed-tester', 'sdet-architect', 'ai-site-auditor', 'architecture-dossier'] as const;
 const AGENT_CHECK = `CHECK (agent IN (${AGENT_NAMES.map(a => `'${a}'`).join(',')}))`;
 
 export const SCHEMA = `

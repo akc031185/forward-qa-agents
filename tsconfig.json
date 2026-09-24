@@ -11,5 +11,6 @@
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "fixtures/**/*.ts"]
+  "include": ["src/**/*.ts", "tests/**/*.ts", "fixtures/**/*.ts"],
+  "exclude": ["node_modules", "dist", "fixtures/architecture-dossier/sample-repo/**"]
 }
