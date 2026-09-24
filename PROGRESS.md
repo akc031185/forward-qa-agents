@@ -78,6 +78,24 @@ best-effort and their numbers as exact.
   - Prefixes to register first: app `investoraiclub` in both workspaces; `user` in InvestorAI
     Club; `audit`, `link` and `report` in Site Analyzer.
 
+- **Deploy bundle A–D (owner-approved):**
+  - A: CRM `985bf15`. The ingest contract is hardened (v1.1.0 live): apps registry, one
+    `authorizeWrite` guard on every v1 write with a static bypass test, idempotency conflicts
+    (`idempotency_key_reused`), deal moves applied in `occurredAt` order with `stale` for late
+    ones. Shared client 1.1.0. 816/816 tests. Live: /login 200, `/api/v1/contract` 1.1.0,
+    events without a key 401.
+  - B: forward-qa-agents `a5bc16a`, plate 47, **the architecture-dossier agent**
+    (deterministic, env var names only, measured vs stated facts), 220/220 tests. GitHub push
+    protection blocked the first push over a FAKE Stripe-shaped test string; it is now
+    assembled at run time rather than allow-listed.
+  - C: **private** repo https://github.com/akc031185/askdbl-dossier with dossiers for
+    investoraiclub, the CRM and Site Analyzer, plus a portfolio index (205 endpoints, 82
+    models, 1,148 tests, 8 vendors). Secret-scanned clean.
+  - D: investoraiclub `fb25752`, **retired the unsigned GHL webhook** `/api/webhooks/ghl`.
+    The dossier found it: anyone could post to it and change a client request's status. It
+    now answers 410, verified live; home 200. Only that file was committed; the other 45
+    uncommitted files are untouched.
+
 **Decided**
 
 - **One app id, `investoraiclub`, in both CRM workspaces.** An app is the codebase that sends
