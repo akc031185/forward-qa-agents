@@ -109,46 +109,35 @@ best-effort and their numbers as exact.
 - **Relay funding:** $1,000 for about three months of agency running costs (~$250/month plus the
   one-offs). Move agency subscriptions to the Relay card once the wire posts.
 
-**Open / next**
+**Open / next** (updated late 24 Sep; the owner is moving and may lose connection)
 
-1. **Publish askdbl-crm:**
-   - a private GitHub repo and a Vercel project; move `crm.askdbl.com` onto it;
-   - the owner pastes `CRM_MONGODB_URI` and `AUTH_SECRET`;
-   - seed workspaces and pipelines, and create the owner.
-   See `askdbl-crm/README.md` Status and `docs/MIGRATION.md`.
-2. **Owner:** finish the GoDaddy "Continue & Verify" for the `A crm 76.76.21.21` record, and
-   verify the Relay email.
-3. **Owner:** start US SMS registration (A2P 10DLC) on Twilio before the move.
-4. **Cut-over:**
-   - migrate `ops` (dry run, then apply);
-   - issue an InvestorAI Club API key;
-   - set `CRM_API_URL` and `CRM_API_KEY` in investoraiclub;
-   - commit the `ai-tool-dashboard` CRM client, which is mixed with another workstream's
-     uncommitted automation files (never stage those);
-   - then `GHL_SYNC=off` and cancel GHL.
-5. **Vendor setup per workspace (owner, guided):** Resend (sending domains, a delivery webhook
-   plus RESEND_WEBHOOK_SECRET, an inbound webhook plus RESEND_INBOUND_WEBHOOK_SECRET); Twilio
-   (messaging webhook, Advanced Opt-Out, A2P); Stripe per workspace (Settings → Payments plus the
-   webhook `/api/webhooks/stripe/<slug>`); Calendly/Cal.com. Open items from the integrator:
-   verify the Resend inbound fetch endpoint; add a rate limit on the invite page; deals don't yet
-   call validateFields; leads have no `utm` field.
-6. **Before real use (older list, partly done):**
-   - a cron scheduler (Vercel Pro or an outside one);
-   - SMS consent, STOP replies and unsubscribe;
-   - a rate limit on `/leads`;
-   - member invites.
-6. **Deferred:** the real $99 re-audit and refund; move Atlas Free to Flex once funded.
-   **Rotate BOTH passwords** before real data or the ops migration goes in: the Atlas `crm_app`
-   password and the CRM owner login for abhi@askdbl.com. Both were shared in the chat on 24 Sep,
-   and the owner chose to scrub them later. The owner login is reset by re-running
-   `create-owner` with `OWNER_RESET_PASSWORD=1`. The cluster allows
-   0.0.0.0/0, so the password is the only barrier. Update Vercel `CRM_MONGODB_URI` and
-   `.env.local` after rotating.
-7. **Entity: DECIDED A, repurpose Hyde View** as the AI-agency LLC (ledger `l_514b52d5`,
-   in progress; `l_241f4c21` "new LLC" cancelled as superseded). Next: the clean-up in step 1 with
-   the bookkeeper/CPA, then pick the new name, then Articles of Amendment. Twilio A2P waits for the
-   final legal name.
-
+1. **CRM cut-over: APPROVED by the owner, not started.** Run it when the connection is stable:
+   1. In the CRM, register app `investoraiclub` in BOTH workspaces, with namespace
+      `investoraiclub`, prefix `user` in InvestorAI Club and prefixes `audit`, `link`, `report`
+      in Site Analyzer.
+   2. Create two app-bound API keys (events, deals and leads scopes) and put them into
+      investoraiclub's Vercel production env without printing them: `CRM_API_KEY_INVESTORAICLUB`,
+      `CRM_API_KEY_SITE_ANALYZER`, and `CRM_API_URL=https://crm.askdbl.com`.
+   3. Re-run the backfill dry run (numbers should match 23/24 Sep), then `--apply`, then check the
+      CRM.
+   4. Commit ONLY our investoraiclub CRM files (never the automation workstream's
+      `src/lib/ops/automations.ts`, `_tests_/lib/ops-automations.test.ts`, `docs/AUTOMATIONS.md`),
+      deploy, and watch the outbox for 1–2 days.
+   5. `GHL_SYNC=off`, delete the GHL code and env vars, then the owner cancels GHL ($99/month).
+2. **Product naming, round 3 (filtered):** agents generate coined names and show only those
+   that already pass: a free .ai/.io/get- domain, a free GitHub org and npm name, no USPTO hit in
+   classes 9/42, and no famous sound-alike. Round 2 result: Exray eliminated (Scaleflow X-Ray,
+   "XRAY DILIGENCE" filed 22 Sep 2026, JFrog/Jira Xray). Wholemark is the best of round 2 but
+   sounds like HALLMARK (famous, class 9/42). Tellwise has a ZoomInfo legacy; Stackread reads as
+   "Stack Ready". Nothing bought.
+3. **Dossier product:** a lead-magnet page first (public GitHub URL → free readiness score + top
+   risks → CRM lead), then the CLI, GitHub connect and done-for-you. Sold from investoraiclub.com
+   with its own CRM workspace; pricing decided later. Waits on the name.
+4. **Owner:** rotate the `crm_app` and CRM owner passwords (both shared in chat); verify the
+   Relay email; start Twilio A2P 10DLC after the LLC rename; vendor setup in the CRM (Resend,
+   Twilio, Stripe per workspace).
+5. **Later:** the Hyde View rename (ledger `l_514b52d5`); the $99 re-audit test; Atlas Free →
+   Flex; the intermittent CRM test (3 DB-backed tests failed together once in about 21 runs).
 ---
 
 ## 2026-09-23 (Wednesday)
