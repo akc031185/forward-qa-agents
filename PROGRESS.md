@@ -43,6 +43,14 @@ best-effort and their numbers as exact.
   API `2026-01-28.clover` (matches `src/lib/stripe.ts`), `checkout.session.completed` only, to
   `https://www.investoraiclub.com/api/stripe/webhook`. That URL answers an unsigned POST with 400
   and no redirect, which is correct.
+- **Stripe review cleared**: no active tasks. Payments and payouts are active; only Affirm, Cartes
+  Bancaires and Scalapay are paused, and the $99 checkout uses none of them.
+- **Live keys in Vercel `ai-tool-dashboard-pdo1`, Production only.** The owner pasted all three.
+  Redeployed `87be480` with no build cache (1m 47s, Ready).
+- **Health check (03:15 UTC): `ok: true`.** Stripe returns `mode=live` (balance retrieved), and
+  MongoDB, Blob, GHL and Resend are all ok. Every env var reports `ok`. `CRON_SECRET` was read from
+  a `vercel env pull` into the session scratchpad without being printed, and the file was deleted
+  straight after. The owner added a `Bash(vercel env pull:*)` allow rule for this.
 
 **Decided**
 
@@ -51,10 +59,9 @@ best-effort and their numbers as exact.
 
 **Open / next**
 
-1. Owner pastes the live `sk_live`, `pk_live` and the new webhook's `whsec` into Vercel
-   `ai-tool-dashboard-pdo1`, Production only. Redeploy after Stripe's review clears.
-2. Wait for the representative review. If Stripe asks for the ID again, upload the driver's licence.
-3. Health check (`mode: live`), then the real $99 re-audit and refund. Then items 3–5 of the 22 Sep list.
+1. Real $99 re-audit of the owner's own site, then refund it (checklist step 3 in STRIPE-GO-LIVE.md).
+2. Consider removing the `vercel env pull` allow rule once it is no longer needed.
+3. Then items 3–5 of the 22 Sep list.
 3. Jest config in `ai-tool-dashboard` should ignore `playwright/` so the suite count is clean.
 
 ---
