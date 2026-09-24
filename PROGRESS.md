@@ -51,6 +51,20 @@ best-effort and their numbers as exact.
   - **https://crm.askdbl.com is LIVE.** The GoDaddy record `A crm 76.76.21.21` was saved and
     verified by the owner; public DNS resolved at once; the certificate was issued with
     `vercel certs issue`; the sign-in page serves 200.
+  - **Remaining modules built and deployed** by a workflow of eight module agents plus an
+    integrator: record (companies, tasks, custom fields, tags, saved views, merge, CSV), team
+    (invites, roles, audit log, password change/reset), email marketing (domains, templates,
+    campaigns, one-click unsubscribe, suppression), inbox (email, SMS, web chat, STOP/START),
+    affiliates, billing and attribution (per-workspace Stripe, encrypted keys), reports, and
+    platform (rate limits, forms, bookings, GitHub Actions cron). Verified by hand: typecheck and
+    lint clean, **694/694 tests** (64 files); commit `20d4a47`, pushed; deploy `975a5gpc4` Ready.
+    Live smoke test: /login 200, widget 200, /api/v1 401 without a key, the cron endpoint 401
+    without its secret. A manual run of the GitHub cron workflow succeeded, so the shared secret
+    works.
+  - Secrets generated straight into Vercel without being printed: CRM_ENCRYPTION_KEY,
+    MARKETING_TOKEN_SECRET, FORMS_TOKEN_SECRET, AFFILIATE_HASH_SECRET, AUDIT_IP_SALT.
+    CRON_SECRET was rotated into Vercel and the GitHub repo secret together. CRM_PUBLIC_URL and
+    AUTH_URL are https://crm.askdbl.com.
   - `crm.askdbl.com` moved from `ai-tool-dashboard-pdo1` (whose three investoraiclub domains stay
     valid) to `askdbl-crm`. DNS still needs the GoDaddy record `A crm 76.76.21.21`.
 
@@ -81,7 +95,13 @@ best-effort and their numbers as exact.
    - commit the `ai-tool-dashboard` CRM client, which is mixed with another workstream's
      uncommitted automation files (never stage those);
    - then `GHL_SYNC=off` and cancel GHL.
-5. **Before real use:**
+5. **Vendor setup per workspace (owner, guided):** Resend (sending domains, a delivery webhook
+   plus RESEND_WEBHOOK_SECRET, an inbound webhook plus RESEND_INBOUND_WEBHOOK_SECRET); Twilio
+   (messaging webhook, Advanced Opt-Out, A2P); Stripe per workspace (Settings → Payments plus the
+   webhook `/api/webhooks/stripe/<slug>`); Calendly/Cal.com. Open items from the integrator:
+   verify the Resend inbound fetch endpoint; add a rate limit on the invite page; deals don't yet
+   call validateFields; leads have no `utm` field.
+6. **Before real use (older list, partly done):**
    - a cron scheduler (Vercel Pro or an outside one);
    - SMS consent, STOP replies and unsubscribe;
    - a rate limit on `/leads`;
