@@ -97,7 +97,24 @@ best-effort and their numbers as exact.
   kept for the owner. IP access is `0.0.0.0/0` for Vercel. The billing identity chosen for
   agency vendors is Hyde View Realty LLC, Sheridan WY.
 - **Relay**: shows no transactions yet. The owner is funding it by ACH (Relay does not appear to
-  support Zelle). Relay also shows an "email needs to be verified" banner.
+  support Zelle). Relay also shows an "email needs to be verified" banner. The owner switched to a wire, because
+  ACH would arrive too late.
+- **Standalone CRM built** at `~/Documents/askdbl-crm` (local commits `2c484d5` scaffold and
+  `d5208e4` build; not pushed). Seven agents: a scaffold, five features, an integrator.
+  - Next 15 App Router, Auth.js v5 credentials, Mongoose, zod, Tailwind, Vitest.
+  - typecheck and lint clean; **236/236 tests** (24 files); the build passes.
+  - Ten `/api/v1` endpoints (leads, events up to a 100-event batch, contacts, deals, stage and note
+    moves by the calling app's own record id), each checking the API key and its scope.
+  - Console for workspaces, contacts, pipelines and board, automations, and settings (API keys,
+    members, pipelines).
+  - Email through Resend and SMS through Twilio, each checked against consent and the suppression
+    list; a job queue for waits.
+  - Migration scripts from the old `ops` database and from GHL, dry run by default.
+  - The integrator fixed the investoraiclub client, which had the wrong API paths and shapes.
+    Every write would have ended up dead in the outbox.
+- **investoraiclub side (uncommitted):** `src/lib/crmApi.ts` plus an outbox and cron, off while
+  `CRM_API_URL` is unset. The host routing was removed by hand, because the agents' revert was
+  blocked. `tsc` clean, Jest 323/323 (38 suites).
 
 **Open / next**
 
@@ -107,7 +124,13 @@ best-effort and their numbers as exact.
    (4) `crm.askdbl.com` for admin; (5) offer it to customers per workspace, with Stripe billing.
    SMS (Twilio + A2P 10DLC) and email from each customer's own domain are open questions.
    Check first who owns the uncommitted ops-automations work in `ai-tool-dashboard`.
-2. Owner answers D1–D6 on the design page; then commit step 1. Deploy order matters: the board
+2. Publish askdbl-crm: a private GitHub repo and a Vercel project, move crm.askdbl.com onto it, and
+   set env vars (CRM_MONGODB_URI, AUTH_SECRET; the owner pastes the secrets), seed workspaces,
+   create the owner. Then migrate ops (dry run, then apply), issue an investoraiclub API key, set
+   CRM_API_URL/KEY and commit the dashboard.
+   Open: crons need Vercel Pro or an outside scheduler; SMS consent capture, unsubscribe and STOP
+   replies; a rate limit on /leads; member invites.
+   Superseded: the old step "owner answers D1–D6; then commit step 1". Deploy order matters: the board
    hides requests that have no deal, so after the deploy run `POST /api/admin/ops/backfill-deals`
    dry run first, then `?dryRun=0`, then migrate-contacts. Set `ADMIN_HOST=crm.askdbl.com` in
    Vercel Production once DNS verifies.
