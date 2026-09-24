@@ -10,6 +10,99 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-09-23 (Wednesday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 47 (0 today, head `65dca17`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 163 pass, 0 fail (10 suites) |
+| Source lines (src/) | 8042 across 52 files |
+| Test lines (tests/) | 2633 across 27 files |
+| Agent runs in DB | 28 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
+
+**Done**
+
+- HH:MM 
+
+**Decided**
+
+- 
+
+**Open / next**
+
+1. 
+
+---
+
+## 2026-09-22 (Tuesday) — *reconstructed from session memory on 2026-09-23*
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 47 (0 that day, head `65dca17`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 163 pass, 0 fail (10 suites) |
+| Source lines (src/) | 8042 across 52 files |
+| Test lines (tests/) | 2633 across 27 files |
+| Agent runs in DB | 28 (unchanged from 21 Sep) |
+
+> Measured by `npm run progress` on 23 Sep; nothing was committed in between, so the numbers hold
+> for 22 Sep. No code changed. The work was Stripe going live, done in the Stripe, Vercel and bank
+> dashboards. `ai-tool-dashboard` is still at head `72a16a8`, and this repo at `65dca17`. The log
+> was not written that evening because macOS blocked access to `~/Documents`.
+
+**Done**
+
+- **Stripe live account activated up to "Add your bank".** Email verified. Business type, tax details,
+  business details, representative, products (Consulting services), public details and statement
+  descriptor (`INVESTOR AI CLUB`, shortened `INVESTORAI`) are filled in. The support phone is kept off
+  receipts. The description says outright that no investment advice is given, so a name containing
+  "Investor" does not get the account reviewed as a financial business.
+- **Payout bank.** The entity's old business checking account had been closed. Applied for a
+  fee-free Relay business checking account for the same entity. **Approved 23 Sep.**
+- **Registered-agent spend reviewed** (finops ledger `i20`). The four $9.95/month charges are
+  per-entity registered-agent fees, and one entity appears to be billed twice. Action: call the
+  provider, cancel the entities being closed and any duplicate, and move to annual billing or a
+  $25/yr agent.
+- **Compared Wyoming LLC formation.** Cheapest well-established option is $153 for the first year,
+  then $87/yr. Not needed (see Decided).
+
+**Decided**
+
+- **The agency trades through the owner's existing Wyoming LLC, not a new one.** Its public name
+  is Investor AI Club, and the statement descriptor matches the website.
+- **Business and support address: the LLC's registered office in Wyoming.** Stripe says to use it
+  when the owner operates from abroad, and it will not change after the move.
+- **Support email will be `support@investoraiclub.com`.** The domain's mail already runs on Zoho,
+  so this is a forward to the owner's inbox. Not created yet.
+- **Personal identifiers (SSN, date of birth, full EIN, bank numbers) are typed by the owner
+  only.** They are never stored in memory, docs or the log.
+
+**Open / next**
+
+1. Stripe → Add your bank → *Enter bank details manually instead*, with the Relay routing and
+   account numbers. Then Secure your account (2FA), Add extras, then Review and submit.
+2. Finish `ai-tool-dashboard/docs/STRIPE-GO-LIVE.md`:
+   - successful-payment emails on;
+   - live webhook endpoint (`checkout.session.completed` only);
+   - live keys and signing secret in Vercel project `ai-tool-dashboard-pdo1`, Production only;
+   - redeploy;
+   - health check shows `mode: live` (needs `CRON_SECRET`, which is not in `.env.local`);
+   - one real $99 re-audit, then refund it.
+3. Create the Zoho `support@` forward and set it in Stripe → Settings → Public details.
+4. Relay "countries of operation": confirm whether India was added.
+5. Carried over: check the pilot's opens, the "Audit a site for a customer" form, and the 21 Sep list.
+
+---
+
 ## 2026-09-21 (Monday)
 
 **Snapshot at end of day**
