@@ -81,6 +81,23 @@ best-effort and their numbers as exact.
   untouched.
 - **System design page published** (private): https://claude.ai/artifact/FucWgBVt8RZ3Mw8PHDEzaM,
   with decisions D1–D6 for the owner.
+- **Owner decided D1–D6 (design page v2).** The CRM becomes its **own app and repo**
+  (`askdbl-crm`, Next.js App Router) on its **own Atlas cluster**, with its own login (the owner
+  plus sub-admins). All CRM screens live there, and every app and site feeds it only through its
+  API with a key per workspace. Contacts are separate per business; email and SMS are in, calls
+  come later via AI. Storage is shared by default, with a dedicated database per customer when
+  the plan needs it. First workspaces: InvestorAI Club and Site Analyzer. The host-routing work in
+  `ai-tool-dashboard` is superseded and is being removed.
+- **Standalone CRM build started**: a workflow with a scaffold agent, then five agents in parallel
+  (contacts and timeline, deals and board, automations with email and SMS, the investoraiclub API
+  client with its outbox, and the data move), then an integrator.
+- **MongoDB Atlas**: new project `askdbl-crm`, **Free** cluster `crm-prod` on AWS us-east-1.
+  Flex was dropped until Relay is funded. User `crm_app` has `readWrite@crm` only (it was
+  `readWriteAnyDatabase`, then `CRM` in capitals, both corrected). The auto-created admin user is
+  kept for the owner. IP access is `0.0.0.0/0` for Vercel. The billing identity chosen for
+  agency vendors is Hyde View Realty LLC, Sheridan WY.
+- **Relay**: shows no transactions yet. The owner is funding it by ACH (Relay does not appear to
+  support Zelle). Relay also shows an "email needs to be verified" banner.
 
 **Open / next**
 
