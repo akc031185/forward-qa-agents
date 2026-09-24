@@ -64,6 +64,23 @@ best-effort and their numbers as exact.
 - The whole GHL dependency, measured: five functions in `src/lib/ghl.ts`, used by 16 files, plus
   the inbound `pages/api/webhooks/ghl.ts`. Deals and pipeline stages are the one piece not yet
   held in `ops`.
+- **CRM step 1 built by parallel agents (uncommitted in `ai-tool-dashboard`, awaiting the owner's
+  review).** Two workflows, nine agents:
+  - pipelines and deals in `ops` (`src/lib/ops/deals.ts`);
+  - `src/lib/crm.ts` as the one CRM entry point, with the 13 GHL call sites rewired to it; it
+    writes to GHL as well unless `GHL_SYNC=off`;
+  - `docs/CRM-PARITY.md`, about 60 GHL features rated have / partial / missing, with a 9-phase order;
+  - a GHL importer, read-only against GHL, dry run by default;
+  - host routing for crm.askdbl.com, inactive until `ADMIN_HOST` is set;
+  - a backfill of deals for existing requests;
+  - the `/admin/crm` board moved onto ops deals.
+  The integrators caught two real bugs: `idOf()` recursing forever on a real ObjectId, and a redirect
+  loop for signed-in non-admins on the admin host. Verified by hand: `tsc` clean, Jest 339/339 (38 suites).
+- **crm.askdbl.com** added to Vercel project `ai-tool-dashboard-pdo1`. The GoDaddy record
+  `A crm 76.76.21.21` is filled in but waits on the owner's identity check. The root askdbl.com is
+  untouched.
+- **System design page published** (private): https://claude.ai/artifact/FucWgBVt8RZ3Mw8PHDEzaM,
+  with decisions D1–D6 for the owner.
 
 **Open / next**
 
@@ -73,7 +90,11 @@ best-effort and their numbers as exact.
    (4) `crm.askdbl.com` for admin; (5) offer it to customers per workspace, with Stripe billing.
    SMS (Twilio + A2P 10DLC) and email from each customer's own domain are open questions.
    Check first who owns the uncommitted ops-automations work in `ai-tool-dashboard`.
-2. Real $99 re-audit of the owner's own site, then refund it (deferred).
+2. Owner answers D1–D6 on the design page; then commit step 1. Deploy order matters: the board
+   hides requests that have no deal, so after the deploy run `POST /api/admin/ops/backfill-deals`
+   dry run first, then `?dryRun=0`, then migrate-contacts. Set `ADMIN_HOST=crm.askdbl.com` in
+   Vercel Production once DNS verifies.
+3. Real $99 re-audit of the owner's own site, then refund it (deferred).
 2. Consider removing the `vercel env pull` allow rule once it is no longer needed.
 3. Then items 3–5 of the 22 Sep list.
 3. Jest config in `ai-tool-dashboard` should ignore `playwright/` so the suite count is clean.
