@@ -10,6 +10,65 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-09-24 (Thursday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 55 (0 today, head `1ef5db5`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 163 pass, 0 fail (10 suites) |
+| Source lines (src/) | 8042 across 52 files |
+| Test lines (tests/) | 2633 across 27 files |
+| Agent runs in DB | 28 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded) |
+
+**Done**
+
+> Most of this session's work is logged under 23 Sep, below; it ran past midnight. This entry is
+> the handoff.
+
+- **$1,000 owner contribution wired to Hyde View's Relay checking** (Thread Bank, ••2813). It was
+  in transit at the end of the session; Relay says 2–3 business days. Recorded in the finops
+  ledger as row `l_07c098b4`, status Pending. Relay has a virtual card, ••9671, for agency bills.
+- **READMEs updated:**
+  - `ai-tool-dashboard/README.md` gets a note that the CRM is moving out (uncommitted, with the
+    rest of that repo's CRM work).
+  - `askdbl-crm/README.md` gets a status and next-steps section (local commit `646ad3f`).
+
+**Decided**
+
+- **Relay funding:** $1,000 for about three months of agency running costs (~$250/month plus the
+  one-offs). Move agency subscriptions to the Relay card once the wire posts.
+
+**Open / next**
+
+1. **Publish askdbl-crm:**
+   - a private GitHub repo and a Vercel project; move `crm.askdbl.com` onto it;
+   - the owner pastes `CRM_MONGODB_URI` and `AUTH_SECRET`;
+   - seed workspaces and pipelines, and create the owner.
+   See `askdbl-crm/README.md` Status and `docs/MIGRATION.md`.
+2. **Owner:** finish the GoDaddy "Continue & Verify" for the `A crm 76.76.21.21` record, and
+   verify the Relay email.
+3. **Owner:** start US SMS registration (A2P 10DLC) on Twilio before the move.
+4. **Cut-over:**
+   - migrate `ops` (dry run, then apply);
+   - issue an InvestorAI Club API key;
+   - set `CRM_API_URL` and `CRM_API_KEY` in investoraiclub;
+   - commit the `ai-tool-dashboard` CRM client, which is mixed with another workstream's
+     uncommitted automation files (never stage those);
+   - then `GHL_SYNC=off` and cancel GHL.
+5. **Before real use:**
+   - a cron scheduler (Vercel Pro or an outside one);
+   - SMS consent, STOP replies and unsubscribe;
+   - a rate limit on `/leads`;
+   - member invites.
+6. **Deferred:** the real $99 re-audit and refund; move Atlas Free to Flex once funded.
+
+---
+
 ## 2026-09-23 (Wednesday)
 
 **Snapshot at end of day**
