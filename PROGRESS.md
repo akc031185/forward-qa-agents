@@ -68,8 +68,21 @@ best-effort and their numbers as exact.
   - `crm.askdbl.com` moved from `ai-tool-dashboard-pdo1` (whose three investoraiclub domains stay
     valid) to `askdbl-crm`. DNS still needs the GoDaddy record `A crm 76.76.21.21`.
 
+- **Backfill dry run against production (read-only, nothing sent):**
+  - InvestorAI Club: 7 contacts, 8 events (7 user.registered, 1 handoff.received), 9 deals,
+    1 hand-off.
+  - Site Analyzer: 2 contacts, 12 events (audit submitted/finished/unlocked ×3 each,
+    report.viewed, link.expired, handoff.sent).
+  - 1 contact skipped (no events); nothing routed by default; no site keys or automations to
+    recreate.
+  - Prefixes to register first: app `investoraiclub` in both workspaces; `user` in InvestorAI
+    Club; `audit`, `link` and `report` in Site Analyzer.
+
 **Decided**
 
+- **One app id, `investoraiclub`, in both CRM workspaces.** An app is the codebase that sends
+  data; a workspace is the business it lands in, chosen by the API key. A separate
+  `site-analyzer` app would orphan anonymous auditors, who have only investoraiclub ids.
 - **Site Analyzer is its own workspace**, because its pricing differs from InvestorAI Club. Audit,
   re-audit and subscription events go to Site Analyzer; fix requests, proposals and projects go
   to InvestorAI Club (two API keys in investoraiclub.com). To build: a cross-workspace hand-off,
