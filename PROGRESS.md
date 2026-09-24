@@ -124,12 +124,20 @@ best-effort and their numbers as exact.
       `src/lib/ops/automations.ts`, `_tests_/lib/ops-automations.test.ts`, `docs/AUTOMATIONS.md`),
       deploy, and watch the outbox for 1–2 days.
    5. `GHL_SYNC=off`, delete the GHL code and env vars, then the owner cancels GHL ($99/month).
-2. **Product naming, round 3 (filtered):** agents generate coined names and show only those
-   that already pass: a free .ai/.io/get- domain, a free GitHub org and npm name, no USPTO hit in
-   classes 9/42, and no famous sound-alike. Round 2 result: Exray eliminated (Scaleflow X-Ray,
-   "XRAY DILIGENCE" filed 22 Sep 2026, JFrog/Jira Xray). Wholemark is the best of round 2 but
-   sounds like HALLMARK (famous, class 9/42). Tellwise has a ZoomInfo legacy; Stackread reads as
-   "Stack Ready". Nothing bought.
+2. **Product naming:** round 3 ran (workflow `wf_a7764bb6-20b`, result
+   `~/Documents/askdbl-dossier/naming/round-3.md`), but its filter step did NOT run the
+   domain/GitHub/npm checks and rejected 71 of 73 names on rules only. **Next: re-run only the
+   filter, fixed** (the generated names are cached; resume the workflow), then clear the
+   survivors.
+   Hand-verified so far:
+   - **Wholemark:** .ai, .io, .co, get- and try- free; GitHub and npm free; USPTO clear. Risk:
+     sounds like HALLMARK.
+   - **Nextown:** .ai, .io, .co, get- and try- free; GitHub and npm free; USPTO clear. Risk: heard
+     as "next town".
+   - **Ownsure:** .com, .ai, .io, .co, .app and .dev all taken; only get- and try- free; heard as
+     OnSure.
+   - **Exray:** eliminated.
+   Nothing bought.
 3. **Dossier product:** a lead-magnet page first (public GitHub URL → free readiness score + top
    risks → CRM lead), then the CLI, GitHub connect and done-for-you. Sold from investoraiclub.com
    with its own CRM workspace; pricing decided later. Waits on the name.
