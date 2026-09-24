@@ -48,6 +48,9 @@ best-effort and their numbers as exact.
     (new › contacted › qualified › proposal › won › lost); owner abhi@askdbl.com on both.
     Production deploy `fkz1o1ej8` is Ready. The first deploy failed because the framework preset
     was Other; `vercel.json` now pins nextjs.
+  - **https://crm.askdbl.com is LIVE.** The GoDaddy record `A crm 76.76.21.21` was saved and
+    verified by the owner; public DNS resolved at once; the certificate was issued with
+    `vercel certs issue`; the sign-in page serves 200.
   - `crm.askdbl.com` moved from `ai-tool-dashboard-pdo1` (whose three investoraiclub domains stay
     valid) to `askdbl-crm`. DNS still needs the GoDaddy record `A crm 76.76.21.21`.
 
