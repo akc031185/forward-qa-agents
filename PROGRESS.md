@@ -53,6 +53,11 @@ best-effort and their numbers as exact.
 
 **Decided**
 
+- **Site Analyzer is its own workspace**, because its pricing differs from InvestorAI Club. Audit,
+  re-audit and subscription events go to Site Analyzer; fix requests, proposals and projects go
+  to InvestorAI Club (two API keys in investoraiclub.com). To build: a cross-workspace hand-off,
+  and the Site Analyzer pipeline stages (audited › report sent › opened › re-audit paid ›
+  subscribed; lost).
 - **Relay funding:** $1,000 for about three months of agency running costs (~$250/month plus the
   one-offs). Move agency subscriptions to the Relay card once the wire posts.
 
