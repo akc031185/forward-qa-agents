@@ -66,6 +66,9 @@ best-effort and their numbers as exact.
    - a rate limit on `/leads`;
    - member invites.
 6. **Deferred:** the real $99 re-audit and refund; move Atlas Free to Flex once funded.
+7. **Entity decision (owner):** repurpose Hyde View as the AI-agency LLC (ledger `l_514b52d5`,
+   with 9 dependent steps) or keep the 18 Sep plan of a new LLC (`l_241f4c21`). Decide before
+   the Twilio A2P registration, which needs the final legal name and EIN.
 
 ---
 
