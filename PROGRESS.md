@@ -35,6 +35,14 @@ best-effort and their numbers as exact.
   show as failed suites because Jest collects them and cannot run them; they are not unit tests.
 - **Relay business checking is ready**, so the next step is adding it as the payout bank in Stripe.
   The attempt from the plane got as far as the Stripe dashboard's loading screen and no further.
+- **Stripe activation submitted, and the owner linked Relay as the payout bank.** Two representative
+  tasks (information, identity document) are *In review*. Payments and payouts stay paused until they
+  clear. The owner changed the representative's home address before the review started.
+- **Live receipts on**: Settings → Customer emails → Successful payments. Refund emails left off.
+- **Live webhook created**: `investoraiclub-production` (`we_1UJ2j9RrwEz0xhBD7YRN9QiB`), Active,
+  API `2026-01-28.clover` (matches `src/lib/stripe.ts`), `checkout.session.completed` only, to
+  `https://www.investoraiclub.com/api/stripe/webhook`. That URL answers an unsigned POST with 400
+  and no redirect, which is correct.
 
 **Decided**
 
@@ -43,9 +51,10 @@ best-effort and their numbers as exact.
 
 **Open / next**
 
-1. Stripe → Add your bank → *Enter bank details manually instead* (owner types the Relay numbers),
-   2FA, Add extras, Review and submit. Needs a stable connection.
-2. Then items 2–5 of the 22 Sep list below.
+1. Owner pastes the live `sk_live`, `pk_live` and the new webhook's `whsec` into Vercel
+   `ai-tool-dashboard-pdo1`, Production only. Redeploy after Stripe's review clears.
+2. Wait for the representative review. If Stripe asks for the ID again, upload the driver's licence.
+3. Health check (`mode: live`), then the real $99 re-audit and refund. Then items 3–5 of the 22 Sep list.
 3. Jest config in `ai-tool-dashboard` should ignore `playwright/` so the suite count is clean.
 
 ---
