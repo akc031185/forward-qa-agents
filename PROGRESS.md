@@ -27,15 +27,26 @@ best-effort and their numbers as exact.
 
 **Done**
 
-- HH:MM 
+- **Backfilled the 22 Sep entry** (below, marked reconstructed). macOS file access to
+  `~/Documents` is working again. `a4cf61d` here; `ai-tool-dashboard` `87be480` adds a
+  "Progress (22–23 Sep 2026)" checklist to `docs/STRIPE-GO-LIVE.md`. Both pushed.
+- Checks before those commits: this repo typecheck pass, 163/163 tests. `ai-tool-dashboard`
+  `tsc --noEmit` clean, Jest 271/271 tests pass. Six Playwright specs under `playwright/tests/`
+  show as failed suites because Jest collects them and cannot run them; they are not unit tests.
+- **Relay business checking is ready**, so the next step is adding it as the payout bank in Stripe.
+  The attempt from the plane got as far as the Stripe dashboard's loading screen and no further.
 
 **Decided**
 
-- 
+- Working in flight: local steps continue, each online step gets one try, and a failure means
+  stopping and resuming once the connection is back rather than retrying.
 
 **Open / next**
 
-1. 
+1. Stripe → Add your bank → *Enter bank details manually instead* (owner types the Relay numbers),
+   2FA, Add extras, Review and submit. Needs a stable connection.
+2. Then items 2–5 of the 22 Sep list below.
+3. Jest config in `ai-tool-dashboard` should ignore `playwright/` so the suite count is clean.
 
 ---
 
