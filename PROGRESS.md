@@ -56,10 +56,24 @@ best-effort and their numbers as exact.
 
 - Working in flight: local steps continue, each online step gets one try, and a failure means
   stopping and resuming once the connection is back rather than retrying.
+- **The real $99 re-audit test is deferred** at the owner's request.
+- **Replace GoHighLevel entirely with the in-house ops CRM**, and cancel the $99/month plan.
+  Customers can host their site anywhere and use our CRM for follow-ups and automations
+  (workspaces, site keys, `/api/ops/leads`). The CRM will live on askdbl.com (proposed:
+  `crm.askdbl.com`). dadbuildinglegacy.com stays as it is.
+- The whole GHL dependency, measured: five functions in `src/lib/ghl.ts`, used by 16 files, plus
+  the inbound `pages/api/webhooks/ghl.ts`. Deals and pipeline stages are the one piece not yet
+  held in `ops`.
 
 **Open / next**
 
-1. Real $99 re-audit of the owner's own site, then refund it (checklist step 3 in STRIPE-GO-LIVE.md).
+1. GHL replacement, in order: (1) a deal and pipeline model in `ops` behind the same five function
+   names, writing to GHL as well until the numbers match; (2) import GHL's contacts, deals and notes
+   with a dry run first; (3) delete the GHL code and variables, then cancel the plan;
+   (4) `crm.askdbl.com` for admin; (5) offer it to customers per workspace, with Stripe billing.
+   SMS (Twilio + A2P 10DLC) and email from each customer's own domain are open questions.
+   Check first who owns the uncommitted ops-automations work in `ai-tool-dashboard`.
+2. Real $99 re-audit of the owner's own site, then refund it (deferred).
 2. Consider removing the `vercel env pull` allow rule once it is no longer needed.
 3. Then items 3–5 of the 22 Sep list.
 3. Jest config in `ai-tool-dashboard` should ignore `playwright/` so the suite count is clean.
