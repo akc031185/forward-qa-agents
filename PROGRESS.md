@@ -38,6 +38,14 @@ best-effort and their numbers as exact.
     rest of that repo's CRM work).
   - `askdbl-crm/README.md` gets a status and next-steps section (local commit `646ad3f`).
 
+- **askdbl-crm published (after landing):**
+  - Private GitHub repo https://github.com/akc031185/askdbl-crm, `main` at `646ad3f`.
+  - Vercel project `askdbl-crm`, connected to the repo so pushes deploy.
+  - Env set without printing: `AUTH_SECRET` and `CRON_SECRET` (generated, sensitive) and
+    `CRM_DB_NAME=crm`. Waiting on the owner to paste `CRM_MONGODB_URI`.
+  - `crm.askdbl.com` moved from `ai-tool-dashboard-pdo1` (whose three investoraiclub domains stay
+    valid) to `askdbl-crm`. DNS still needs the GoDaddy record `A crm 76.76.21.21`.
+
 **Decided**
 
 - **Relay funding:** $1,000 for about three months of agency running costs (~$250/month plus the
