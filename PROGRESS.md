@@ -43,6 +43,11 @@ best-effort and their numbers as exact.
   - Vercel project `askdbl-crm`, connected to the repo so pushes deploy.
   - Env set without printing: `AUTH_SECRET` and `CRON_SECRET` (generated, sensitive) and
     `CRM_DB_NAME=crm`. Waiting on the owner to paste `CRM_MONGODB_URI`.
+  - **Seeded live** (from `.env.local`, chmod 600, gitignored): workspaces `investoraiclub` and
+    `site-analyzer`; pipelines client-requests (draft › in-progress › complete › closed) and leads
+    (new › contacted › qualified › proposal › won › lost); owner abhi@askdbl.com on both.
+    Production deploy `fkz1o1ej8` is Ready. The first deploy failed because the framework preset
+    was Other; `vercel.json` now pins nextjs.
   - `crm.askdbl.com` moved from `ai-tool-dashboard-pdo1` (whose three investoraiclub domains stay
     valid) to `askdbl-crm`. DNS still needs the GoDaddy record `A crm 76.76.21.21`.
 
@@ -74,8 +79,10 @@ best-effort and their numbers as exact.
    - a rate limit on `/leads`;
    - member invites.
 6. **Deferred:** the real $99 re-audit and refund; move Atlas Free to Flex once funded.
-   **Rotate the `crm_app` Atlas password** before real data or the ops migration goes in: it
-   appeared in a screenshot on 24 Sep, and the owner chose to keep it for now. The cluster allows
+   **Rotate BOTH passwords** before real data or the ops migration goes in: the Atlas `crm_app`
+   password and the CRM owner login for abhi@askdbl.com. Both were shared in the chat on 24 Sep,
+   and the owner chose to scrub them later. The owner login is reset by re-running
+   `create-owner` with `OWNER_RESET_PASSWORD=1`. The cluster allows
    0.0.0.0/0, so the password is the only barrier. Update Vercel `CRM_MONGODB_URI` and
    `.env.local` after rotating.
 7. **Entity: DECIDED A, repurpose Hyde View** as the AI-agency LLC (ledger `l_514b52d5`,
