@@ -49,6 +49,12 @@ best-effort and their numbers as exact.
 - **Production deploy** `ai-tool-dashboard-pdo1-p3kokaapn` Ready, aliased to investoraiclub.com.
   Smoke: home and login 200, outbox cron 401 without secret, crm.askdbl.com 200, CRM events API
   401 without key.
+- **Relay setup (7 Oct):** ledger `l_07c098b4` marked Posted. Agency bills moved to Relay card
+  ••9671 (owner typed the card; billing address Hyde View, Sheridan WY): Atlas (new row
+  `l_c7bc8d43`), Railway (`l_3bb7f33d`), Resend (new row `l_b12df19b`, free tier, old card still
+  saved). Vercel is on Hobby, nothing to move.
+- **Atlas crm-prod Free → Flex (7 Oct, owner OK):** from $0.011/hour, capped at $30/month. Back
+  up after ~210 s; 9 contacts read back; cluster shows FLEX, Backups Active.
 
 **Decided**
 
@@ -56,13 +62,16 @@ best-effort and their numbers as exact.
 - Outbox retry cron runs once a day (owner).
 - The backfill reads app db `test`, not the db named in the local URI.
 - Name still parked; owner is checking Ownsure / Nextown / Wholemark on GoDaddy.
+- Only crm-prod goes to Flex; the app cluster stays Free for now. $99 re-audit test deferred.
+- Railway stays (it hosts the audit worker); the ledger decision column still says CANCEL for the
+  owner to change.
 
 **Open / next**
 
 1. Watch the CRM outbox (`crmoutboxes`, `pending` / `dead`) and key `lastUsedAt` for 1–2 days of
    live traffic; then ask the owner before `GHL_SYNC=off` and deleting GHL code.
-2. Relay setup: ledger `l_07c098b4` posted; agency bills to card ••9671 (Sheridan WY); Atlas
-   Free → Flex; $99 re-audit test + refund; remind owner about Relay's email link.
+2. Relay leftovers: $99 re-audit test + refund (deferred); owner clicks Relay's verify-email
+   link; check the 18 Oct Railway charge lands on ••9671; owner sets Railway decision to KEEP.
 3. CRM vendor setup: Resend and Stripe per workspace (Twilio excluded).
 4. Name: owner picks; nothing bought without OK.
 
