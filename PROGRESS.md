@@ -55,6 +55,15 @@ best-effort and their numbers as exact.
   saved). Vercel is on Hobby, nothing to move.
 - **Atlas crm-prod Free → Flex (7 Oct, owner OK):** from $0.011/hour, capped at $30/month. Back
   up after ~210 s; 9 contacts read back; cluster shows FLEX, Backups Active.
+- **CRM Stripe filter** (askdbl-crm `625606a`, deployed): Settings -> Payments gains "Only payments
+  the CRM started" (`paymentScope: "crm"`); the webhook then ignores invoices, checkouts and refunds
+  the CRM did not start. Default stays "all". tsc clean, 819/819 tests (3 new). Deploy Ready; smoke:
+  home 200, Stripe webhook 404 until a secret is saved, events API 401 without key.
+- **Resend:** Pro bought by the owner ($20/month, Transactional). Delivery webhook created ->
+  `https://crm.askdbl.com/api/webhooks/resend` (delivered, opened, clicked, bounced, complained),
+  Enabled. Correction: the free plan allows 3 domains, not 1 (told the owner before the purchase).
+- **READMEs:** askdbl-crm status rewritten for 7 Oct (`73021af`); ai-tool-dashboard CRM note now
+  says the cut-over is live (`7575cc6`).
 
 **Decided**
 
@@ -63,6 +72,8 @@ best-effort and their numbers as exact.
 - The backfill reads app db `test`, not the db named in the local URI.
 - Name still parked; owner is checking Ownsure / Nextown / Wholemark on GoDaddy.
 - Only crm-prod goes to Flex; the app cluster stays Free for now. $99 re-audit test deferred.
+- Stripe: connect InvestorAI Club only, scope "crm"; Site Analyzer stays unconnected. Resend:
+  Pro (owner); delivery webhook only; inbound email later.
 - Railway stays (it hosts the audit worker); the ledger decision column still says CANCEL for the
   owner to change.
 
@@ -72,7 +83,16 @@ best-effort and their numbers as exact.
    live traffic; then ask the owner before `GHL_SYNC=off` and deleting GHL code.
 2. Relay leftovers: $99 re-audit test + refund (deferred); owner clicks Relay's verify-email
    link; check the 18 Oct Railway charge lands on ••9671; owner sets Railway decision to KEEP.
-3. CRM vendor setup: Resend and Stripe per workspace (Twilio excluded).
+3. CRM vendor setup, resume here:
+   - Owner signs in to crm.askdbl.com; set InvestorAI Club Settings -> Payments to "Only payments
+     the CRM started" BEFORE any Stripe secret is saved.
+   - Owner: Resend API key (Full access, "askdbl-crm production") -> Vercel askdbl-crm Production
+     `RESEND_API_KEY`; webhook signing secret -> `RESEND_WEBHOOK_SECRET`.
+   - Owner picks `EMAIL_FROM`: crm@investoraiclub.com (verified) or an askdbl.com address (needs
+     GoDaddy DNS records). Then set it and redeploy askdbl-crm.
+   - Stripe (live): create the endpoint `/api/webhooks/stripe/investoraiclub` with the 10 events on
+     the Payments page; owner pastes a restricted key (Customers, Invoices, Invoice items: write) and
+     the signing secret into the CRM. Then test end to end.
 4. Name: owner picks; nothing bought without OK.
 
 ---
