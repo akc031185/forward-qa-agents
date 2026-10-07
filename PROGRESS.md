@@ -10,6 +10,107 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-10-07 (Wednesday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 69 (0 today, head `c92ecfd`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 1 (PROGRESS.md) |
+| Typecheck | pass |
+| Tests | 220 pass, 0 fail (10 suites) |
+| Source lines (src/) | 10756 across 80 files |
+| Test lines (tests/) | 3455 across 34 files |
+| Agent runs in DB | 32 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded) |
+
+**Done**
+
+> Session ran 4–7 Oct (macOS Documents access restored first). No code commits in this repo;
+> the work was in ai-tool-dashboard and askdbl-crm.
+
+- **4 Oct ~11:50 — CRM apps and keys.** One-off script in askdbl-crm (deleted after, never
+  committed) registered app `investoraiclub` in both CRM workspaces: InvestorAI Club prefix
+  `user`; Site Analyzer prefixes `audit`, `link`, `report` plus exact type `checkout.started`
+  (sent live by the re-audit checkout, not in the plan). Two app-bound keys (events, deals,
+  leads write), prefixes `f13c4c27b648` and `3583e6388b5e`, never printed.
+- **Vercel production env** on `ai-tool-dashboard-pdo1`: `CRM_API_URL`,
+  `CRM_API_KEY_INVESTORAICLUB`, `CRM_API_KEY_SITE_ANALYZER`, piped from a chmod-600 file.
+- **Backfill dry run:** first run read the empty `ai_tool_dashboard` db (local URI); the app data
+  is in `test`. With `APP_DB_NAME=test`: 7+2 contacts, 8+12 events, 9 deals, 1 handoff (as
+  expected).
+- **7 Oct 01:38 UTC — backfill `--apply`:** events created 20, deals created 9; 0 duplicate,
+  rejected or failed. CRM db then held 7+2 contacts, 9 deals, 17+12 timeline rows (17 = 8 events
+  + 9 `deal.created`). `.env.crm.local` deleted.
+- **Dashboard commits, pushed:** `11cf558` (43 CRM files; automation files left uncommitted) and
+  `2ba792f` (outbox retry cron, daily at 06:30). tsc clean; Jest 433/433 pass; 6 Playwright specs
+  fail to load under Jest (`@playwright/test` missing), unchanged by this work.
+- **Production deploy** `ai-tool-dashboard-pdo1-p3kokaapn` Ready, aliased to investoraiclub.com.
+  Smoke: home and login 200, outbox cron 401 without secret, crm.askdbl.com 200, CRM events API
+  401 without key.
+
+**Decided**
+
+- Go on the cut-over, `--apply` and the production deploy (owner, at each stop point).
+- Outbox retry cron runs once a day (owner).
+- The backfill reads app db `test`, not the db named in the local URI.
+- Name still parked; owner is checking Ownsure / Nextown / Wholemark on GoDaddy.
+
+**Open / next**
+
+1. Watch the CRM outbox (`crmoutboxes`, `pending` / `dead`) and key `lastUsedAt` for 1–2 days of
+   live traffic; then ask the owner before `GHL_SYNC=off` and deleting GHL code.
+2. Relay setup: ledger `l_07c098b4` posted; agency bills to card ••9671 (Sheridan WY); Atlas
+   Free → Flex; $99 re-audit test + refund; remind owner about Relay's email link.
+3. CRM vendor setup: Resend and Stripe per workspace (Twilio excluded).
+4. Name: owner picks; nothing bought without OK.
+
+---
+
+## 2026-09-25 (Friday) — *reconstructed*
+
+> Backfilled on 29 Sep from the session memory. At the end of the 25 Sep session macOS blocked the
+> terminal from `~/Documents` ("Operation not permitted"), so `npm run progress` and the commit
+> could not run. No commits were made in this repo that day; the 24 Sep snapshot still holds
+> (head `c92ecfd`, 163/163 tests).
+
+**Done**
+
+- **Naming filter re-run by script** (the round-3 workflow could not be resumed across sessions,
+  so the 73 cached names were pulled from its journal): whois for .com/.ai/.io/.co and get-/try-
+  .com, `gh api users/<name>`, `npm view`. Output in `~/Documents/askdbl-dossier/naming/`
+  `round-3-filter.md` and `round-3-checks.json` (untracked in that repo).
+- **Verified shortlist, each rechecked by hand:** Ownsure (recommended), Nextown, Wholemark. All
+  have .ai/.io/.co and get-/try- free, GitHub and npm free, USPTO classes 9/42 clear.
+- **Correction to 24 Sep:** ownsure.ai, .io and .co are FREE (registry whois, no NS, checked
+  twice); only ownsure.com is taken.
+- **Failed clearance:** Heedra (HEDRA class 42 mark; heard as "Hydra"), Vouchio (Vouchio LLC,
+  security software), Surelo (Surelio.ai; npm name reserved).
+- **CRM cut-over plan proposed** in concrete form: a one-off uncommitted script in askdbl-crm
+  using `createApp` + `createApiKey`; keys piped into Vercel production on
+  `ai-tool-dashboard-pdo1` without printing, plus a chmod-600 gitignored `.env.crm.local` for the
+  backfill, deleted after.
+- **Found:** CRM production lacks `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`,
+  `RESEND_INBOUND_WEBHOOK_SECRET`, and neither workspace has Stripe connected.
+
+**Decided**
+
+- Password rotation deferred. A2P 10DLC moves to its own thread. Twilio excluded from the CRM
+  vendor setup for now.
+- The $1,000 Relay wire has landed; Relay setup resumes (ledger `l_07c098b4` posted, agency
+  bills to card ••9671, Atlas Free → Flex, $99 re-audit test).
+
+**Open / next**
+
+1. Owner picks the name; before buying, a 5-person spelling test and an EUIPO/UKIPO/India
+   trademark knockout. Nothing bought.
+2. CRM cut-over: plan proposed, owner's go on the run still needed.
+3. Relay setup, then CRM vendor setup (Resend and Stripe per workspace), then the dossier
+   lead-magnet page.
+
+---
+
 ## 2026-09-24 (Thursday)
 
 **Snapshot at end of day**
