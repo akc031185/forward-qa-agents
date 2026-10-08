@@ -10,6 +10,66 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-10-08 (Thursday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 72 (0 today, head `c5a6fc3`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 220 pass, 0 fail (10 suites) |
+| Source lines (src/) | 10756 across 80 files |
+| Test lines (tests/) | 3455 across 34 files |
+| Agent runs in DB | 32 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded) |
+
+**Done**
+
+> The earlier 8 Oct session could not write here: macOS blocked ~/Documents mid-session (third
+> time). Its facts were saved to Claude memory and are written up below after a restart with Full
+> Disk Access granted to VS Code. No code commits in this repo.
+
+- **System map** published (v2): https://claude.ai/artifact/Q9HYSbjJvrnrrPPZu4KNxA (apps, CRM,
+  vendors, cards).
+- **Live check (read-only):** zero sign-ups or events since the 7 Oct deploy; `crmoutboxes` in app
+  db `test` empty; key `lastUsedAt` on `f13c4c27b648` / `3583e6388b5e` still at the backfill time.
+  So the live path is untested, not broken.
+- **Plaid:** Relay is not linked. Plaid holds BofA, Chase, Citi, Barclays only. The owner says the
+  Hyde View Relay blocker is cleared; Equinest Relay is also unlinked.
+- **LLC repurpose** (Hyde View Realty LLC as the agency LLC, ledger `l_514b52d5`, decided 24 Sep):
+  0 of 8 steps done.
+- **Ledger:** Resend row `l_b12df19b` updated to Pro, $20/month.
+- **~17:05 UTC:** handoff saved to memory `project-state-2026-10-08` and a resume prompt; session
+  restarted.
+
+**Decided**
+
+- Owner priority: whatever switches GoHighLevel off fastest, before its ~29 Oct renewal ($97/month,
+  Chase ••1659, ledger `l_82b454c7`).
+- Stripe -> CRM and the Plaid Relay link move off the critical path, to after GHL.
+
+**Open / next**
+
+1. GHL critical path:
+   - Owner does one test sign-up and one audit on investoraiclub.com; check CRM contacts and
+     timeline since 2026-10-07T02:00Z, `crmoutboxes`, key `lastUsedAt`.
+   - Ask: do GHL workflows email or text leads? If yes, CRM email goes live first (owner pastes
+     `RESEND_API_KEY` + `RESEND_WEBHOOK_SECRET`, picks `EMAIL_FROM`, redeploy askdbl-crm).
+   - Owner exports GHL (checklist `FinOps.Audit.Agents/plans/highlevel-replacement-plan.md`).
+   - Owner's go -> `GHL_SYNC=off` on `ai-tool-dashboard-pdo1` + deploy; remove GHL code a day later.
+   - Owner cancels GHL before ~29 Oct; mark `l_82b454c7`; check Chase ••1659 for no charge.
+2. After GHL: Stripe -> CRM for InvestorAI Club (set "Only payments the CRM started" first);
+   Plaid Relay link (`npm run auth:plaid`, $0.30/month, owner's go and sign-in).
+3. LLC repurpose step 1: CPA and attorney (~$11.1k due to affiliates, negative equity, cancel the
+   drafted wind-up consent, single-member tax class, partner's role). Twilio A2P waits for the final
+   legal name. Export the cancelled Hyde View QBO books; close `l_241f4c21` to match.
+4. Relay leftovers: $99 re-audit test, verify-email link, Railway decision -> KEEP, check the
+   18 Oct Railway charge on ••9671.
+
+---
+
 ## 2026-10-07 (Wednesday)
 
 **Snapshot at end of day**
