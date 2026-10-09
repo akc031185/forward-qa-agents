@@ -10,6 +10,74 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-10-09 (Friday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 73 (0 today, head `cd5d4ae`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 220 pass, 0 fail (10 suites) |
+| Source lines (src/) | 10756 across 80 files |
+| Test lines (tests/) | 3455 across 34 files |
+| Agent runs in DB | 32 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded) |
+
+**Done**
+
+> Session ran from the evening of 8 Oct into 9 Oct, after the restart (VS Code Full Disk Access
+> works). The 8 Oct entry below was written in this session (`cd5d4ae`, 16:39 on 8 Oct). Code
+> work was in ai-tool-dashboard.
+
+- **8 Oct 16:39 — README status pushed:** askdbl-crm `7e770f6` (8 Oct status, GHL switch-off
+  path); ai-tool-dashboard `d847ff7` (CRM note).
+- **Root cause of "zero live traffic", found by the new E2E work:**
+  - Sign-up was broken in production. Since `12fcc44` (28 Oct 2025) the register API has required
+    `phone`, but the form never sent one, so every UI sign-up got 400 "Missing required fields".
+  - Free-audit events (`audit.submitted`, `audit.unlocked`, `audit.finished`, `audit.paid`) went
+    only to the app's ops timeline. Only the 7 Oct backfill had ever sent them to the CRM.
+- **9 Oct 10:00 — three ai-tool-dashboard commits, pushed and deployed:**
+  - `931a9b6` Sign-up: required phone field on `/auth/register` with the API's format check
+    (4 new tests).
+  - `cf02113` Live forward of audit events to the Site Analyzer workspace, with the backfill's
+    mapping and keys (`backfill:ops:<eventId>`), so a backfill re-run dedupes. Anonymous submits
+    carry the visitor key `investoraiclub.opsContactKey`; the unlock adds the email. Never
+    throws; outbox fallback (10 new tests).
+  - `f484820` E2E suite `playwright/tests/crm-tracking.spec.ts`: tagged sign-up + free audit,
+    then checks CRM (both workspaces), GHL and `crmoutboxes`, and writes a movement table.
+    Helpers `crm-client.ts`, `outbox-client.ts`, `movement-tracker.ts`; page objects for register
+    and free audit. Not run against production yet.
+- **Checks:** tsc clean; Jest 447/447 pass. 7 suites fail only because Jest picks up the
+  Playwright specs (6 known plus the new one).
+- **Deploy** `ai-tool-dashboard-pdo1-au05oo54t` Ready (production). Smoke: `/`, `/auth/register`,
+  `/free-site-audit`, `/login` 200; the register page shows the phone field; register `{}` 400;
+  outbox cron 401 without secret.
+
+**Decided**
+
+- E2E tracking lives in the existing `ai-tool-dashboard/playwright` suite (owner).
+- Test data: tagged `E2E-TEST-<ms>` records with a plus-addressed inbox the owner controls (owner).
+- Phone stays required; the form gains the field (owner).
+- Forward audit events live to the CRM (owner).
+
+**Open / next**
+
+1. Owner, for the first E2E run (needs a go; it creates real tagged records):
+   - Set `E2E_EMAIL_BASE` in `playwright/.env`.
+   - Create two `contacts:read` keys in crm.askdbl.com (one per workspace) and paste them as
+     `CRM_READ_KEY_*`.
+   - Optional: a read-only `E2E_MONGODB_URI` for the outbox check.
+   - Then `npm run test:crm-tracking` and read the movement table.
+2. Then the rest of the GHL path: do GHL workflows email or text leads? -> CRM email live if yes ->
+   owner's GHL export -> `GHL_SYNC=off` (owner's go) -> remove GHL code a day later -> cancel
+   before ~29 Oct.
+3. Small: keep Jest from picking up `playwright/` (`testPathIgnorePatterns`).
+4. Unchanged from 8 Oct: Stripe -> CRM, Plaid Relay link, LLC step 1, Relay leftovers.
+
+---
+
 ## 2026-10-08 (Thursday)
 
 **Snapshot at end of day**
