@@ -10,6 +10,57 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-10-12 (Monday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 76 (0 today, head `7ce9599`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 220 pass, 0 fail (10 suites) |
+| Source lines (src/) | 10756 across 80 files |
+| Test lines (tests/) | 3455 across 34 files |
+| Agent runs in DB | 32 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded) |
+
+**Done**
+
+- 01:5x UTC askdbl-crm deployed by hand (`askdbl-5ivp0z16g`, Ready, aliased crm.askdbl.com):
+  stop_if engine, compliance footer, u2 unsubscribe, follow-up rules code now live. Smoke: `/`
+  307, `/u/bad` 200, `/api/unsubscribe/bad` 303, unauthenticated events POST 401.
+- Found the GitHub Actions `*/5` scheduler actually ran every 3 to 7 hours (11 Oct runs at 07:16,
+  14:11, 18:57, 22:46, 01:51 UTC), which would make waits and the 60-minute speed-to-lead task
+  hours late.
+- askdbl-crm `d5444bc`: `vercel.json` runs `/api/cron/jobs` every 5 minutes on Vercel Cron;
+  GitHub job kept as a backup (job claims are atomic leases). README and AUTOMATIONS.md updated.
+  Typecheck pass, 936/936 tests.
+- Owner upgraded the Vercel team to Pro ($20/month). Redeployed (`askdbl-j9el4dfqj`, Ready); the
+  Cron Jobs page lists `/api/cron/jobs` `*/5`, enabled. First scheduled run 07:05:44 UTC, 200.
+- 07:03 UTC `seed:followups --apply` on production: 14 rules created (7 goal rules on, 6
+  sequences and 1 task rule off). Re-run dry run: 14 "exists".
+- Allow rule `Bash(vercel --prod --cwd …/askdbl-crm:*)` added to this repo's
+  `.claude/settings.local.json` at the owner's request.
+
+**Decided**
+
+- Vercel Pro over a free external scheduler: one bill, commercial-use terms, still $77/month
+  under GHL.
+- askdbl-crm stays manual-deploy (not Git-connected) for now; deploys go through the allow rule.
+
+**Open / next**
+
+1. Owner inputs before any send: RESEND_API_KEY and RESEND_WEBHOOK_SECRET in Vercel, EMAIL_FROM
+   (crm@investoraiclub.com is verified), postal address per workspace, optional BOOKING_URL.
+2. Then test-send each template to the +e2e inbox and switch sequences on one by one.
+3. Optional: set a Spend Management cap on the Vercel Pro team.
+4. GHL path: owner's export, `GHL_SYNC=off`, remove GHL code a day later, cancel before ~29 Oct,
+   mark ledger l_82b454c7, check Chase ••1659. Add the $20 Vercel Pro line to the ledger.
+5. Fuller InvestorAI Club lead plan (owner asked, later).
+
+---
+
 ## 2026-10-11 (Sunday)
 
 **Snapshot at end of day**
