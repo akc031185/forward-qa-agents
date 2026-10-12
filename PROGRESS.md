@@ -66,6 +66,23 @@ best-effort and their numbers as exact.
 
 - **Production test records:** 2 sign-ups, 4 free audits, and their CRM contacts. All are
   tagged `E2E-TEST`, the `+e2e` email, or example.com/.org.
+- **GHL follow-ups rebuilt in the CRM** (owner: GHL drip emails go to customers; "pick the basic
+  GHL automations"). Three parallel agents, then integration:
+  - askdbl-crm `cffd7a5`: `stop_if` step (goal/exit, re-read after a wait); schema fields added.
+  - askdbl-crm `f98d302`: follow-up templates, an unsubscribe footer and RFC 8058 headers,
+    `u2` contact unsubscribe tokens, and a refusal when the secret, URL or postal address is
+    missing.
+  - askdbl-crm `3592574`: `followups.ts` (7 goal rules on; 6 sequences + 1 task rule off),
+    `npm run seed:followups` (dry-run by default).
+  - ai-tool-dashboard `fab73b0`: `checkout.started` is now forwarded to the CRM.
+  - CRM tsc clean, vitest 936/936. Dashboard tsc clean, Jest 260/260 on touched suites.
+  - Changes from the plan: sign-up nurture starts at day 2, because the app already sends a
+    welcome email. Speed-to-lead became a task on every request, because guest-triage already
+    emails the requester three times.
+  - Pushed both (owner's go). Dashboard deploy `o7ov63393` Ready; smoke 200s.
+  - **CRM deploy not done:** the project isn't git-connected, and `vercel --prod` was blocked
+    by the auto-mode classifier. Owner to run it.
+  - Seed dry run against production: 14 rules "would create", 0 existing.
 
 **Decided**
 
@@ -75,7 +92,11 @@ best-effort and their numbers as exact.
 
 **Open / next**
 
-1. GHL path: does any GHL workflow email or text leads? If yes, CRM email goes live first.
+0. Owner runs `vercel --prod` in askdbl-crm. Then `npm run seed:followups -- --apply` (owner's go).
+   Then the owner's inputs: Resend keys, `EMAIL_FROM`, the postal address per workspace, and
+   optionally `BOOKING_URL`. Then test sends to the `+e2e` inbox, and switch the follow-ups on
+   one by one. Later: a fuller InvestorAI Club lead plan (owner asked).
+1. GHL path (answered: GHL drips do email customers, so CRM email goes live first): If yes, CRM email goes live first.
    Then the owner's GHL export, `GHL_SYNC=off` (owner's go), and remove the GHL code a day
    later. Cancel before ~29 Oct.
 2. Optional: add `GHL_API_KEY` / `GHL_LOCATION_ID` to the test `.env` so the run shows GHL side
