@@ -90,6 +90,8 @@ Afternoon session (live):
   Typecheck pass, 390/390 unit tests. The Site Analyzer fix-request email is untouched (no CRM deal).
   Deployed `ai-tool-dashboard-pdo1-hr8pngfc6` (Ready, Production). CI `build-and-test` red, as on
   `fab73b0` before it: Jest collects `playwright/tests/*.spec.ts` (pre-existing, not this change).
+- ai-tool-dashboard `437c198`: `jest.config.js` ignores `playwright/`, `.next/`, `.vercel/`. Local
+  45 suites, 448 tests pass; GitHub CI `build-and-test` green again.
 - Auto mode refused production writes (seed, test sends, rule switch, `vercel inspect`) even with
   the owner's go; the owner ran them with `!` or in the console.
 
@@ -108,12 +110,11 @@ Afternoon session (live):
    lead is on since 12 Oct.
 3. Build the background agent that answers new requests within 2 hours.
 4. Logged-in links (`/dashboard`, `/proposals`) lose their UTM tags through the login redirect.
-5. Fix CI: exclude `playwright/` from Jest in ai-tool-dashboard (red since at least `fab73b0`).
-6. Sender name reads "Investor AI Club", while the emails say "InvestorAI Club": owner to choose one.
-7. Optional: set a Spend Management cap on the Vercel Pro team.
-8. GHL path: owner's export, `GHL_SYNC=off`, remove GHL code a day later, cancel before ~29 Oct,
+5. Sender name reads "Investor AI Club", while the emails say "InvestorAI Club": owner to choose one.
+6. Optional: set a Spend Management cap on the Vercel Pro team.
+7. GHL path: owner's export, `GHL_SYNC=off`, remove GHL code a day later, cancel before ~29 Oct,
    mark ledger l_82b454c7, check Chase ••1659. Add the $20 Vercel Pro line to the ledger.
-9. Fuller InvestorAI Club lead plan (owner asked, later).
+8. Fuller InvestorAI Club lead plan (owner asked, later).
 
 ---
 
