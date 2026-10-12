@@ -16,7 +16,7 @@ best-effort and their numbers as exact.
 
 | Metric | Value |
 |---|---|
-| Commits on main | 76 (0 today, head `7ce9599`) |
+| Commits on main | 78 (2 today, head `5de352c`) |
 | Pushed to origin | yes, in sync |
 | Uncommitted files | 0 |
 | Typecheck | pass |
@@ -49,9 +49,21 @@ best-effort and their numbers as exact.
   unsigned Resend webhook POST now 401.
 - Footer postal address set on both workspaces: Hyde View Realty LLC, 30 N Gould St Ste R,
   Sheridan, WY 82801, USA.
-- Test sends not done: a local send can't sign unsubscribe links (MARKETING_TOKEN_SECRET and
-  MONGODB_URI are sensitive in Vercel, so they don't pull); queuing a temporary production rule
-  plus job was blocked pending the owner's explicit go.
+- Owner asked whether the CRM had sent anything: 0 send events. The emails they had seen were
+  the app's welcome and audit report emails from the 11 Oct E2E runs.
+- 14:31 UTC, on the owner's go: temporary rules 6accef350b71120f8cb6c86b and
+  6accef350b71120f8cb6c86d (trigger `test.template_preview`) plus one resume job each. The 14:35
+  Vercel cron run sent all 12 templates (7 InvestorAI Club, 5 Site Analyzer) to
+  akc031185+e2e-test-1791774612443@gmail.com: 12 `email.sent` events, 12 delivered, 0 spam (5 in
+  Promotions). Footer carries the Sheridan address and a u2 unsubscribe link production accepts.
+  Both test rules disabled.
+- Local sends can't work: MARKETING_TOKEN_SECRET and MONGODB_URI are sensitive in Vercel and
+  pull empty.
+- One Wi-Fi network's Fortinet firewall intercepts TLS for crm.askdbl.com. Network-side only.
+- VS Code lost Documents access (TCC) mid-session; only a restart fixes it.
+- *Reconstructed*: the lines from "Owner asked" down were backfilled in a new session after the
+  TCC restart.
+
 **Decided**
 
 - Vercel Pro over a free external scheduler: one bill, commercial-use terms, still $77/month
@@ -61,7 +73,7 @@ best-effort and their numbers as exact.
 **Open / next**
 
 1. Optional BOOKING_URL. (Resend keys, EMAIL_FROM, postal address: done 12 Oct.)
-2. Test-send each template to the +e2e inbox and switch sequences on one by one.
+2. Owner reviews the 12 test emails, then switch sequences on one by one.
 3. Optional: set a Spend Management cap on the Vercel Pro team.
 4. GHL path: owner's export, `GHL_SYNC=off`, remove GHL code a day later, cancel before ~29 Oct,
    mark ledger l_82b454c7, check Chase ••1659. Add the $20 Vercel Pro line to the ledger.
