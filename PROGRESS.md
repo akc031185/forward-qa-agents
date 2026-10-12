@@ -43,6 +43,15 @@ best-effort and their numbers as exact.
 - Allow rule `Bash(vercel --prod --cwd …/askdbl-crm:*)` added to this repo's
   `.claude/settings.local.json` at the owner's request.
 
+- `RESEND_API_KEY` copied from ai-tool-dashboard (send-only key, never printed) into askdbl-crm
+  Production; owner saved `RESEND_WEBHOOK_SECRET`; `EMAIL_FROM` = Investor AI Club
+  <crm@investoraiclub.com>. Redeployed (`askdbl-6l91a9b9f`, then `askdbl-dr6lal9vm`, Ready);
+  unsigned Resend webhook POST now 401.
+- Footer postal address set on both workspaces: Hyde View Realty LLC, 30 N Gould St Ste R,
+  Sheridan, WY 82801, USA.
+- Test sends not done: a local send can't sign unsubscribe links (MARKETING_TOKEN_SECRET and
+  MONGODB_URI are sensitive in Vercel, so they don't pull); queuing a temporary production rule
+  plus job was blocked pending the owner's explicit go.
 **Decided**
 
 - Vercel Pro over a free external scheduler: one bill, commercial-use terms, still $77/month
@@ -51,9 +60,8 @@ best-effort and their numbers as exact.
 
 **Open / next**
 
-1. Owner inputs before any send: RESEND_API_KEY and RESEND_WEBHOOK_SECRET in Vercel, EMAIL_FROM
-   (crm@investoraiclub.com is verified), postal address per workspace, optional BOOKING_URL.
-2. Then test-send each template to the +e2e inbox and switch sequences on one by one.
+1. Optional BOOKING_URL. (Resend keys, EMAIL_FROM, postal address: done 12 Oct.)
+2. Test-send each template to the +e2e inbox and switch sequences on one by one.
 3. Optional: set a Spend Management cap on the Vercel Pro team.
 4. GHL path: owner's export, `GHL_SYNC=off`, remove GHL code a day later, cancel before ~29 Oct,
    mark ledger l_82b454c7, check Chase ••1659. Add the $20 Vercel Pro line to the ledger.
