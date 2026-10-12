@@ -49,8 +49,9 @@ best-effort and their numbers as exact.
   unsigned Resend webhook POST now 401.
 - Footer postal address set on both workspaces: Hyde View Realty LLC, 30 N Gould St Ste R,
   Sheridan, WY 82801, USA.
-- Owner asked whether the CRM had sent anything: 0 send events. The emails they had seen were
-  the app's welcome and audit report emails from the 11 Oct E2E runs.
+- Owner asked whether the CRM had sent anything: 0 send events and nothing ever from
+  crm@investoraiclub.com. The emails they had seen were the app's welcome and audit report
+  emails from the 11 Oct E2E runs.
 - 14:31 UTC, on the owner's go: temporary rules 6accef350b71120f8cb6c86b and
   6accef350b71120f8cb6c86d (trigger `test.template_preview`) plus one resume job each. The 14:35
   Vercel cron run sent all 12 templates (7 InvestorAI Club, 5 Site Analyzer) to
