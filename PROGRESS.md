@@ -108,6 +108,8 @@ Afternoon session (live):
 - 19:45 UTC: owner switched `sa.report-nurture` on (fixes email a day after unlock, re-audit offer
   3 days later; stops on checkout started or paid). Seed dry run: 13 of 14 rules on; only
   `iac.form-lead` is off (no live trigger).
+- askdbl-crm `b1425a1`: `followups.ts` comments now say `checkout.started` is live (comment-only,
+  no deploy needed). Typecheck pass, 965/965 tests.
 - Auto mode refused production writes (seed, test sends, rule switch, `vercel inspect`) even with
   the owner's go; the owner ran them with `!` or in the console.
 
@@ -123,8 +125,7 @@ Afternoon session (live):
 
 1. Optional BOOKING_URL. (Resend keys, EMAIL_FROM, postal address: done 12 Oct.)
 2. All follow-ups with a live trigger are on since 12 Oct. Watch the first real runs (jobs,
-   failures, unsubscribes). `iac.form-lead` waits for a form posting to `/api/v1/leads`. Fix the
-   stale `checkout.started` comments in the CRM's `followups.ts`. All four InvestorAI Club flows that have live triggers are on since 12 Oct;
+   failures, unsubscribes). `iac.form-lead` waits for a form posting to `/api/v1/leads`. All four InvestorAI Club flows that have live triggers are on since 12 Oct;
    `iac.form-lead` waits for a form that posts to the CRM's `/api/v1/leads`.
 3. Build the background agent that answers new requests within 2 hours.
 4. Logged-in links (`/dashboard`, `/proposals`) lose their UTM tags through the login redirect.
