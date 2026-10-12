@@ -99,6 +99,8 @@ Afternoon session (live):
 - 19:37 UTC: owner switched `iac.proposal-follow-up` on (starts on a "proposal sent:" note; day 3
   nudge, day 7 last nudge, then a call task; stops when the proposal is signed or clarified).
   Seed dry run confirms it on. `iac.form-lead` stays off: nothing emits `lead.captured` yet.
+- 19:40 UTC: owner switched `sa.abandoned-checkout` on (reminder email 1 hour after checkout starts,
+  then a task a day later; stops on payment). Seed dry run confirms it on.
 - Auto mode refused production writes (seed, test sends, rule switch, `vercel inspect`) even with
   the owner's go; the owner ran them with `!` or in the console.
 
@@ -113,8 +115,8 @@ Afternoon session (live):
 **Open / next**
 
 1. Optional BOOKING_URL. (Resend keys, EMAIL_FROM, postal address: done 12 Oct.)
-2. Switch the Site Analyzer sequences on one by one (report nurture, abandoned checkout,
-   post-purchase). All four InvestorAI Club flows that have live triggers are on since 12 Oct;
+2. Switch the last Site Analyzer sequences on one by one (post-purchase, report nurture);
+   abandoned checkout is on since 12 Oct. All four InvestorAI Club flows that have live triggers are on since 12 Oct;
    `iac.form-lead` waits for a form that posts to the CRM's `/api/v1/leads`.
 3. Build the background agent that answers new requests within 2 hours.
 4. Logged-in links (`/dashboard`, `/proposals`) lose their UTM tags through the login redirect.
