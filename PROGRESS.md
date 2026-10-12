@@ -110,6 +110,14 @@ Afternoon session (live):
   `iac.form-lead` is off (no live trigger).
 - askdbl-crm `b1425a1`: `followups.ts` comments now say `checkout.started` is live (comment-only,
   no deploy needed). Typecheck pass, 965/965 tests.
+- ~20:00 UTC, owner's go: `GHL_SYNC=off` added to ai-tool-dashboard production; redeployed the
+  current build (`ai-tool-dashboard-pdo1-nbugxa4rf`, Ready). The app stops writing to GHL; GHL's
+  data is untouched, so the export can still be taken before cancelling.
+- Found: every page loads GHL's chat widget (`pages/_app.js`, `NEXT_PUBLIC_GHL_LOCATION_ID`), so
+  site chats land in GHL. Cancelling kills it; the CRM's `/widget/chat.js` must replace it first.
+  The app's `/api/health/integrations` also still pings GHL (goes with the code removal).
+- The GHL export cannot be scripted from here: `GHL_API_KEY` lives only in Vercel. Owner exports
+  from the GHL UI.
 - Auto mode refused production writes (seed, test sends, rule switch, `vercel inspect`) even with
   the owner's go; the owner ran them with `!` or in the console.
 
@@ -131,8 +139,11 @@ Afternoon session (live):
 4. Logged-in links (`/dashboard`, `/proposals`) lose their UTM tags through the login redirect.
 5. Sender name reads "Investor AI Club", while the emails say "InvestorAI Club": owner to choose one.
 6. Optional: set a Spend Management cap on the Vercel Pro team.
-7. GHL path: owner's export, `GHL_SYNC=off`, remove GHL code a day later, cancel before ~29 Oct,
-   mark ledger l_82b454c7, check Chase ••1659. Add the $20 Vercel Pro line to the ledger.
+7. GHL path (`GHL_SYNC=off` done 12 Oct): owner's UI export (contacts CSV, opportunities CSV,
+   conversations, workflow and phone-number notes); swap the GHL chat widget for the CRM's (owner
+   makes a `chat:write` key for investoraiclub.com and sets it in Vercel); remove GHL code and env
+   vars from 13 Oct; cancel before ~29 Oct, mark ledger l_82b454c7, check Chase ••1659. Add the
+   $20 Vercel Pro line to the ledger.
 8. Fuller InvestorAI Club lead plan (owner asked, later).
 
 ---
