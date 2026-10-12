@@ -101,6 +101,10 @@ Afternoon session (live):
   Seed dry run confirms it on. `iac.form-lead` stays off: nothing emits `lead.captured` yet.
 - 19:40 UTC: owner switched `sa.abandoned-checkout` on (reminder email 1 hour after checkout starts,
   then a task a day later; stops on payment). Seed dry run confirms it on.
+- 19:43 UTC: owner switched `sa.post-purchase` on (thank-you on payment, feedback request 7 days
+  later; no stop). Seed dry run confirms it on. Checked the app: `checkout.started` reaches the CRM
+  through `recordContactEvent` since `fab73b0`, so the "not yet emitted" comments in the CRM's
+  `followups.ts` are stale.
 - Auto mode refused production writes (seed, test sends, rule switch, `vercel inspect`) even with
   the owner's go; the owner ran them with `!` or in the console.
 
@@ -115,8 +119,9 @@ Afternoon session (live):
 **Open / next**
 
 1. Optional BOOKING_URL. (Resend keys, EMAIL_FROM, postal address: done 12 Oct.)
-2. Switch the last Site Analyzer sequences on one by one (post-purchase, report nurture);
-   abandoned checkout is on since 12 Oct. All four InvestorAI Club flows that have live triggers are on since 12 Oct;
+2. Switch on `sa.report-nurture`, the last sequence with a live trigger; the rest of the Site
+   Analyzer flows are on since 12 Oct. Fix the stale `checkout.started` comments in the CRM's
+   `followups.ts`. All four InvestorAI Club flows that have live triggers are on since 12 Oct;
    `iac.form-lead` waits for a form that posts to the CRM's `/api/v1/leads`.
 3. Build the background agent that answers new requests within 2 hours.
 4. Logged-in links (`/dashboard`, `/proposals`) lose their UTM tags through the login redirect.
