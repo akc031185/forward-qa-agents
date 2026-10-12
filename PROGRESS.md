@@ -10,6 +10,82 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-10-11 (Sunday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 74 (0 today, head `b9f5a93`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 220 pass, 0 fail (10 suites) |
+| Source lines (src/) | 10756 across 80 files |
+| Test lines (tests/) | 3455 across 34 files |
+| Agent runs in DB | 32 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded) |
+
+**Done**
+
+> Evening of 11 Oct (US Central); UTC times below are early 12 Oct. Code work was in
+> ai-tool-dashboard. No commits in this repo besides this log.
+
+- **Access check:** ~/Documents read and write fine; no TCC errors.
+- **Test env:** `ai-tool-dashboard/playwright/.env` written (gitignored, 600), no values printed.
+  - Test email base: the owner's Gmail.
+  - DB URI: copied from the app's `.env.local`.
+  - CRM read keys: two `contacts:read` keys, made by the owner in the console (prefixes
+    `9872250f0e5d` InvestorAI Club, `cce6bee8f03a` Site Analyzer). Both were pasted in chat, so
+    rotate them after testing.
+  - Blocked by the auto-mode classifier (owner informed): my script to mint the CRM keys, and a
+    direct mongosh read of the CRM db.
+- **Test user** `…+e2e-user@…` registered via the API: 201. It reached the CRM as
+  `user.registered` at 01:19:34 UTC, the first live sign-up since the 7 Oct deploy.
+- **First E2E run** (01:30 UTC, 9.6 min): sign-up and CRM passed. The report page stuck on
+  "Running the audit" for 9+ min, although `audit.submitted` and `audit.finished` did reach the
+  CRM (found by visitor key).
+- **Two diagnostic runs** (example.com, example.org) recorded every API response: all 200, so
+  report access was fine. The cause was in the page's polling.
+  - SWR read `refreshInterval` (a function) once at mount with no data, got 0 and set no timer.
+  - The once-a-second "Waiting" counter re-rendered the page and reset any timer anyway.
+  - So real visitors' audits never refreshed until the tab regained focus.
+- **Fix** `0542e14`: the poll interval is now a number set in `onSuccess`; the paid re-run wait
+  still works. New regression test, which fails on the old code. `9503c69`: the spec finds
+  anonymous audit contacts by external id `investoraiclub.opsContactKey:<userKey>`.
+  - tsc clean; Jest 448/448 (7 suites are Playwright files Jest can't load, known).
+  - Deploy `ai-tool-dashboard-pdo1-cuqhd0xpb` Ready (owner's go); smoke: 4 pages 200.
+- **Second E2E run** (`E2E-TEST-1791774612443`): **3/3 passed in 17 s.** Times are from the
+  start of the test:
+
+  | step | where | seen |
+  |---|---|---|
+  | sign-up | app 201 / CRM `user.registered` | 2.6 s / 3.9 s |
+  | free audit | submit 202, run succeeded, unlock 200 | 3.5 s, 9.5 s, +0.4 s |
+  | free audit | CRM `audit.submitted` / `finished` / `unlocked` | 8.0 / 10.9 / 14.2 s |
+  | outbox | `crmoutboxes` | nothing queued |
+
+- **Production test records:** 2 sign-ups, 4 free audits, and their CRM contacts. All are
+  tagged `E2E-TEST`, the `+e2e` email, or example.com/.org.
+
+**Decided**
+
+- Test email uses the owner's Gmail with plus-addresses; the owner asked for a standing test
+  user too.
+- Owner OK'd both diagnostic runs, the deploy, and the re-run.
+
+**Open / next**
+
+1. GHL path: does any GHL workflow email or text leads? If yes, CRM email goes live first.
+   Then the owner's GHL export, `GHL_SYNC=off` (owner's go), and remove the GHL code a day
+   later. Cancel before ~29 Oct.
+2. Optional: add `GHL_API_KEY` / `GHL_LOCATION_ID` to the test `.env` so the run shows GHL side
+   by side until it's switched off.
+3. Rotate the two CRM read keys (pasted in chat). Next time paste with `! echo … >> .env`.
+4. Clean up test records by tag when convenient. Keep Jest off `playwright/`.
+5. Unchanged: Stripe -> CRM, Plaid Relay link, LLC step 1, Relay leftovers.
+
+---
+
 ## 2026-10-09 (Friday)
 
 **Snapshot at end of day**
