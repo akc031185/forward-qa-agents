@@ -16,7 +16,7 @@ best-effort and their numbers as exact.
 
 | Metric | Value |
 |---|---|
-| Commits on main | 80 (4 today, head `d5aa663`) |
+| Commits on main | 91 (15 today, head `e7b5ad5`) |
 | Pushed to origin | yes, in sync |
 | Uncommitted files | 0 |
 | Typecheck | pass |
@@ -122,6 +122,10 @@ Afternoon session (live):
 - ai-tool-dashboard `73e9d5c`: GHL chat widget removed from `pages/_app.js`; `pages/_document.tsx`
   renders the CRM's `/widget/chat.js` with that key. Lint, typecheck, build clean; 448/448 tests.
   Live: www.investoraiclub.com serves the CRM `chat.js` tag (200); no `leadconnector` left.
+  Owner to send a test chat and a reply from the CRM inbox (not yet confirmed).
+- Docs brought to 12 Oct: askdbl-crm README status rewritten (`8e7a876`; also corrects "auto-
+  deploys from main": the CRM deploys by hand); ai-tool-dashboard README, `docs/CRM-VS-GHL.md`,
+  `docs/GHL-REPLACEMENT.md` (`177c21b`). The two never-commit files stay uncommitted.
 - Auto mode refused production writes (seed, test sends, rule switch, `vercel inspect`) even with
   the owner's go; the owner ran them with `!` or in the console.
 
@@ -132,20 +136,24 @@ Afternoon session (live):
 - askdbl-crm stays manual-deploy (not Git-connected) for now; deploys go through the allow rule.
 - The CRM, not the app, sends the request confirmation, so all lead email lives in one place.
 - The 2-hour reply promise stays 24/7; the owner plans a background agent to meet it.
+- No GHL export: it held only test data.
+- The chat key is read server-side as `NEXT_CRM_CHAT_KEY`, not `NEXT_PUBLIC_` (owner's call); it is
+  still visible in the page HTML by design, limited to `chat:write` and the site's origin.
 
 **Open / next**
 
-1. Optional BOOKING_URL. (Resend keys, EMAIL_FROM, postal address: done 12 Oct.)
-2. All follow-ups with a live trigger are on since 12 Oct. Watch the first real runs (jobs,
-   failures, unsubscribes). `iac.form-lead` waits for a form posting to `/api/v1/leads`. All four InvestorAI Club flows that have live triggers are on since 12 Oct;
-   `iac.form-lead` waits for a form that posts to the CRM's `/api/v1/leads`.
+1. First thing next session: confirm the owner's test chat reached the CRM inbox and the reply
+   came back; check the first real follow-up jobs (done / failed, unsubscribes).
+2. GHL path (`GHL_SYNC=off` and chat widget done 12 Oct; no export): from 13 Oct remove
+   `src/lib/ghl.ts`, its callers, the GHL check in `/api/health/integrations`; owner deletes the
+   four GHL variables in Vercel; owner cancels before ~29 Oct; mark ledger l_82b454c7, check Chase
+   ••1659; add the $20 Vercel Pro line to the ledger.
 3. Build the background agent that answers new requests within 2 hours.
 4. Logged-in links (`/dashboard`, `/proposals`) lose their UTM tags through the login redirect.
 5. Sender name reads "Investor AI Club", while the emails say "InvestorAI Club": owner to choose one.
-6. Optional: set a Spend Management cap on the Vercel Pro team.
-7. GHL path (`GHL_SYNC=off` and the chat widget swap done 12 Oct; no export, test data only):
-   remove GHL code and env vars (incl. `NEXT_PUBLIC_GHL_LOCATION_ID`) from 13 Oct; cancel before ~29 Oct, mark ledger l_82b454c7, check Chase ••1659. Add the
-   $20 Vercel Pro line to the ledger.
+6. `iac.form-lead` waits for a form that posts to the CRM's `/api/v1/leads`.
+7. Optional: `BOOKING_URL`; a Spend Management cap on the Vercel Pro team; rotate the two CRM
+   read keys pasted in chat on 11 Oct.
 8. Fuller InvestorAI Club lead plan (owner asked, later).
 
 ---
