@@ -92,6 +92,10 @@ Afternoon session (live):
   `fab73b0` before it: Jest collects `playwright/tests/*.spec.ts` (pre-existing, not this change).
 - ai-tool-dashboard `437c198`: `jest.config.js` ignores `playwright/`, `.next/`, `.vercel/`. Local
   45 suites, 448 tests pass; GitHub CI `build-and-test` green again.
+- 19:30 UTC: owner switched `iac.signup-nurture` on in the console (day 2 nudge, day 6 check-in,
+  then a call task; stops on `goal:requested`). Seed dry run confirms: on, as are speed to lead and
+  the 7 goal rules. Still off: proposal follow-up, form lead, and the three Site Analyzer sequences.
+  E2E test sign-ups (+e2e Gmail) will get the nudges too.
 - Auto mode refused production writes (seed, test sends, rule switch, `vercel inspect`) even with
   the owner's go; the owner ran them with `!` or in the console.
 
@@ -106,8 +110,8 @@ Afternoon session (live):
 **Open / next**
 
 1. Optional BOOKING_URL. (Resend keys, EMAIL_FROM, postal address: done 12 Oct.)
-2. Switch the remaining sequences on one by one (next suggested: `iac.signup-nurture`). Speed to
-   lead is on since 12 Oct.
+2. Switch the remaining sequences on one by one (next suggested: `iac.proposal-follow-up`). Speed
+   to lead and sign-up nurture are on since 12 Oct.
 3. Build the background agent that answers new requests within 2 hours.
 4. Logged-in links (`/dashboard`, `/proposals`) lose their UTM tags through the login redirect.
 5. Sender name reads "Investor AI Club", while the emails say "InvestorAI Club": owner to choose one.
