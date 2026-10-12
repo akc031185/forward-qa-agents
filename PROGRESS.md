@@ -16,7 +16,7 @@ best-effort and their numbers as exact.
 
 | Metric | Value |
 |---|---|
-| Commits on main | 78 (2 today, head `5de352c`) |
+| Commits on main | 80 (4 today, head `d5aa663`) |
 | Pushed to origin | yes, in sync |
 | Uncommitted files | 0 |
 | Typecheck | pass |
@@ -65,20 +65,52 @@ best-effort and their numbers as exact.
 - *Reconstructed*: the lines from "Owner asked" down were backfilled in a new session after the
   TCC restart.
 
+Afternoon session (live):
+
+- `e5311f3`, `d5aa663` forward-qa-agents: 12 Oct backfill above, committed and pushed.
+- Owner reviewed the 12 test emails: copy not attractive enough, no links back to the app,
+  unsubscribe shown as "Unsubscribe: <url>". Cause: templates were text-only, so the HTML footer
+  (already a real link) was never sent.
+- askdbl-crm `d497992`: templates render an HTML card plus a text copy; one button to the app page
+  that fits (`/submit-problem`, `/booking`, `/proposals`, `/dashboard`, `/how-it-works`, the
+  contact's Site Analyzer report or `/free-site-audit`), UTM-tagged; footer goes inside the card
+  with "Unsubscribe" as the link. All copy rewritten. `request_received` now promises a reply
+  "within 2 hours or sooner" (owner's wording). `iac.speed-to-lead` sends `request_received`
+  before its task. `seed:followups --update` rewrites an installed rule's steps, keeping name and
+  switch. Typecheck pass, 965/965 tests.
+- ~16:00 UTC deployed `askdbl-987xv3nrk` (Ready, aliased crm.askdbl.com, checked over the phone
+  hotspot). `seed:followups --apply --update`: only `iac.speed-to-lead` updated.
+- 16:45 UTC (owner ran the script): the two test rules re-enabled with one job each; the 16:50:45
+  cron run sent all 12 (jobs done, 7/7 and 5/5, 0 failed). Gmail: 7 Updates, 5 Promotions; HTML,
+  button links, footer and Unsubscribe link (200) checked. Test rules disabled again by the owner.
+- ~17:00 UTC owner switched `iac.speed-to-lead` ON in the CRM console: every new request now gets
+  the CRM email plus the 60-minute reply task.
+- ai-tool-dashboard `a6c2bc6`: guest intake no longer sends the app's "We Received Your Problem"
+  email (it promised 24-48 hours). Guest welcome (temp password) and the +24h/+48h drip unchanged.
+  Typecheck pass, 390/390 unit tests. The Site Analyzer fix-request email is untouched (no CRM deal).
+- Auto mode refused production writes (seed, test sends, rule switch, `vercel inspect`) even with
+  the owner's go; the owner ran them with `!` or in the console.
+
 **Decided**
 
 - Vercel Pro over a free external scheduler: one bill, commercial-use terms, still $77/month
   under GHL.
 - askdbl-crm stays manual-deploy (not Git-connected) for now; deploys go through the allow rule.
+- The CRM, not the app, sends the request confirmation, so all lead email lives in one place.
+- The 2-hour reply promise stays 24/7; the owner plans a background agent to meet it.
 
 **Open / next**
 
 1. Optional BOOKING_URL. (Resend keys, EMAIL_FROM, postal address: done 12 Oct.)
-2. Owner reviews the 12 test emails, then switch sequences on one by one.
-3. Optional: set a Spend Management cap on the Vercel Pro team.
-4. GHL path: owner's export, `GHL_SYNC=off`, remove GHL code a day later, cancel before ~29 Oct,
+2. Switch the remaining sequences on one by one (next suggested: `iac.signup-nurture`). Speed to
+   lead is on since 12 Oct.
+3. Build the background agent that answers new requests within 2 hours.
+4. Logged-in links (`/dashboard`, `/proposals`) lose their UTM tags through the login redirect.
+5. Sender name reads "Investor AI Club", while the emails say "InvestorAI Club": owner to choose one.
+6. Optional: set a Spend Management cap on the Vercel Pro team.
+7. GHL path: owner's export, `GHL_SYNC=off`, remove GHL code a day later, cancel before ~29 Oct,
    mark ledger l_82b454c7, check Chase ••1659. Add the $20 Vercel Pro line to the ledger.
-5. Fuller InvestorAI Club lead plan (owner asked, later).
+8. Fuller InvestorAI Club lead plan (owner asked, later).
 
 ---
 
