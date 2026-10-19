@@ -10,6 +10,62 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-10-18 (Sunday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 92 (0 today, head `2cc6ea8`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 220 pass, 0 fail (10 suites) |
+| Source lines (src/) | 10756 across 80 files |
+| Test lines (tests/) | 3455 across 34 files |
+| Agent runs in DB | 32 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded) |
+
+**Done**
+
+*Reconstructed*: the 17–18 Oct session lines below were backfilled on 18 Oct from the session
+memory after a TCC block stopped the live write. All checks were read-only except the test chat.
+
+- 17–18 Oct, CRM cron healthy: cronheartbeats 1769 runs, last OK 18 Oct 00:25 UTC, 0 failed jobs,
+  0 overdue pending jobs since 12 Oct.
+- No CRM activity between 12 Oct 16:50 UTC (test emails) and this session: 0 timeline events,
+  0 automation runs; app CRM keys last used 12 Oct 03:10 UTC. Probably no real traffic, not proven.
+- The owner's 12 Oct test chat never reached the CRM (0 conversations ever before this session);
+  probably never sent.
+- 00:31 UTC test chat from www.investoraiclub.com ("E2E Chat Test",
+  akc031185+e2e-chat-20261017@gmail.com) landed in workspace investoraiclub: conversation
+  6ad4135e77e584e013fcbff0, contact, `chat.received`. No rule fires on `chat.received` (expected).
+- Inbox reply "Test reply, please ignore" showed in the site widget within 10 s. Chat works both
+  ways. Widget key prefix a1a35c9dea83 (leads/events/chat:write). Test conversation left open.
+- Site CSP (report-only) still lists leadconnectorhq.com and not crm.askdbl.com; fix during GHL
+  removal. CRM DB env names in askdbl-crm/.env.local are CRM_MONGODB_URI + CRM_DB_NAME.
+
+**Decided**
+
+- GHL code removal plan in ai-tool-dashboard approved by the owner (files listed in Open 2).
+  Keep ghlContactId / ghlOpportunityId model fields for old data.
+- Playwright GHL specs go only after a CRM-based replacement exists, covers the same checks and
+  passes; these flows must stay testable.
+
+**Open / next**
+
+1. Playwright: map every check in playwright/helpers/ghl-client.ts and its specs (crm-tracking,
+   lead-conversion, project-lifecycle, movement-tracker, guest-submit) to a CRM check; build and
+   pass the CRM version.
+2. GHL code removal in ai-tool-dashboard: one commit after typecheck + Jest + lint; ask before
+   pushing (main auto-deploys).
+3. Owner deletes the five GHL env vars in Vercel, then cancels GHL before ~29 Oct; mark ledger
+   l_82b454c7, check Chase ••1659, add Vercel Pro $20/mo to the ledger.
+4. Background agent that answers new requests within 2 hours.
+5. Smaller: UTM tags lost through login redirect; brand spelling; BOOKING_URL; Vercel spend cap;
+   rotate the two CRM read keys; Stripe -> CRM.
+
+---
+
 ## 2026-10-12 (Monday)
 
 **Snapshot at end of day**
