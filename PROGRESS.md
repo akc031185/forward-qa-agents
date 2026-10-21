@@ -10,6 +10,62 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-10-21 (Wednesday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 93 (0 today, head `d98a1ba`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 220 pass, 0 fail (10 suites) |
+| Source lines (src/) | 10756 across 80 files |
+| Test lines (tests/) | 3455 across 34 files |
+| Agent runs in DB | 32 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded) |
+
+**Done**
+
+*Reconstructed*: the 18–20 Oct session lines below were backfilled on 21 Oct from the session
+memory after a TCC block stopped the live write. All checks were read-only; nothing ran on
+production.
+
+- 18 Oct: pushed `d98a1ba`, the 17–18 Oct backfill.
+- Found the app already sends the CRM everything it sent GHL: each request opens a deal (externalRef
+  {investoraiclub, problemId}); proposal/project notes land as contact timeline events
+  `deal.created` / `deal.stage_changed` / `deal.note_added` with meta.externalRef. contacts:read
+  keys are enough.
+- Milestone, deliverable, approval and project-status notes are fire-and-forget in the app (not
+  awaited), so serverless may drop them; the new soft checks will show it.
+- ai-tool-dashboard/playwright, uncommitted: `helpers/crm-client.ts` (waitForEvent `where`,
+  `forDeal()`), lead-conversion "6b — CRM deal verification" (GHL now 6c), project-lifecycle
+  "Phase 8a — CRM deal verification" (GHL now 8b). Typecheck clean; `--list` = 39 tests, 3 files.
+- Read-only probe: the test user's CRM contact has only `user.registered`, no deals yet.
+- 21 Oct: access check passed for both repos; the three spec files are still uncommitted.
+  playwright/.env still has no ADMIN_PASSWORD.
+
+**Decided**
+
+- Production E2E runs of the funnel specs need the owner's go-ahead each time.
+- GHL test code goes only after `test:lead-conversion` and `test:lifecycle` pass with the CRM checks.
+
+**Open / next**
+
+1. Owner adds ADMIN_PASSWORD to playwright/.env and says go; run `test:lead-conversion` and
+   `test:lifecycle` on production, report each CRM check; if a fire-and-forget note is missing,
+   propose awaiting it in the app.
+2. Then delete the Playwright GHL code (ghl-client, 6c / 8b, crm-tracking GHL leg, 'ghl'
+   movement source, .env.example and guest-submit comment); commit, ask before push.
+3. GHL code removal in ai-tool-dashboard (plan approved 18 Oct); one commit, ask before pushing.
+4. Owner deletes the five GHL env vars in Vercel, cancels GHL before ~29 Oct; mark ledger
+   l_82b454c7, check Chase ••1659, add Vercel Pro $20/mo to the ledger.
+5. Background agent that answers new requests within 2 hours.
+6. Smaller: UTM lost through login redirect; brand spelling; BOOKING_URL; Vercel spend cap;
+   rotate the two CRM read keys; Stripe -> CRM.
+
+---
+
 ## 2026-10-18 (Sunday)
 
 **Snapshot at end of day**
