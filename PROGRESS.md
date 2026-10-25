@@ -58,7 +58,7 @@ Live, 25 Oct (ai-tool-dashboard, all local, three parallel agents plus integrati
 
 1. After owner go: run `test:lead-conversion` and `test:lifecycle`, report CRM checks,
    check Claude triage quality, delete the 22 Oct E2E draft problem.
-3. Owner: fix OpenAI API key (Whisper only), delete GHL env vars in Vercel, cancel GHL before 29 Oct,
+2. Owner: fix OpenAI API key (Whisper only), delete GHL env vars in Vercel, cancel GHL before 29 Oct,
    cancel ChatGPT Business before 27 Oct, remove GHL lines from playwright/.env; update ledger;
    reconnect finops Gmail.
 
