@@ -41,7 +41,11 @@ Live, 25 Oct (ai-tool-dashboard, all local, three parallel agents plus integrati
   privacy page, GHL ids redacted in history docs). Triage + outline on claude-opus-5-5, sample answer
   on claude-sonnet-5-5, tool categorisation on claude-haiku-5-5, generation on claude-sonnet-5-5;
   maxDuration on those routes; envCheck checks ANTHROPIC_API_KEY and OPENAI_API_KEY.
-- ai-tool-dashboard checks: tsc pass, Jest 447 pass / 49 suites, lint 0 errors. Not pushed.
+- `2bcc4de` /api/ai-tools GET (listed contact details) and DELETE (wiped all) now need an admin
+  session; POST stays public.
+- ai-tool-dashboard checks: tsc pass, Jest 453 pass / 50 suites, lint 0 errors. Owner OK, pushed
+  `177c21b..2bcc4de`; Vercel deploy success. Live: home 200, /api/ai-tools 401, CSP lists
+  crm.askdbl.com and no leadconnectorhq.
 
 **Decided**
 
@@ -52,14 +56,11 @@ Live, 25 Oct (ai-tool-dashboard, all local, three parallel agents plus integrati
 
 **Open / next**
 
-1. Owner OK to push ai-tool-dashboard main (`cd02902`, `a8a2ffa`, `fcfa5ad`; auto-deploys).
-2. After deploy and owner go: run `test:lead-conversion` and `test:lifecycle`, report CRM checks,
+1. After owner go: run `test:lead-conversion` and `test:lifecycle`, report CRM checks,
    check Claude triage quality, delete the 22 Oct E2E draft problem.
 3. Owner: fix OpenAI API key (Whisper only), delete GHL env vars in Vercel, cancel GHL before 29 Oct,
    cancel ChatGPT Business before 27 Oct, remove GHL lines from playwright/.env; update ledger;
    reconnect finops Gmail.
-4. `pages/api/ai-tools/index.ts` has no auth on GET (lists contacts) or DELETE (deletes all tools):
-   owner decision on locking it to admin.
 
 ---
 
