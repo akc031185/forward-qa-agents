@@ -10,6 +10,59 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-10-25 (Sunday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 94 (0 today, head `36d4e6c`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 220 pass, 0 fail (10 suites) |
+| Source lines (src/) | 10756 across 80 files |
+| Test lines (tests/) | 3455 across 34 files |
+| Agent runs in DB | 32 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded) |
+
+**Done**
+
+*Reconstructed* (22 and 24 Oct, from session memory; no live entry was written):
+- 22 Oct: owner's `test:lead-conversion` run stopped at 1a; `/api/intake/triage` returned "Failed
+  to get valid JSON from OpenAI after retry". Last good triage in llmusages: 17 Sep. ai-tool-dashboard
+  `cd02902` (local) makes openai.ts report API errors as such. One E2E draft problem left (22 Oct
+  16:53 UTC).
+- 24 Oct: owner decisions (below); TCC block stopped work before anything started.
+
+Live, 25 Oct (ai-tool-dashboard, all local, three parallel agents plus integration):
+- `a8a2ffa` Playwright: CRM deal checks (6b, 8) replace the GHL legs; ghl-client, 6c/8b, GHL leg of
+  crm-tracking, 'ghl' movement source removed. `--list`: 37 tests in the 3 funnel files (was 39).
+- `fcfa5ad` GHL code removed (6 files deleted, crm.ts GHL_SYNC gone, CSP adds crm.askdbl.com,
+  privacy page, GHL ids redacted in history docs). Triage + outline on claude-opus-5-5, sample answer
+  on claude-sonnet-5-5, tool categorisation on claude-haiku-5-5, generation on claude-sonnet-5-5;
+  maxDuration on those routes; envCheck checks ANTHROPIC_API_KEY and OPENAI_API_KEY.
+- ai-tool-dashboard checks: tsc pass, Jest 447 pass / 49 suites, lint 0 errors. Not pushed.
+
+**Decided**
+
+- 24 Oct: triage moves to Claude; GHL removal runs now, local, one push after owner OK; owner cancels
+  ChatGPT Business ($50, renews 27 Oct; not used by the site).
+- 25 Oct: outline and sample answer also move to Claude; triage stays on Opus 5.5; Whisper voice
+  input stays on OpenAI and the owner fixes the OpenAI key; retired/retiring Claude models updated.
+
+**Open / next**
+
+1. Owner OK to push ai-tool-dashboard main (`cd02902`, `a8a2ffa`, `fcfa5ad`; auto-deploys).
+2. After deploy and owner go: run `test:lead-conversion` and `test:lifecycle`, report CRM checks,
+   check Claude triage quality, delete the 22 Oct E2E draft problem.
+3. Owner: fix OpenAI API key (Whisper only), delete GHL env vars in Vercel, cancel GHL before 29 Oct,
+   cancel ChatGPT Business before 27 Oct, remove GHL lines from playwright/.env; update ledger;
+   reconnect finops Gmail.
+4. `pages/api/ai-tools/index.ts` has no auth on GET (lists contacts) or DELETE (deletes all tools):
+   owner decision on locking it to admin.
+
+---
+
 ## 2026-10-21 (Wednesday)
 
 **Snapshot at end of day**
