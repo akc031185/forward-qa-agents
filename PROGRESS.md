@@ -82,9 +82,9 @@ Live, 25 Oct (ai-tool-dashboard, all local, three parallel agents plus integrati
 
 1. Proposals and clarification comments from lead-conversion still need manual cleanup by id
    (no DELETE endpoint); add one if E2E runs become routine.
-2. Owner: delete GHL env vars in Vercel, cancel GHL before 29 Oct,
-   cancel ChatGPT Business before 27 Oct, remove GHL lines from playwright/.env; update ledger;
-   reconnect finops Gmail.
+2. Owner: remove the 5 GHL vars in Vercel production (auto mode blocked `vercel env rm`); cancel
+   ChatGPT Business before 27 Oct (ledger i11 = CANCEL; login akc031185@gmail.com, Relay ••9671);
+   verify no GHL $97 on ..1659 in Nov (GHL cancelled by owner, ends 28 Oct); reconnect finops Gmail.
 
 ---
 
