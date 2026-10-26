@@ -68,7 +68,8 @@ Live, 25 Oct (ai-tool-dashboard, all local, three parallel agents plus integrati
   (deleted via the new admin DELETE). Proposal + 2 clarification comments deleted by id.
 - Cause of the flake: 8 routes populate Problem / User without importing the model, so a fresh
   serverless instance throws "Schema hasn't been registered". `d9df52b` (local) adds the imports.
-  tsc pass, Jest 455, lint 0 errors.
+  tsc pass, Jest 455, lint 0 errors. Owner OK, pushed `8d669ca..d9df52b`, deploy success;
+  lifecycle right after deploy (fresh instances) 18/18, CRM 15.1 / 27.5 / 29.3 / 35.3 s.
 
 **Decided**
 
@@ -79,8 +80,8 @@ Live, 25 Oct (ai-tool-dashboard, all local, three parallel agents plus integrati
 
 **Open / next**
 
-1. Owner OK to push `d9df52b`; then one lifecycle run right after the deploy (cold instances) to
-   confirm 3a passes. Proposals and clarification comments still need manual cleanup.
+1. Proposals and clarification comments from lead-conversion still need manual cleanup by id
+   (no DELETE endpoint); add one if E2E runs become routine.
 2. Owner: delete GHL env vars in Vercel, cancel GHL before 29 Oct,
    cancel ChatGPT Business before 27 Oct, remove GHL lines from playwright/.env; update ledger;
    reconnect finops Gmail.
