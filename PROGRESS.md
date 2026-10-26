@@ -59,6 +59,9 @@ Live, 25 Oct (ai-tool-dashboard, all local, three parallel agents plus integrati
   projects have no DELETE endpoint.
 - `77995d9` (local): login locator scoped to the form, lead-conversion cleanup as client, 6e
   diagnostic, comment typo. tsc pass, Jest 453, `--list` 126 tests in 7 files.
+- `8d669ca` admin-only DELETE /api/projects/[id] (also removes approvals, comments, deliverables,
+  generations; Blob files stay). Jest 455 / 51 suites. Owner OK, pushed `2bcc4de..8d669ca`;
+  deploy success, home 200.
 
 **Decided**
 
@@ -69,10 +72,9 @@ Live, 25 Oct (ai-tool-dashboard, all local, three parallel agents plus integrati
 
 **Open / next**
 
-1. Owner OK to push `77995d9` (tests + one comment; deploys).
-2. Lifecycle projects stay behind after each run (no DELETE on /api/projects/[id]): add an
-   admin-only delete or a cleanup script; decide with owner.
-3. Owner: delete GHL env vars in Vercel, cancel GHL before 29 Oct,
+1. Next lifecycle run (owner go): confirm afterAll now deletes the project and lead-conversion
+   deletes its problem (proposals still stay; no DELETE endpoint).
+2. Owner: delete GHL env vars in Vercel, cancel GHL before 29 Oct,
    cancel ChatGPT Business before 27 Oct, remove GHL lines from playwright/.env; update ledger;
    reconnect finops Gmail.
 
