@@ -46,19 +46,33 @@ Live, 25 Oct (ai-tool-dashboard, all local, three parallel agents plus integrati
 - ai-tool-dashboard checks: tsc pass, Jest 453 pass / 50 suites, lint 0 errors. Owner OK, pushed
   `177c21b..2bcc4de`; Vercel deploy success. Live: home 200, /api/ai-tools 401, CSP lists
   crm.askdbl.com and no leadconnectorhq.
+- Owner deleted-on-request: local docs/ghl-inventory.json/.md removed (never committed).
+- Production E2E (owner go), 00:15–00:19 UTC 26 Oct: `test:lead-conversion` 13 pass / 2 skipped
+  after a login-locator fix (CRM widget adds a second submit button); CRM deal.created 14.8 s,
+  "Proposal sent:" 18.2 s, "clarification" 22.5 s, "signed" 26.6 s. `test:lifecycle` 18/18 on
+  runs 2 and 3 (run 1: 6e read `project.milestones` undefined once, not reproduced); CRM
+  deal.created 11.3 s, Milestone 20.0 s, Deliverable 23.3 s, Approval 29.0 s. Fire-and-forget
+  notes all arrived.
+- Claude triage (llmusages): claude-opus-5-5, 8.1–11.5 s, 681–697 tokens in, 862–1187 out.
+- Deleted 7 E2E records by id (3 problems incl. the 22 Oct draft, 1 proposal, 3 projects).
+  Cause of leftovers: lead-conversion cleaned up as admin (owner-only delete, silent 403);
+  projects have no DELETE endpoint.
+- `77995d9` (local): login locator scoped to the form, lead-conversion cleanup as client, 6e
+  diagnostic, comment typo. tsc pass, Jest 453, `--list` 126 tests in 7 files.
 
 **Decided**
 
 - 24 Oct: triage moves to Claude; GHL removal runs now, local, one push after owner OK; owner cancels
   ChatGPT Business ($50, renews 27 Oct; not used by the site).
 - 25 Oct: outline and sample answer also move to Claude; triage stays on Opus 5.5; Whisper voice
-  input stays on OpenAI and the owner fixes the OpenAI key; retired/retiring Claude models updated.
+  input stays on OpenAI (owner: key is linked, no action); retired/retiring Claude models updated.
 
 **Open / next**
 
-1. After owner go: run `test:lead-conversion` and `test:lifecycle`, report CRM checks,
-   check Claude triage quality, delete the 22 Oct E2E draft problem.
-2. Owner: fix OpenAI API key (Whisper only), delete GHL env vars in Vercel, cancel GHL before 29 Oct,
+1. Owner OK to push `77995d9` (tests + one comment; deploys).
+2. Lifecycle projects stay behind after each run (no DELETE on /api/projects/[id]): add an
+   admin-only delete or a cleanup script; decide with owner.
+3. Owner: delete GHL env vars in Vercel, cancel GHL before 29 Oct,
    cancel ChatGPT Business before 27 Oct, remove GHL lines from playwright/.env; update ledger;
    reconnect finops Gmail.
 
