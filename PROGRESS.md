@@ -62,6 +62,13 @@ Live, 25 Oct (ai-tool-dashboard, all local, three parallel agents plus integrati
 - `8d669ca` admin-only DELETE /api/projects/[id] (also removes approvals, comments, deliverables,
   generations; Blob files stay). Jest 455 / 51 suites. Owner OK, pushed `2bcc4de..8d669ca`;
   deploy success, home 200.
+- Verification E2E (owner go): lifecycle failed twice at 3a ("Project Not Found" on the admin
+  page right after create), then 18/18; lead-conversion 13 pass / 2 skipped, CRM 12.3 / 14.6 /
+  18.6 / 22.6 s. Passing runs now clean up problem + project; failed runs left their projects
+  (deleted via the new admin DELETE). Proposal + 2 clarification comments deleted by id.
+- Cause of the flake: 8 routes populate Problem / User without importing the model, so a fresh
+  serverless instance throws "Schema hasn't been registered". `d9df52b` (local) adds the imports.
+  tsc pass, Jest 455, lint 0 errors.
 
 **Decided**
 
@@ -72,8 +79,8 @@ Live, 25 Oct (ai-tool-dashboard, all local, three parallel agents plus integrati
 
 **Open / next**
 
-1. Next lifecycle run (owner go): confirm afterAll now deletes the project and lead-conversion
-   deletes its problem (proposals still stay; no DELETE endpoint).
+1. Owner OK to push `d9df52b`; then one lifecycle run right after the deploy (cold instances) to
+   confirm 3a passes. Proposals and clarification comments still need manual cleanup.
 2. Owner: delete GHL env vars in Vercel, cancel GHL before 29 Oct,
    cancel ChatGPT Business before 27 Oct, remove GHL lines from playwright/.env; update ledger;
    reconnect finops Gmail.
