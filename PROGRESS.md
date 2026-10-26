@@ -10,6 +10,42 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-10-26 (Monday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 103 (0 today, head `f6b04e8`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 220 pass, 0 fail (10 suites) |
+| Source lines (src/) | 10756 across 80 files |
+| Test lines (tests/) | 3455 across 34 files |
+| Agent runs in DB | 32 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded) |
+
+**Done**
+
+- GHL Vercel production vars removed (5; 0 left) on owner's "do it" after auto mode first blocked
+  it. GHL account cancelled by owner, ends 28 Oct.
+- ChatGPT Business located (login akc031185@gmail.com, workspace on Relay virtual ••9671) and
+  opened in Chrome; owner cancelled it. Billing page: "Deactivates on October 27, 2026". Ledger i11
+  = CANCEL / Done.
+
+**Decided**
+
+- OpenAI API key stays as is (owner: already linked); used only by Whisper voice input.
+
+**Open / next**
+
+1. Reconnect finops Gmail (invalid_grant).
+2. Early Nov: confirm no $97 HighLevel charge on Chase ..1659 and no $50 OpenAI charge on Relay
+   ••9671.
+3. Optional: DELETE for proposals so lead-conversion cleans up fully (today: manual by id).
+
+---
+
 ## 2026-10-25 (Sunday)
 
 **Snapshot at end of day**
