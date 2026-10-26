@@ -32,6 +32,14 @@ best-effort and their numbers as exact.
 - ChatGPT Business located (login akc031185@gmail.com, workspace on Relay virtual ••9671) and
   opened in Chrome; owner cancelled it. Billing page: "Deactivates on October 27, 2026". Ledger i11
   = CANCEL / Done.
+- Charge check (bank data synced to 25 Oct): last HighLevel $97 on 29 Sep, last OpenAI $50 on
+  28 Sep; nothing since. The Relay card isn't in the bank feed, so it can't be watched from here.
+- finops Gmail `akc` fails with invalid_grant because its Google OAuth consent screen is in
+  Testing (refresh tokens expire after 7 days). Owner re-auths with `npm run auth:google -- --alias
+  akc` in finops-mcp.
+- READMEs updated, local: ai-tool-dashboard `d7e4191` (Claude for all text models, Whisper only on
+  OpenAI, admin-only endpoints, E2E), askdbl-crm `c42d085` (GHL gone).
+- Build-log page about the product journey published as a private Claude artifact.
 
 **Decided**
 
@@ -39,7 +47,8 @@ best-effort and their numbers as exact.
 
 **Open / next**
 
-1. Reconnect finops Gmail (invalid_grant).
+1. Owner: run the Gmail re-auth; publish the Google OAuth app to Production so it stops expiring
+   weekly. Push `d7e4191` and `c42d085` on owner OK (each repo auto-deploys).
 2. Early Nov: confirm no $97 HighLevel charge on Chase ..1659 and no $50 OpenAI charge on Relay
    ••9671.
 3. Optional: DELETE for proposals so lead-conversion cleans up fully (today: manual by id).
