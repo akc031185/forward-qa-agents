@@ -10,6 +10,39 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-10-27 (Tuesday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 105 (0 today, head `6e41ab5`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 220 pass, 0 fail (10 suites) |
+| Source lines (src/) | 10756 across 80 files |
+| Test lines (tests/) | 3455 across 34 files |
+| Agent runs in DB | 32 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded) |
+
+**Done**
+
+- 10:2x Pushed app README commit `d7e4191` and CRM README commit `c42d085` (owner OK); both repos auto-deploy.
+- 10:30 finops Gmail (akc) re-authorised; token rewritten, `gmail_search` returns mail again. Inbox confirms "ChatGPT - Your plan will not renew" (26 Oct).
+- Gave owner the steps to move the Google OAuth consent screen from Testing to In production (stops the 7-day refresh-token expiry).
+
+**Decided**
+
+- Gmail access stays read-only (`gmail.readonly`); unverified app is acceptable for personal use (<100 users).
+
+**Open / next**
+
+1. Confirm the OAuth app shows "In production"; if it was published after today's sign-in, re-run the akc auth once more.
+2. Early Nov: no $97 HighLevel on the Chase card, no $50 ChatGPT on the Relay card (check Relay directly).
+3. Optional: admin DELETE for proposals.
+
+---
+
 ## 2026-10-26 (Monday)
 
 **Snapshot at end of day**
