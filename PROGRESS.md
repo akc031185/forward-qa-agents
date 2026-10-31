@@ -30,6 +30,8 @@ best-effort and their numbers as exact.
 - 10:2x Pushed app README commit `d7e4191` and CRM README commit `c42d085` (owner OK); both repos auto-deploy.
 - 10:30 finops Gmail (akc) re-authorised; token rewritten, `gmail_search` returns mail again. Inbox confirms "ChatGPT - Your plan will not renew" (26 Oct).
 - Gave owner the steps to move the Google OAuth consent screen from Testing to In production (stops the 7-day refresh-token expiry).
+- 10:4x Branding set + finops OAuth app published to production (owner OK).
+- 10:51 akc and abhi Gmail re-authorised under production; `gmail_search` OK.
 
 **Decided**
 
@@ -37,9 +39,8 @@ best-effort and their numbers as exact.
 
 **Open / next**
 
-1. Confirm the OAuth app shows "In production"; if it was published after today's sign-in, re-run the akc auth once more.
-2. Early Nov: no $97 HighLevel on the Chase card, no $50 ChatGPT on the Relay card (check Relay directly).
-3. Optional: admin DELETE for proposals.
+1. Owner watches cards for stray Nov HighLevel/ChatGPT charges.
+2. Optional: admin DELETE for proposals.
 
 ---
 
