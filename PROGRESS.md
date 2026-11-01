@@ -37,7 +37,7 @@ best-effort and their numbers as exact.
   Playwright `--list` 126 tests in 7 files.
 - Owner OK: fast-forwarded main and pushed `d7e4191..a357fac`; Vercel deploy success. Live: home
   200, unauthenticated DELETE /api/admin/proposals/[id] 401. Branch deleted.
-- Production E2E (owner go), ~20:10 local: `test:lead-conversion` 13 pass / 2 skipped (1.4 min);
+- Production E2E (owner go), ~20:05 local: `test:lead-conversion` 13 pass / 2 skipped (1.4 min);
   CRM deal.created 22.9 s, "Proposal sent:" 38.9 s, "clarification" 54.5 s, "signed" 61.7 s.
   Read-only DB check after: the run's proposal, its clarification comments and its problem are
   gone; 0 E2E-TEST proposals left. No `proposal.deleted` event was written.
