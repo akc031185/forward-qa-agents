@@ -37,6 +37,10 @@ best-effort and their numbers as exact.
   Playwright `--list` 126 tests in 7 files.
 - Owner OK: fast-forwarded main and pushed `d7e4191..a357fac`; Vercel deploy success. Live: home
   200, unauthenticated DELETE /api/admin/proposals/[id] 401. Branch deleted.
+- Production E2E (owner go), ~20:10 local: `test:lead-conversion` 13 pass / 2 skipped (1.4 min);
+  CRM deal.created 22.9 s, "Proposal sent:" 38.9 s, "clarification" 54.5 s, "signed" 61.7 s.
+  Read-only DB check after: the run's proposal, its clarification comments and its problem are
+  gone; 0 E2E-TEST proposals left. No `proposal.deleted` event was written.
 
 **Decided**
 
@@ -45,7 +49,9 @@ best-effort and their numbers as exact.
 
 **Open / next**
 
-1. With owner go: one production `test:lead-conversion` run to confirm cleanup leaves no proposal.
+1. `logEvent` is not awaited in the proposal and project DELETE handlers, so the serverless function
+   likely ends before the event is written (inferred from code; further prod reads were blocked).
+   Fix = `await logEvent(...)` in both; needs owner OK to push.
 2. Owner watches cards for stray Nov HighLevel/ChatGPT charges.
 
 ---
