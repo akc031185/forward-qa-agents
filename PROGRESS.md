@@ -35,6 +35,8 @@ best-effort and their numbers as exact.
   proposal as admin before the client deletes the problem.
 - ai-tool-dashboard checks: tsc pass, Jest 459 pass / 52 suites (4 new), eslint 0 on touched files,
   Playwright `--list` 126 tests in 7 files.
+- Owner OK: fast-forwarded main and pushed `d7e4191..a357fac`; Vercel deploy success. Live: home
+  200, unauthenticated DELETE /api/admin/proposals/[id] 401. Branch deleted.
 
 **Decided**
 
@@ -43,9 +45,8 @@ best-effort and their numbers as exact.
 
 **Open / next**
 
-1. Owner OK to merge `proposals-delete` into ai-tool-dashboard main and push (auto-deploys).
-2. After deploy, with owner go: one `test:lead-conversion` run to confirm cleanup leaves no proposal.
-3. Owner watches cards for stray Nov HighLevel/ChatGPT charges.
+1. With owner go: one production `test:lead-conversion` run to confirm cleanup leaves no proposal.
+2. Owner watches cards for stray Nov HighLevel/ChatGPT charges.
 
 ---
 
