@@ -10,6 +10,45 @@ best-effort and their numbers as exact.
 
 ---
 
+## 2026-10-31 (Saturday)
+
+**Snapshot at end of day**
+
+| Metric | Value |
+|---|---|
+| Commits on main | 107 (1 today, head `07d76bf`) |
+| Pushed to origin | yes, in sync |
+| Uncommitted files | 0 |
+| Typecheck | pass |
+| Tests | 220 pass, 0 fail (10 suites) |
+| Source lines (src/) | 10756 across 80 files |
+| Test lines (tests/) | 3455 across 34 files |
+| Agent runs in DB | 32 (forward-deployed-tester:succeeded,sdet-architect:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,ai-site-auditor:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded,architecture-dossier:succeeded) |
+
+**Done**
+
+- After restart: 27 Oct log commit `07d76bf` was intact (TCC hit during commit, before push).
+  typecheck pass, tests 220/220; pushed `5654218..07d76bf` (normal push).
+- ai-tool-dashboard branch `proposals-delete`, commit `a357fac` (local, not pushed): admin-only
+  DELETE /api/admin/proposals/[id] removes the proposal and its clarification comments; paid
+  proposals answer 409; new event `proposal.deleted`. lead-conversion afterAll now deletes its
+  proposal as admin before the client deletes the problem.
+- ai-tool-dashboard checks: tsc pass, Jest 459 pass / 52 suites (4 new), eslint 0 on touched files,
+  Playwright `--list` 126 tests in 7 files.
+
+**Decided**
+
+- Paid proposals cannot be deleted (billing record for the Stripe webhook and the project);
+  every other status, including accepted, can.
+
+**Open / next**
+
+1. Owner OK to merge `proposals-delete` into ai-tool-dashboard main and push (auto-deploys).
+2. After deploy, with owner go: one `test:lead-conversion` run to confirm cleanup leaves no proposal.
+3. Owner watches cards for stray Nov HighLevel/ChatGPT charges.
+
+---
+
 ## 2026-10-27 (Tuesday)
 
 **Snapshot at end of day**
